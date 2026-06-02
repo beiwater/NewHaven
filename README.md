@@ -15,7 +15,3 @@ See [INDEX.md](INDEX.md) for the full project structure.
 ## Contributing
 
 Pull requests are welcome. Before submitting, please read and sign our [Contributor License Agreement](CLA.md). All contributors must agree to the CLA — it grants the project the right to use, modify, and commercialize your contributions while you retain ownership of your work.
-
-## License
-
-[MIT](LICENSE)
