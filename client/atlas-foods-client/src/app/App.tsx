@@ -8,10 +8,15 @@ import { MarketPage } from '@/features/market/MarketPage'
 import { InventoryBar } from '@/features/inventory/InventoryBar'
 import { ContractList } from '@/features/contracts/ContractList'
 import { ChatPanel } from '@/features/chat/ChatPanel'
+import { PowerPanel } from '@/features/powerups/PowerPanel'
 import { useMarketWebSocket, useProductionWebSocket } from '@/api/websocket'
 import { BuildView } from '@/features/buildings/BuildView'
 import { useUIStore } from '@/store/ui.store'
+import { ExecutivePage } from '@/features/executives/ExecutivePage'
+import { FinancialPage } from '@/features/financial/FinancialPage'
+import { ResearchPage } from '@/features/research/ResearchPage'
 import { ErrorBoundary } from './ErrorBoundary'
+import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage'
 
 // Lazy-load PixiJS game canvas so it doesn't block React mount
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
@@ -28,13 +33,14 @@ function PageContent() {
       return <BuildView />
     case 'contracts':
       return <ContractList />
+    case 'executives':
+      return <ExecutivePage />
+    case 'finance':
+      return <FinancialPage />
     case 'research':
-      return (
-        <div className="p-4">
-          <h2 className="text-lg font-bold text-amber-900">Research Lab</h2>
-          <p className="text-xs text-amber-600 mt-1">Research projects coming soon.</p>
-        </div>
-      )
+      return <ResearchPage />
+    case 'leaderboard':
+      return <LeaderboardPage />
     case 'map':
     default:
       return null
@@ -91,6 +97,7 @@ function GameLayout() {
         </button>
       )}
       <ChatPanel />
+      <PowerPanel />
     </div>
   )
 }

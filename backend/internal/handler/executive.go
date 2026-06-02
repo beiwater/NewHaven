@@ -11,7 +11,20 @@ func (h *Handler) handleExecSearch(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 405, "method not allowed")
 		return
 	}
-	execs := h.svc.ExecutiveCatalog()
+	var body map[string]any
+	scope := "market"
+	if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
+		if s, ok := body["scope"].(string); ok {
+			scope = s
+		}
+	}
+	var execs []map[string]any
+	switch scope {
+	case "mine":
+		execs = h.svc.MyExecutives()
+	default:
+		execs = h.svc.ExecutiveCatalog()
+	}
 	writeJSON(w, 200, map[string]any{"executives": execs, "total": len(execs)})
 }
 

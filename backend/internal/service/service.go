@@ -62,12 +62,42 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 		}
 	}
 
-	mainCompany := model.Company{
-		ID: cfg.Game.CompanyID, Name: cfg.Game.CompanyName, Money: cfg.Game.StartMoney, Level: cfg.Game.StartLevel,
-		Inventory:         map[int]int{1: 2000, 2: 1800, 3: 900, 8: 300, 9: 120},
-		PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 2, "level": 3, "busy": false, "baseCost": 10000, "x": 2, "y": 1, "placedAt": now}},
-		UnplacedBuildings: []map[string]any{},
-		WarehouseLevel:    0,
+	var companies []model.Company
+	var players []model.Player
+	var bonds []model.Bond
+	var ledger []model.LedgerEntry
+	var preferences map[string]any
+	var achievements []map[string]any
+	var notifications []model.Notification
+
+	if cfg.DevMode {
+		// Dev mode: create a demo company and dev player so login works immediately
+		mainCompany := model.Company{
+			ID: cfg.Game.CompanyID, Name: cfg.Game.CompanyName, Money: cfg.Game.StartMoney, Level: cfg.Game.StartLevel,
+			Inventory:         map[int]int{1: 2000, 2: 1800, 3: 900, 8: 300, 9: 120},
+			PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 2, "level": 3, "busy": false, "baseCost": 10000, "x": 2, "y": 1, "placedAt": now}},
+			UnplacedBuildings: []map[string]any{},
+			WarehouseLevel:    0,
+		}
+		companies = append(companies, mainCompany)
+		// Create a dev player record so /api/login works
+		devPlayer := model.Player{
+			ID: 0, Username: "dev", PasswordHash: "",
+			CompanyID: cfg.Game.CompanyID, RegisteredAt: now,
+		}
+		players = append(players, devPlayer)
+		bonds = []model.Bond{
+			{ID: "bond-1", Amount: 5000, Interest: 0.012, PurchasedAt: now, MissedPayments: 0, InterestCollected: 2.4, RatingWhenPurchased: "A", IssuerCompanyID: cfg.Game.Bot1ID, OwnerCompanyID: cfg.Game.CompanyID, RestructurePct: 0.0},
+		}
+		ledger = []model.LedgerEntry{{ID: "l-0", At: now, Kind: "opening_balance", Amount: cfg.Game.StartMoney, Direction: "in"}}
+		preferences = map[string]any{"soundEnabled": true, "buildingAnimationsEnabled": true, "autoDisableAnimations": false}
+		achievements = []map[string]any{
+			{"id": "a-1", "code": "first_trade", "progress": 1, "goal": 1, "completed": true},
+			{"id": "a-2", "code": "production_novice", "progress": 12, "goal": 100, "completed": false},
+		}
+		notifications = []model.Notification{
+			{ID: "n-1", Title: "Market Update", Body: "Bots are providing liquidity.", Read: false},
+		}
 	}
 	botA := model.Company{ID: cfg.Game.Bot1ID, Name: cfg.Game.Bot1Name, Money: cfg.Game.BotMoney, Level: cfg.Game.BotLevel, Inventory: botInventoryFromConfig(cfg, 24000)}
 	botB := model.Company{ID: cfg.Game.Bot2ID, Name: cfg.Game.Bot2Name, Money: cfg.Game.BotMoney, Level: cfg.Game.BotLevel, Inventory: botInventoryFromConfig(cfg, 18000)}
@@ -79,17 +109,17 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 		AML:   aml.New(cfg.AMLEnabled),
 		SD:    anticheat.NewScriptDetector(cfg.ScriptDetectEnabled),
 		State: model.GameState{
-			Players:             []model.Player{},
+			Players:             players,
 			NextPlayerID:        1,
-			Companies:           []model.Company{mainCompany, botA, botB},
+			Companies:           append(companies, botA, botB),
 			CSRFToken:           cfg.CSRFToken,
 			Messages:            []model.Message{{ID: "m-1", Chatroom: "N", Body: "Welcome to Sim API clone.", At: now}},
-			Bonds:               []model.Bond{{ID: "bond-1", Amount: 5000, Interest: 0.012, PurchasedAt: now, MissedPayments: 0, InterestCollected: 2.4, RatingWhenPurchased: "A", IssuerCompanyID: cfg.Game.Bot1ID, OwnerCompanyID: cfg.Game.CompanyID, RestructurePct: 0.0}},
+			Bonds:               bonds,
 			ContractsIn:         []map[string]any{},
 			ContractsOut:        []map[string]any{},
-			Achievements:        []map[string]any{{"id": "a-1", "code": "first_trade", "progress": 1, "goal": 1, "completed": true}, {"id": "a-2", "code": "production_novice", "progress": 12, "goal": 100, "completed": false}},
-			Notifications:       []model.Notification{{ID: "n-1", Title: "Market Update", Body: "Bots are providing liquidity.", Read: false}},
-			PlayerPreferences:   map[string]any{"soundEnabled": true, "buildingAnimationsEnabled": true, "autoDisableAnimations": false},
+			Achievements:        achievements,
+			Notifications:       notifications,
+			PlayerPreferences:   preferences,
 			BotCompanies:        []model.Company{botA, botB},
 			MarketTicks:         map[int][]map[string]any{},
 			ProductionJobs:      []model.ProductionJob{},
@@ -103,46 +133,42 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 			ResearchProjects: []model.ResearchProject{
 				{
 					ID: "research-project-29", Name: "Plant Research",
-					Building:     "Plant Research Center",
+					Building: "Plant Research Center",
 					ResourceCost: map[int]int{24: 200, 25: 150},
-					CashCost:     50000, DurationHours: 6,
-					QualityResourceID: 3, // improves quality of Apples
-					Status:            "available", Progress: 0,
+					CashCost: 50000, DurationHours: 6,
+					QualityResourceID: 3, Status: "available", Progress: 0,
 				},
 				{
 					ID: "research-project-30", Name: "Energy Research",
-					Building:     "Physics Lab",
+					Building: "Physics Lab",
 					ResourceCost: map[int]int{24: 300, 25: 200},
-					CashCost:     80000, DurationHours: 8,
-					QualityResourceID: 11, // improves quality of Ice Cream
-					Status:            "in_progress", Progress: 45,
+					CashCost: 80000, DurationHours: 8,
+					QualityResourceID: 11, Status: "in_progress", Progress: 45,
 					StartedAt: now, CompletesAt: time.Now().UTC().Add(8 * time.Hour).Format(time.RFC3339),
 				},
 				{
 					ID: "research-project-31", Name: "Mining Research",
-					Building:     "Physics Lab",
+					Building: "Physics Lab",
 					ResourceCost: map[int]int{24: 400, 25: 300},
-					CashCost:     100000, DurationHours: 10,
-					QualityResourceID: 10, // improves quality of Minerals
-					Status:            "in_progress", Progress: 12,
+					CashCost: 100000, DurationHours: 10,
+					QualityResourceID: 10, Status: "in_progress", Progress: 12,
 					StartedAt: now, CompletesAt: time.Now().UTC().Add(10 * time.Hour).Format(time.RFC3339),
 				},
 				{
 					ID: "research-project-32", Name: "Chemical Research",
-					Building:     "Physics Lab",
+					Building: "Physics Lab",
 					ResourceCost: map[int]int{24: 500, 25: 400},
-					CashCost:     120000, DurationHours: 12,
-					QualityResourceID: 7, // improves quality of Chemicals
-					Status:            "available", Progress: 0,
+					CashCost: 120000, DurationHours: 12,
+					QualityResourceID: 7, Status: "available", Progress: 0,
 				},
 			},
 			Auctions: []model.Auction{
 				{ID: "auction-1", Item: "Industrial Warehouse", ItemID: "b-auction-1", StartingBid: 50000, CurrentBid: 50000, HighestBidder: 0, EndsAt: time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339), Status: "open", CreatedAt: now},
 				{ID: "auction-2", Item: "Farmland Expansion", ItemID: "b-auction-2", StartingBid: 25000, CurrentBid: 25000, HighestBidder: 0, EndsAt: time.Now().UTC().Add(72 * time.Hour).Format(time.RFC3339), Status: "open", CreatedAt: now},
 			},
-			Ledger:             []model.LedgerEntry{{ID: "l-0", At: now, Kind: "opening_balance", Amount: cfg.Game.StartMoney, Direction: "in"}},
-			LastActiveAt:       now,
-			ProcessedRequests:  map[string]map[string]any{},
+			Ledger:           ledger,
+			LastActiveAt:     now,
+			ProcessedRequests: map[string]map[string]any{},
 			DailyTradeVolume:   map[int]float64{},
 			DailyTradeQty:      map[int]int{},
 			DailyHighPrice:     map[int]float64{},

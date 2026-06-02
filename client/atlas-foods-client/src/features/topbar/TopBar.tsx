@@ -1,12 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { clearAuth } from '@/api/client'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
+import { useUIStore } from '@/store/ui.store'
 import { Icon } from '@/features/ui/Icon'
 
 export function TopBar() {
   const queryClient = useQueryClient()
   const { data: companyData } = useCompany()
   const { data: levelData } = usePlayerLevel()
+  const setActiveView = useUIStore((s) => s.setActiveView)
+  const setPowerupOpen = useUIStore((s) => s.setPowerupOpen)
 
   const companyName = companyData?.authCompany?.company ?? 'Mellow Acres Co.'
   const cash = companyData?.authCompany?.money ?? 0
@@ -33,13 +36,17 @@ export function TopBar() {
       </div>
 
       {/* Cash */}
-      <div className="flex items-center gap-2 px-5 h-full border-r border-amber-700/50">
+      <button
+        onClick={() => setActiveView('finance')}
+        className="flex items-center gap-2 px-5 h-full border-r border-amber-700/50 hover:bg-amber-700/30 transition-colors text-left"
+        title="View financials"
+      >
         <Icon name="icon_coin_v1" className="w-7 h-7" />
         <div>
           <div className="text-[10px] text-amber-300/70 uppercase tracking-wider">Cash</div>
           <div className="font-bold text-sm tabular-nums">${cash.toLocaleString()}</div>
         </div>
-      </div>
+      </button>
 
       {/* Level & XP */}
       <div className="flex items-center gap-3 px-5 h-full flex-1">
@@ -79,6 +86,20 @@ export function TopBar() {
         </div>
       </div>
 
+      {/* Power-up */}
+      <button
+        onClick={() => setPowerupOpen(true)}
+        className="flex items-center gap-2 px-4 h-full border-l border-amber-700/50 hover:bg-amber-700/30 transition-colors"
+        title="Power-ups"
+      >
+        <svg className="w-5 h-5 text-yellow-300" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <div className="text-xs leading-tight">
+          <div className="text-[10px] text-amber-300/70 uppercase tracking-wider">Power-up</div>
+          <div className="font-semibold text-yellow-200 text-[11px]">Active</div>
+        </div>
+      </button>
       {/* Top icons */}
       <div className="flex items-center gap-1 px-3 ml-auto">
         <button className="p-2 rounded-lg hover:bg-amber-700/50 transition-colors" title="Notifications">

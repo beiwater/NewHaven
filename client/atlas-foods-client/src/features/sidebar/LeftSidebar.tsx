@@ -7,6 +7,9 @@ const navItems: Array<{ id: ActiveView; label: string; icon: string; iconClass?:
   { id: 'market', label: 'Market', icon: '/assets/icons/icon_market_v1.png' },
   { id: 'contracts', label: 'Contracts', icon: '/assets/icons/icon_contract_v1.png' },
   { id: 'research', label: 'Research', icon: '/assets/icons/icon_timer_v1.png' },
+  { id: 'executives', label: 'Executives', icon: '/assets/icons/icon_factory_v1.png' },
+  { id: 'finance', label: 'Finance', icon: '/assets/icons/icon_cash_v1.png' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: '/assets/icons/icon_level_badge_v1.png' },
 ]
 
 export function LeftSidebar() {

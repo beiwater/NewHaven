@@ -7,6 +7,12 @@ import (
 
 type RegisterRequest struct {
 	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func (h *Handler) RegisterAuth(mux *http.ServeMux) {
@@ -20,11 +26,11 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Username == "" {
-		writeErr(w, 400, "username required")
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Username == "" || req.Password == "" {
+		writeErr(w, 400, "username and password required")
 		return
 	}
-	player, err := h.svc.RegisterPlayer(req.Username)
+	player, err := h.svc.RegisterPlayer(req.Username, req.Password)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
@@ -37,12 +43,12 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 405, "method not allowed")
 		return
 	}
-	var req RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Username == "" {
-		writeErr(w, 400, "username required")
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Username == "" || req.Password == "" {
+		writeErr(w, 400, "username and password required")
 		return
 	}
-	player, err := h.svc.LoginPlayer(req.Username)
+	player, err := h.svc.LoginPlayer(req.Username, req.Password)
 	if err != nil {
 		writeErr(w, 401, err.Error())
 		return

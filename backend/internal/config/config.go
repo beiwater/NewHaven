@@ -8,12 +8,14 @@ import (
 
 type Config struct {
 	// Deployment (env only)
-	Addr        string
-	DataDir     string
-	Debug       bool
-	DBPath      string
-	DatabaseURL string
-	CSRFToken   string
+	Addr          string
+	DataDir       string
+	Debug         bool
+	DevMode       bool
+	JWTSigningKey string
+	DBPath        string
+	DatabaseURL   string
+	CSRFToken     string
 
 	// Feature flags (env only)
 	ACEnabled           bool
@@ -67,6 +69,19 @@ type GameConfig struct {
 	NationalTeamVolumePct float64 `json:"national_team_volume_pct"`
 	NationalTeamPricePct  float64 `json:"national_team_price_pct"`
 	BotReplacementRate    float64 `json:"bot_replacement_rate"`
+	// Economic formula tuning (v1.3.1+)
+	LaborCostIndex         float64 `json:"labor_cost_index"`
+	MaterialCostIndex      float64 `json:"material_cost_index"`
+	EnergyCostIndex        float64 `json:"energy_cost_index"`
+	GlobalDemandIndex      float64 `json:"global_demand_index"`
+	SaturationK            float64 `json:"saturation_k"`
+	EventPriceMultiplier   float64 `json:"event_price_multiplier"`
+	RetailTaxRate          float64 `json:"retail_tax_rate"`
+	BaseLaborCost          float64 `json:"base_labor_cost"`
+	BaseEnergyCost         float64 `json:"base_energy_cost"`
+	BaseMaintenanceCost    float64 `json:"base_maintenance_cost"`
+	BaseManagementCost     float64 `json:"base_management_cost"`
+	SweetSpotLevel         int     `json:"sweet_spot_level"`
 }
 
 func Load() *Config {
@@ -74,6 +89,8 @@ func Load() *Config {
 		Addr:                envStr("SIM_API_ADDR", "127.0.0.1:8088"),
 		DataDir:             envStr("SIM_API_DATA_DIR", "decompiled/data"),
 		Debug:               os.Getenv("SIM_API_DEBUG") == "1",
+		DevMode:             os.Getenv("SIM_API_DEV_MODE") != "0",
+		JWTSigningKey:       envStr("SIM_API_JWT_SECRET", "dev-jwt-secret-not-for-production"),
 		DBPath:              envStr("SIM_API_DB_PATH", ""),
 		DatabaseURL:         os.Getenv("SIM_API_DATABASE_URL"),
 		CSRFToken:           envStr("SIM_API_CSRF_TOKEN", "dev-csrf-token"),
@@ -126,6 +143,19 @@ func defaultGameConfig() *GameConfig {
 		NationalTeamVolumePct: 0.3,
 		NationalTeamPricePct:  1.5,
 		BotReplacementRate:    0.3,
+		// Economic formula tuning (v1.3.1+)
+		LaborCostIndex:       1.0,
+		MaterialCostIndex:    1.0,
+		EnergyCostIndex:      1.0,
+		GlobalDemandIndex:    1.0,
+		SaturationK:          0.15,
+		EventPriceMultiplier: 1.0,
+		RetailTaxRate:        0.05,
+		BaseLaborCost:        500,
+		BaseEnergyCost:       300,
+		BaseMaintenanceCost:  200,
+		BaseManagementCost:   500,
+		SweetSpotLevel:       7,
 	}
 }
 

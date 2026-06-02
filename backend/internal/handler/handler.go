@@ -11,9 +11,15 @@ import (
 	"go-sim-api/internal/service"
 )
 
-type Handler struct{ svc *service.Service }
+type Handler struct {
+	svc       *service.Service
+	jwtSecret string
+}
 
-func New(svc *service.Service) *Handler { return &Handler{svc: svc} }
+func New(svc *service.Service, jwtSecret string) *Handler {
+	return &Handler{svc: svc, jwtSecret: jwtSecret}
+}
+
 func (h *Handler) companyID(r *http.Request) int {
 	if cid, ok := r.Context().Value(middleware.CompanyIDKey).(int); ok {
 		return cid
@@ -21,9 +27,17 @@ func (h *Handler) companyID(r *http.Request) int {
 	return 0
 }
 
+func (h *Handler) playerID(r *http.Request) int {
+	if pid, ok := r.Context().Value(middleware.PlayerIDKey).(int); ok {
+		return pid
+	}
+	return 0
+}
+
 func (h *Handler) withAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+		// Public endpoints: no auth required
 		if path == "/healthz" || path == "/readyz" || path == "/api/register" || path == "/api/login" || path == "/api/csrf/" {
 			next(w, r)
 			return
@@ -34,15 +48,17 @@ func (h *Handler) withAuth(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		token := strings.TrimPrefix(auth, "Bearer ")
-		_, companyID, ok := h.svc.ValidateToken(token)
-		if !ok {
-			writeErr(w, 401, "invalid token")
+		playerID, companyID, err := middleware.ParseJWT(token, h.jwtSecret)
+		if err != nil {
+			writeErr(w, 401, "invalid token: "+err.Error())
 			return
 		}
-		ctx := context.WithValue(r.Context(), middleware.CompanyIDKey, companyID)
+		ctx := context.WithValue(r.Context(), middleware.PlayerIDKey, playerID)
+		ctx = context.WithValue(ctx, middleware.CompanyIDKey, companyID)
 		next(w, r.WithContext(ctx))
 	}
 }
+
 func (h *Handler) Register(mux *http.ServeMux) {
 	h.RegisterAuth(mux)
 
@@ -58,6 +74,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	h.RegisterRecipe(mux)
 	h.RegisterDev(mux)
 	h.RegisterAerospace(mux)
+	h.RegisterLeaderboard(mux)
 	h.RegisterHealth(mux)
 	h.RegisterBuildingShop(mux)
 	h.RegisterOrder(mux)

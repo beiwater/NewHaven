@@ -12,7 +12,7 @@ import (
 
 func newTestHandler() *Handler {
 	svc := service.NewTestService()
-	return New(svc)
+	return New(svc, "test-jwt-secret")
 }
 
 func TestHealthz(t *testing.T) {
@@ -97,7 +97,7 @@ func TestBuyBuildingAppearsAsUnplaced(t *testing.T) {
 	mux := http.NewServeMux()
 	h.Register(mux)
 
-	body := bytes.NewBufferString(`{"username":"builder"}`)
+	body := bytes.NewBufferString(`{"username":"builder","password":"pass"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/register", body)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)

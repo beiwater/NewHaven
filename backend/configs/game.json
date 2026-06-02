@@ -39,5 +39,17 @@
   "market_lock_cap_pct": 1.2,
   "national_team_volume_pct": 0.3,
   "national_team_price_pct": 1.5,
-  "bot_replacement_rate": 0.3
+  "bot_replacement_rate": 0.3,
+  "labor_cost_index": 1.0,
+  "material_cost_index": 1.0,
+  "energy_cost_index": 1.0,
+  "global_demand_index": 1.0,
+  "saturation_k": 0.15,
+  "event_price_multiplier": 1.0,
+  "retail_tax_rate": 0.05,
+  "base_labor_cost": 500,
+  "base_energy_cost": 300,
+  "base_maintenance_cost": 200,
+  "base_management_cost": 500,
+  "sweet_spot_level": 7
 }

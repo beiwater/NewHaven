@@ -86,7 +86,7 @@ func (s *Service) ResourceInfo(resourceID int) map[string]any {
 	}
 
 	// Gather economy model and simulate market dynamics
-	_, mPC, mSW, mUS := s.getEconomyModelCost(resourceID)
+	_, mPC, _, _ := s.getEconomyModelCost(resourceID)
 	if models, ok := s.Data.EconomyModel["models"].(map[string]any); ok {
 		if resM, ok := models[fmt.Sprintf("%d", resourceID)].(map[string]any); ok {
 			if st1, ok := resM["state_1"].(map[string]any); ok {
@@ -94,7 +94,7 @@ func (s *Service) ResourceInfo(resourceID int) map[string]any {
 					info[k] = v
 				}
 				// Simulate retail sales speed with representative values
-				bl := floatFromAny(st1["buildingLevelsNeededPerUnitPerHour"])
+				_ = floatFromAny(st1["buildingLevelsNeededPerUnitPerHour"])
 				bkm := floatFromAny(st1["buildingKindModifier"])
 				if bkm <= 0 {
 					bkm = 1.0
@@ -111,26 +111,23 @@ func (s *Service) ResourceInfo(resourceID int) map[string]any {
 				}
 				prodMult := formula.CTOProductionMultiplier(ctoSkill)
 
-				// Simulate market price as modeledCost * markup
-				marketPrice := mPC * 1.3
-				baseRate := formula.BaseProductionRate(floatFromAny(info["producedPerHourRaw"]), 0.5, 2)
-				producedPH := formula.ProducedPerHour(1, baseRate, 50, 0, false, 100, 10, false)
-				prodTimeSec := formula.ProductionTimeSeconds(1, 1.0, producedPH, 1.0)
-
-				quality := 0
-				if s.State.ResearchedQuality != nil {
-					quality = s.State.ResearchedQuality[resourceID]
+				// Simulate output with new formula
+				producedPerHourRaw := floatFromAny(info["producedPerHourRaw"])
+				if producedPerHourRaw <= 0 {
+					producedPerHourRaw = 500.0
 				}
-				retailSpeed := formula.UnitsSoldPerHour(
-					bkm, bl, mPC, mSW, mUS,
-					marketPrice, float64(quality), 1.0, 0, 1, 1,
-					s.Cfg.Game.WeatherSpeedMult,
-				)
+				outputPH := formula.OutputPerHour(producedPerHourRaw, 10.0, 1) // Lv1 +10% speed
+				secPerUnit := 3600.0 / outputPH
 
-				info["simulatedMarketPrice"] = math.Round(marketPrice*100) / 100
-				info["producedPerHour"] = math.Round(producedPH*100) / 100
-				info["productionTimeSeconds"] = math.Round(prodTimeSec*100) / 100
-				info["unitsSoldPerHour"] = math.Round(retailSpeed*100) / 100
+				_ = s.State.ResearchedQuality
+				// Saturation-based price simulation (balanced market)
+				satMul := formula.SaturationPriceMultiplier(1.0, s.Cfg.Game.SaturationK)
+				effectivePrice := formula.EffectivePrice(mPC*1.3, satMul, s.Cfg.Game.EventPriceMultiplier)
+
+				info["simulatedMarketPrice"] = math.Round(effectivePrice*100) / 100
+				info["outputPerHour"] = math.Round(outputPH*100) / 100
+				info["secondsPerUnit"] = math.Round(secPerUnit*100) / 100
+				info["saturationPriceMultiplier"] = math.Round(satMul*100) / 100
 				info["ctoMultiplier"] = prodMult
 
 				// Recommended price range (cost+margin)

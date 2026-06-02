@@ -9,6 +9,8 @@ import (
 // testing handler endpoints and other packages that depend on Service.
 func NewTestService() *Service {
 	cfg := &config.Config{
+		DevMode:       true,
+		JWTSigningKey: "test-jwt-secret",
 		ACEnabled: false, AMLEnabled: false, ScriptDetectEnabled: false,
 		Game: &config.GameConfig{
 			CompanyID: 1, CompanyName: "Test Inc",

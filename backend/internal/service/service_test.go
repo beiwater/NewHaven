@@ -31,6 +31,8 @@ func (f *fakeStorage) SaveTrades(_ context.Context, trades []model.Trade) error 
 
 func newCoreTestService() *Service {
 	cfg := &config.Config{
+		DevMode:       true,
+		JWTSigningKey: "test-jwt-secret",
 		Game: &config.GameConfig{
 			CompanyID: 1, CompanyName: "Test Inc", StartMoney: 200000, StartLevel: 42,
 			MaxQuality: 100, ExchangeFeePct: 0.04, MaxBotOrders: 600,
@@ -153,8 +155,7 @@ func TestCompanyProfile(t *testing.T) {
 func TestRegisterPlayerUsesPersistedNextPlayerID(t *testing.T) {
 	s := newCoreTestService()
 	s.State.NextPlayerID = 7
-
-	result, err := s.RegisterPlayer("alice")
+	result, err := s.RegisterPlayer("alice", "password")
 	if err != nil {
 		t.Fatalf("RegisterPlayer() unexpected error: %v", err)
 	}
@@ -179,7 +180,7 @@ func TestRegisterPlayerRecoversNextPlayerIDWhenMissing(t *testing.T) {
 	s.State.NextPlayerID = 0
 	s.State.Players = []model.Player{{ID: 4, Username: "existing", CompanyID: 1000004}}
 
-	result, err := s.RegisterPlayer("bob")
+	result, err := s.RegisterPlayer("bob", "password")
 	if err != nil {
 		t.Fatalf("RegisterPlayer() unexpected error: %v", err)
 	}

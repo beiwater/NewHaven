@@ -34,12 +34,17 @@ func (h *Handler) handleDevLedger(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) handleDevFormulasProduction(w http.ResponseWriter, _ *http.Request) {
-	base := formula.BaseProductionRate(120, 0.8, 1)
-	ph := formula.ProducedPerHour(3, base, 20, 2, true, 5, 100, false)
+	baseOutput := 500.0                          // Farm Lv1 base output
+	speedBonus := 10.0                            // +10% speed
+	level := 3
+	ph := formula.OutputPerHour(baseOutput, speedBonus, level)
+	dur := formula.ProductionDurationSeconds(100, 3600/baseOutput, level, 1.0)
 	writeJSON(w, 200, map[string]any{
-		"baseRate":           base,
-		"producedPerHour":    ph,
-		"timePerUnitSeconds": formula.ProductionTimeSeconds(3, 0.8, ph, 1),
+		"baseOutputPerHour": baseOutput,
+		"speedBonusPct":     speedBonus,
+		"level":             level,
+		"outputPerHour":     ph,
+		"durationSec":       dur,
 	})
 }
 

@@ -38,7 +38,7 @@ func main() {
 	cfg := config.Load()
 	formula.SetBondFaceValue(cfg.Game.BondFaceValue)
 
-	var st storage.Storage
+	var st storage.Storage = &storage.NoopStorage{}
 	if cfg.DatabaseURL != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -49,7 +49,7 @@ func main() {
 		}
 		defer st.Close()
 	} else {
-		log.Println("no database url, running memory-only")
+		log.Println("no database url, running memory-only with NoopStorage")
 	}
 
 	wd, _ := os.Getwd()
@@ -64,7 +64,7 @@ func main() {
 	sched.Start()
 	defer sched.Stop()
 
-	h := handler.New(svc)
+	h := handler.New(svc, cfg.JWTSigningKey)
 
 	mux := http.ServeMux{}
 	h.Register(&mux)

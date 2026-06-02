@@ -7,15 +7,6 @@ const (
 	RetailZor           = 370.0
 )
 
-func clamp(v, lo, hi float64) float64 {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
-}
 
 // Simplified executable version of decompiled retail model.
 func UnitsSoldPerHour(
