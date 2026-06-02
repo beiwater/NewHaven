@@ -71,18 +71,18 @@ type GameConfig struct {
 	NationalTeamPricePct  float64 `json:"national_team_price_pct"`
 	BotReplacementRate    float64 `json:"bot_replacement_rate"`
 	// Economic formula tuning (v1.3.1+)
-	LaborCostIndex         float64 `json:"labor_cost_index"`
-	MaterialCostIndex      float64 `json:"material_cost_index"`
-	EnergyCostIndex        float64 `json:"energy_cost_index"`
-	GlobalDemandIndex      float64 `json:"global_demand_index"`
-	SaturationK            float64 `json:"saturation_k"`
-	EventPriceMultiplier   float64 `json:"event_price_multiplier"`
-	RetailTaxRate          float64 `json:"retail_tax_rate"`
-	BaseLaborCost          float64 `json:"base_labor_cost"`
-	BaseEnergyCost         float64 `json:"base_energy_cost"`
-	BaseMaintenanceCost    float64 `json:"base_maintenance_cost"`
-	BaseManagementCost     float64 `json:"base_management_cost"`
-	SweetSpotLevel         int     `json:"sweet_spot_level"`
+	LaborCostIndex       float64 `json:"labor_cost_index"`
+	MaterialCostIndex    float64 `json:"material_cost_index"`
+	EnergyCostIndex      float64 `json:"energy_cost_index"`
+	GlobalDemandIndex    float64 `json:"global_demand_index"`
+	SaturationK          float64 `json:"saturation_k"`
+	EventPriceMultiplier float64 `json:"event_price_multiplier"`
+	RetailTaxRate        float64 `json:"retail_tax_rate"`
+	BaseLaborCost        float64 `json:"base_labor_cost"`
+	BaseEnergyCost       float64 `json:"base_energy_cost"`
+	BaseMaintenanceCost  float64 `json:"base_maintenance_cost"`
+	BaseManagementCost   float64 `json:"base_management_cost"`
+	SweetSpotLevel       int     `json:"sweet_spot_level"`
 }
 
 func Load() *Config {
@@ -134,7 +134,7 @@ func defaultGameConfig() *GameConfig {
 		MaxBotOrders: 600, MaxLedgerEntries: 5000,
 		WeatherSpeedMult: 1.06, ProductionMod: 1.02, GovBidRefundRate: 0.8,
 		BotCycleAmplitude: 0.06, BotSpread: 0.05, BotOrderQty: 200,
-		BotResources: "1,2,3,4,5,6,7,8,9,66,72,115,116,117,120,121,122,127,133,134,135,137,139,141", BotOrderBase: 8.0,
+		BotResources: "1,2,3,4", BotOrderBase: 8.0,
 		BaseBuildingCost: 50000, WarehouseBaseCap: 1000, WarehouseUpgradeCost: 25000,
 		MaxQuality: 100, QualitySalesFactor: 0.0833, QualityResearchCost: 5000,
 		DailyOrderCount: 5, DailyOrderRewardBase: 1000, DailyOrderXPBase: 50,

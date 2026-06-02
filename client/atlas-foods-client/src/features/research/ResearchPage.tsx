@@ -91,9 +91,12 @@ function ResearchCard({
         : 'border-amber-300/40'
 
   return (
-    <button
+    <div
       onClick={onSelect}
-      className={`relative flex flex-col rounded-lg border-2 bg-amber-50/70 p-3 text-left transition-all duration-150 hover:shadow-md ${borderColor} ${isCompleted ? 'opacity-80' : ''}`}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect() }}
+      className={`relative flex flex-col rounded-lg border-2 bg-amber-50/70 p-3 text-left transition-all duration-150 hover:shadow-md cursor-pointer ${borderColor} ${isCompleted ? 'opacity-80' : ''}`}
     >
       {/* Status badge */}
       <div className="flex items-center justify-between mb-1.5">
@@ -184,7 +187,7 @@ function ResearchCard({
           Locked
         </div>
       )}
-    </button>
+    </div>
   )
 }
 

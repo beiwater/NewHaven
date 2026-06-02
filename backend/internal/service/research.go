@@ -11,28 +11,25 @@ func (s *Service) ResearchProjects() []map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return []map[string]any{
-		{
-			"id": "research-project-29", "name": "Plant Research",
-			"building": "Plant Research Center", "producedPerHour": 12,
-			"sourcingCost": 95, "progress": 0, "status": "available",
-		},
-		{
-			"id": "research-project-30", "name": "Energy Research",
-			"building": "Physics Lab", "producedPerHour": 11,
-			"sourcingCost": 150, "progress": 45, "status": "in_progress",
-		},
-		{
-			"id": "research-project-31", "name": "Mining Research",
-			"building": "Physics Lab", "producedPerHour": 10,
-			"sourcingCost": 150, "progress": 12, "status": "in_progress",
-		},
-		{
-			"id": "research-project-32", "name": "Chemical Research",
-			"building": "Physics Lab", "producedPerHour": 10,
-			"sourcingCost": 180, "progress": 0, "status": "locked",
-		},
+	projects := make([]map[string]any, 0, len(s.State.ResearchProjects))
+	for _, p := range s.State.ResearchProjects {
+		projects = append(projects, map[string]any{
+			"id":                p.ID,
+			"name":              p.Name,
+			"building":          p.Building,
+			"resourceCost":      p.ResourceCost,
+			"cashCost":          p.CashCost,
+			"durationHours":     p.DurationHours,
+			"unlockRecipeId":    p.UnlockRecipeID,
+			"qualityResourceId": p.QualityResourceID,
+			"unlockPct":         p.UnlockPct,
+			"status":            p.Status,
+			"progress":          p.Progress,
+			"startedAt":         p.StartedAt,
+			"completesAt":       p.CompletesAt,
+		})
 	}
+	return projects
 }
 
 func (s *Service) StartResearch(companyID int, projectID string) (map[string]any, error) {
@@ -81,8 +78,14 @@ func (s *Service) ResearchProgress() map[string]any {
 		if p.Status != "in_progress" {
 			continue
 		}
-		started, _ := time.Parse(time.RFC3339, p.StartedAt)
-		completes, _ := time.Parse(time.RFC3339, p.CompletesAt)
+		started, err := time.Parse(time.RFC3339, p.StartedAt)
+		if err != nil {
+			continue
+		}
+		completes, err := time.Parse(time.RFC3339, p.CompletesAt)
+		if err != nil {
+			continue
+		}
 		duration := completes.Sub(started)
 		elapsed := now.Sub(started)
 		if duration > 0 {

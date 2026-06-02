@@ -1,9 +1,5 @@
 import { useWarehouse } from '@/api/inventory.api'
-
-const RESOURCE_ICONS: Record<number, string> = {
-  1: '⚡', 2: '💧', 3: '🍎', 4: '🌾', 5: '🌾', 6: '🧂',
-  8: '🥩', 9: '🥩', 10: '🍞', 11: '🎂', 12: '🍕',
-}
+import { resourceIcon } from '@/game/icons'
 
 export function InventoryBar() {
   const { data } = useWarehouse()
@@ -38,14 +34,18 @@ export function InventoryBar() {
             key={item.resourceId}
             className="flex flex-col items-center p-1.5 bg-white/50 rounded-lg border border-amber-200/30"
           >
-            <span className="text-lg">{RESOURCE_ICONS[item.resourceId] ?? '📦'}</span>
+            <img
+              src={resourceIcon(item.resourceId)}
+              alt={`res-${item.resourceId}`}
+              className="w-8 h-8 object-contain"
+            />
             <span className="text-[10px] font-semibold text-amber-800 tabular-nums mt-0.5">
               {item.quantity}
             </span>
           </div>
         ))}
-      </div>
 
+      </div>
       {inventory.length > 12 && (
         <div className="text-[10px] text-amber-500 text-center mt-2">
           +{inventory.length - 12} more items

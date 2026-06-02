@@ -21,8 +21,8 @@ import { PriceCurve } from './PriceCurve'
 import { ParticipantList } from './ParticipantList'
 
 export function MarketPage() {
-  const [selectedResource, setSelectedResource] = useState(121)
-  const [selectedGroup, setSelectedGroup] = useState<(typeof MARKET_GROUPS)[number]['id']>('kitchen')
+  const [selectedResource, setSelectedResource] = useState(1)
+  const [selectedGroup, setSelectedGroup] = useState<(typeof MARKET_GROUPS)[number]['id']>('core')
   const [orderKind, setOrderKind] = useState<'buy' | 'sell'>('buy')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('10.00')

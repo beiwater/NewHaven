@@ -10,7 +10,7 @@ func TestPlaceGovernmentBid(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
 	s.State.GovernmentContracts = []model.GovContract{
-		{ID: "gov-1", ResourceID: 8, Quality: 0, Quantity: 500,
+		{ID: "gov-1", ResourceID: 3, Quality: 0, Quantity: 500,
 			MaxPrice: 12.4, DepositRate: 0.1, Status: "open",
 			Bids: []map[string]any{}, WinnerCompanyID: 0},
 	}
@@ -41,7 +41,7 @@ func TestAwardGovernmentContracts(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
 	s.State.GovernmentContracts = []model.GovContract{
-		{ID: "gov-1", ResourceID: 8, Quantity: 500, MaxPrice: 12.4,
+		{ID: "gov-1", ResourceID: 3, Quantity: 500, MaxPrice: 12.4,
 			DepositRate: 0.1, Status: "open",
 			Bids: []map[string]any{
 				{"companyId": 1, "unitPrice": 11.0, "deposit": 5000.0},
@@ -79,14 +79,14 @@ func TestDeliverGovernmentContract(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
 	s.State.GovernmentContracts = []model.GovContract{
-		{ID: "gov-1", ResourceID: 8, Quality: 0, Quantity: 500,
+		{ID: "gov-1", ResourceID: 3, Quality: 0, Quantity: 500,
 			MaxPrice: 12.4, DepositRate: 0.1, Status: "open",
 			Bids: []map[string]any{
 				{"companyId": 1, "unitPrice": 11.0, "deposit": 5000.0},
 			},
 			WinnerCompanyID: 0},
 	}
-	s.State.Companies[0].Inventory[8] = 2000
+	s.State.Companies[0].Inventory[3] = 2000
 	s.mu.Unlock()
 
 	// Award first
@@ -103,7 +103,7 @@ func TestDeliverGovernmentContract(t *testing.T) {
 func TestDeliverGovernmentContract_InsufficientInventory(t *testing.T) {
 	s := newCoreTestService()
 	s.State.GovernmentContracts = []model.GovContract{
-		{ID: "gov-1", ResourceID: 8, Quality: 0, Quantity: 500,
+		{ID: "gov-1", ResourceID: 3, Quality: 0, Quantity: 500,
 			MaxPrice: 12.4, DepositRate: 0.1, Status: "awarded",
 			Bids: []map[string]any{
 				{"companyId": 1, "unitPrice": 11.0, "deposit": 5000.0},
@@ -111,7 +111,7 @@ func TestDeliverGovernmentContract_InsufficientInventory(t *testing.T) {
 			WinnerCompanyID: 1},
 	}
 	// Set inventory to 0
-	s.State.Companies[0].Inventory[8] = 0
+	s.State.Companies[0].Inventory[3] = 0
 
 	_, err := s.DeliverGovernmentContract(s.State.Companies[0].ID, "gov-1")
 	if err == nil {

@@ -40,7 +40,8 @@ func (h *Handler) handleExecRecruit(w http.ResponseWriter, r *http.Request) {
 	}
 	execID, _ := body["executiveId"].(string)
 	if execID == "" {
-		execID = "exec-1"
+		writeErr(w, 400, "missing executiveId")
+		return
 	}
 	writeJSON(w, 200, h.svc.RecruitExecutive(execID))
 }

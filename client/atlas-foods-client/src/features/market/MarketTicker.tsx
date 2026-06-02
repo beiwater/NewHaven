@@ -1,7 +1,7 @@
 import { useMarketTicker } from '@/api/market.api'
 import { FALLBACK_MARKET_RESOURCES, resourceIcon } from '@/game/resources'
 
-const TRACKED_IDS = [1, 2, 6, 8, 9, 121, 127, 133]
+const TRACKED_IDS = [1, 2, 3, 4]
 const TRACKED_RESOURCES = FALLBACK_MARKET_RESOURCES.filter((r) => TRACKED_IDS.includes(r.resourceId))
 
 function PriceCard({ resource }: { resource: typeof TRACKED_RESOURCES[number] }) {

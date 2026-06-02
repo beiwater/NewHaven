@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { clearAuth } from '@/api/client'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
+import { useActivePowerup } from '@/api/powerup.api'
 import { useUIStore } from '@/store/ui.store'
 import { Icon } from '@/features/ui/Icon'
 
@@ -8,6 +9,7 @@ export function TopBar() {
   const queryClient = useQueryClient()
   const { data: companyData } = useCompany()
   const { data: levelData } = usePlayerLevel()
+  const { data: activePowerupData } = useActivePowerup()
   const setActiveView = useUIStore((s) => s.setActiveView)
   const setPowerupOpen = useUIStore((s) => s.setPowerupOpen)
 
@@ -17,6 +19,9 @@ export function TopBar() {
   const currentXp = levelData?.currentXp ?? companyData?.levelInfo?.xp ?? 0
   const xpToNext = levelData?.xpToNextLevel ?? 100
   const xpPct = xpToNext > 0 ? Math.min(100, (currentXp / xpToNext) * 100) : 0
+  const activePowerupCount = activePowerupData?.active?.length ?? 0
+  const remainingPowerups = activePowerupData?.remaining ?? companyData?.authCompany?.simBoosts ?? 0
+  const powerupStatus = activePowerupCount > 0 ? `${activePowerupCount} active` : `${remainingPowerups} ready`
   const handleLogout = () => {
     queryClient.clear()
     clearAuth()
@@ -25,7 +30,11 @@ export function TopBar() {
   return (
     <header className="topbar flex items-center bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 text-white border-b-2 border-amber-700 shadow-md z-50">
       {/* Company Logo & Name */}
-      <div className="flex items-center gap-3 px-4 min-w-[260px] h-full border-r border-amber-700/50">
+      <button
+        onClick={() => setActiveView('map')}
+        className="flex items-center gap-3 px-4 min-w-[260px] h-full border-r border-amber-700/50 hover:bg-amber-700/30 transition-colors text-left"
+        title="Back to map"
+      >
         <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden">
           <Icon name="icon_level_badge_v1" className="w-10 h-10" />
         </div>
@@ -33,7 +42,7 @@ export function TopBar() {
           <div className="font-semibold text-sm tracking-tight">{companyName}</div>
           <div className="text-[10px] text-amber-300/80">Farm & Factory</div>
         </div>
-      </div>
+      </button>
 
       {/* Cash */}
       <button
@@ -78,7 +87,7 @@ export function TopBar() {
         </svg>
         <div className="text-xs leading-tight">
           <div className="text-[10px] text-amber-300/70 uppercase tracking-wider">Power-up</div>
-          <div className="font-semibold text-yellow-200 text-[11px]">Active</div>
+          <div className="font-semibold text-yellow-200 text-[11px]">{powerupStatus}</div>
         </div>
       </button>
       {/* Top icons */}
@@ -94,13 +103,17 @@ export function TopBar() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
+        <div className="w-px h-6 bg-amber-700/40 mx-1" />
         <button
           type="button"
           onClick={handleLogout}
-          className="ml-1 rounded-lg border border-amber-300/30 bg-amber-950/25 px-3 py-2 text-xs font-semibold text-amber-100 transition-colors hover:bg-red-900/45 hover:text-white"
-          title="Log out"
+          className="flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-800/50 hover:text-white"
+          title="Return to login page"
         >
-          Logout
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Sign Out
         </button>
       </div>
     </header>

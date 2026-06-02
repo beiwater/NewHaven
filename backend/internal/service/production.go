@@ -40,8 +40,8 @@ func (s *Service) StartBuildingProduction(companyID int, buildingID string, body
 	}
 
 	buildLevel := s.findBuilding(companyID, buildingID)
-	input := s.findRecipe(resourceID, amount)
-	if len(input) == 0 {
+	input, recipeKnown := s.findRecipe(resourceID, amount)
+	if !recipeKnown {
 		return map[string]any{"error": "recipe not found"}
 	}
 	actualQuality := s.resolveQuality(company, reqQuality, input)
@@ -117,7 +117,7 @@ func (s *Service) findBuilding(companyID int, buildingID string) int {
 	return 1
 }
 
-func (s *Service) findRecipe(resourceID, amount int) map[int]int {
+func (s *Service) findRecipe(resourceID, amount int) (map[int]int, bool) {
 	input := map[int]int{}
 	for _, r := range s.Data.Resources {
 		if intFromAny(r["dbLetter"]) != resourceID {
@@ -132,9 +132,9 @@ func (s *Service) findRecipe(resourceID, amount int) map[int]int {
 				}
 			}
 		}
-		break
+		return input, true
 	}
-	return input
+	return input, false
 }
 
 func (s *Service) checkBuildingCanProduce(company *model.Company, buildingID string, resourceID int) error {
@@ -162,9 +162,13 @@ func (s *Service) checkBuildingCanProduce(company *model.Company, buildingID str
 func (s *Service) productionIDsForKind(kind int) []int {
 	switch kind {
 	case 1:
-		return []int{3, 4, 5, 6, 66, 72, 120}
+		return []int{1}
 	case 2:
-		return []int{7, 8, 9, 121, 122, 127, 133, 134, 135, 137, 139, 141}
+		return []int{2}
+	case 3:
+		return []int{3}
+	case 4:
+		return []int{4}
 	default:
 		return []int{}
 	}

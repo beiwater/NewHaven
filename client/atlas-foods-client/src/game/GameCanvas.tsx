@@ -59,25 +59,56 @@ function GameCanvas() {
         app = await createGameApp(container)
         appRef.current = app
 
+        // Warm earth-tone background as safety net for map edges
+        app.renderer.background.color = 0xe8dcc8
+
         const sprite = new Sprite(Texture.from(img))
         sprite.anchor.set(0, 0)
-        const sx = app.screen.width / sprite.width
-        const sy = app.screen.height / sprite.height
-        sprite.scale.set(Math.max(sx, sy))
+        const screenW = app.screen.width
+        const screenH = app.screen.height
+        const imgW = sprite.width
+        const imgH = sprite.height
+        // Scale sprite so it fills viewport at 1x
+        const baseScale = Math.max(screenW / imgW, screenH / imgH)
+        sprite.scale.set(baseScale)
         app.stage.addChild(sprite)
+
+        // Map world bounds
+        const mapW = imgW * baseScale
+        const mapH = imgH * baseScale
+
+        // ── Zoom state ──
+        let zoom = 1.0 // stage scale; 1x = map fills viewport
+        const MIN_ZOOM = 1.0 // no zoom-out past initial fill
+        const MAX_ZOOM = 4.0
+
+        const clampPivot = () => {
+          const maxPx = Math.max(0, mapW - screenW / zoom)
+          const maxPy = Math.max(0, mapH - screenH / zoom)
+          app!.stage.pivot.x = Math.max(0, Math.min(maxPx, app!.stage.pivot.x))
+          app!.stage.pivot.y = Math.max(0, Math.min(maxPy, app!.stage.pivot.y))
+        }
+
 
         const buildingLayer = new Container()
         buildingLayer.sortableChildren = true
         buildingLayerRef.current = buildingLayer
         app.stage.addChild(buildingLayer)
-
         const canvas = app.canvas as HTMLCanvasElement
+
+        // ── Wheel zoom (geometric, clamped) ──
         canvas.addEventListener('wheel', (e: WheelEvent) => {
           e.preventDefault()
-          const d = e.deltaY > 0 ? -0.1 : 0.1
-          app!.stage.scale.set(Math.max(0.5, Math.min(3, app!.stage.scale.x + d)))
+          const factor = e.deltaY > 0 ? 0.92 : 1.08
+          const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor))
+          if (next !== zoom) {
+            zoom = next
+            app!.stage.scale.set(zoom)
+            clampPivot()
+          }
         }, { passive: false })
 
+        // ── Middle-mouse pan (clamped) ──
         let panning = false
         const ps = { x: 0, y: 0 }
         const pp = { x: 0, y: 0 }
@@ -85,7 +116,11 @@ function GameCanvas() {
           if (e.button === 1) { panning = true; ps.x = e.clientX; ps.y = e.clientY; pp.x = app!.stage.pivot.x; pp.y = app!.stage.pivot.y }
         })
         canvas.addEventListener('mousemove', (e: MouseEvent) => {
-          if (panning) { app!.stage.pivot.x = pp.x - (e.clientX - ps.x) / app!.stage.scale.x; app!.stage.pivot.y = pp.y - (e.clientY - ps.y) / app!.stage.scale.y }
+          if (panning) {
+            app!.stage.pivot.x = pp.x - (e.clientX - ps.x) / app!.stage.scale.x
+            app!.stage.pivot.y = pp.y - (e.clientY - ps.y) / app!.stage.scale.y
+            clampPivot()
+          }
         })
         canvas.addEventListener('mouseup', () => { panning = false })
       } catch (e) {

@@ -59,7 +59,7 @@ func (s *Service) RegisterPlayer(username, password string) (map[string]any, err
 	company := model.Company{
 		ID: companyID, Name: username + "'s Company",
 		Money: s.Cfg.Game.StartMoney, Level: 1,
-		Inventory:         map[int]int{1: 500, 2: 500},
+		Inventory:         map[int]int{1: 500},
 		UnplacedBuildings: []map[string]any{},
 	}
 	s.State.Companies = append(s.State.Companies, company)

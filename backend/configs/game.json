@@ -22,7 +22,7 @@
   "bot_cycle_amplitude": 0.06,
   "bot_spread": 0.05,
   "bot_order_qty": 200,
-  "bot_resources": "1,2,3,4,5,6,7,8,9,66,72,115,116,117,120,121,122,127,133,134,135,137,139,141",
+  "bot_resources": "1,2,3,4",
   "bot_order_base": 8.0,
   "base_building_cost": 50000,
   "warehouse_base_cap": 1000,

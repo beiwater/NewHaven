@@ -1,26 +1,39 @@
+import { resourceIcon, buildingIcon, systemIcon } from '@/game/icons'
 import type { ImgHTMLAttributes } from 'react'
 
-interface IconProps extends ImgHTMLAttributes<HTMLImageElement> {
+interface IconProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'resource'> {
   name: string
   alt?: string
+  /** If true, resolve via resourceIcon(name) */
+  resource?: boolean
+  /** If true, resolve via buildingIcon(Number(name)) */
+  building?: boolean
+  /** If true, resolve via systemIcon(name) */
+  system?: boolean
 }
 
-const ICON_BASE = '/assets/icons'
-const ITEM_BASE = '/assets/items'
-
 /**
- * Game UI icon from the actual PNG spritesheet assets.
- * Usage:
- *   <Icon name="icon_coin_v1" className="w-5 h-5" />
- *   <Icon name="item_wheat_v1" fromItems />
+ * Game UI icon.
+ * Legacy: name like "icon_coin_v1" → /assets/icons/{name}.png
+ * resource, building, system flags → lookup in icon registry with mapped path.
  */
-export function Icon({ name, alt = '', fromItems, ...props }: IconProps & { fromItems?: boolean }) {
-  const base = fromItems ? ITEM_BASE : ICON_BASE
-  return (
-    <img
-      src={`${base}/${name}.png`}
-      alt={alt}
-      {...props}
-    />
-  )
+export function Icon({
+  name,
+  alt = '',
+  resource,
+  building,
+  system,
+  ...props
+}: IconProps) {
+  let src: string
+  if (resource) {
+    src = resourceIcon(Number(name) || 0)
+  } else if (building) {
+    src = buildingIcon(Number(name) || 0)
+  } else if (system) {
+    src = systemIcon(name)
+  } else {
+    src = `/assets/icons/${name}.png`
+  }
+  return <img src={src} alt={alt} {...props} />
 }

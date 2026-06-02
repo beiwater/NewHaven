@@ -310,7 +310,7 @@ func TestValidateTokenFallback(t *testing.T) {
 func testData() *data.StaticData {
 	return &data.StaticData{
 		Resources: []map[string]any{
-			{"id": 1, "name": "Power", "dbLetter": 1, "producedPerHourRaw": 100.0},
+			{"id": 1, "name": "Wheat", "dbLetter": 1, "producedPerHourRaw": 100.0},
 		},
 		EconomyModel: map[string]any{"models": map[string]any{}},
 	}
