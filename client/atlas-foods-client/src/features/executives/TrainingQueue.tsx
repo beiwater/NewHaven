@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import type { Executive } from '@/game/executives'
 import { formatDuration } from '@/game/executives'
 
@@ -12,6 +13,13 @@ export function TrainingQueue({
   onCompleteNow,
   completeNowPending,
 }: TrainingQueueProps) {
+  // Clock tick — updates every second so remaining time is reactive
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   if (trainees.length === 0) {
     return null
   }
@@ -30,12 +38,17 @@ export function TrainingQueue({
       <div className="space-y-2">
         {trainees.map((exec) => {
           const endTime = exec.trainingEndTime ? new Date(exec.trainingEndTime).getTime() : 0
-          const now = Date.now()
           const remainingMs = Math.max(0, endTime - now)
           const remainingSec = Math.floor(remainingMs / 1000)
-          const progress = endTime > now
-            ? 1 - remainingMs / (10 * 60 * 60 * 1000) // placeholder: assume 10h total
-            : 1
+
+          // Estimate total training duration from trainingTime if available,
+          // otherwise derive from remaining (only accurate after first tick).
+          const totalDuration = exec.trainingTime
+            ? exec.trainingTime * 1000
+            : endTime - now + remainingMs
+          const progress = totalDuration > 0
+            ? Math.min(1, (totalDuration - remainingMs) / totalDuration)
+            : 0
 
           return (
             <div

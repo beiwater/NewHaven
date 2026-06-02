@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"go-sim-api/internal/model"
+	"log"
 	"time"
+
+	"go-sim-api/internal/model"
 )
 
 // Now returns the effective current time (exported).
@@ -31,7 +33,12 @@ func (s *Service) saveStateLocked() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_ = s.Store.SaveState(ctx, &s.State)
+	if err := s.Store.SaveState(ctx, &s.State); err != nil {
+		log.Printf("ERROR save state: %v", err)
+		s.setSaveError(err)
+		return
+	}
+	s.setSaveError(nil)
 }
 
 func (s *Service) saveCompanyLocked(company *model.Company) {
@@ -40,7 +47,12 @@ func (s *Service) saveCompanyLocked(company *model.Company) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_ = s.Store.SaveCompany(ctx, company)
+	if err := s.Store.SaveCompany(ctx, company); err != nil {
+		log.Printf("ERROR save company: %v", err)
+		s.setSaveError(err)
+		return
+	}
+	s.setSaveError(nil)
 }
 
 func (s *Service) saveOrdersLocked() {
@@ -49,7 +61,12 @@ func (s *Service) saveOrdersLocked() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_ = s.Store.SaveOrders(ctx, s.State.Orders)
+	if err := s.Store.SaveOrders(ctx, s.State.Orders); err != nil {
+		log.Printf("ERROR save orders: %v", err)
+		s.setSaveError(err)
+		return
+	}
+	s.setSaveError(nil)
 }
 
 func (s *Service) saveTradesLocked() {
@@ -58,7 +75,12 @@ func (s *Service) saveTradesLocked() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	_ = s.Store.SaveTrades(ctx, s.State.Trades)
+	if err := s.Store.SaveTrades(ctx, s.State.Trades); err != nil {
+		log.Printf("ERROR save trades: %v", err)
+		s.setSaveError(err)
+		return
+	}
+	s.setSaveError(nil)
 }
 
 func (s *Service) checkIdempotent(requestID string) (map[string]any, bool) {

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import {
   useLeaderboard,
-  rankLabel,
   rankColor,
   formatMainStat,
   isCurrentCompany,

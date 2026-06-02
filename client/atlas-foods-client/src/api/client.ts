@@ -1,3 +1,5 @@
+import { DEFAULT_COMPANY_ID } from '@/constants'
+
 const BASE = ''
 
 const AUTH_KEY = 'atlas_auth_token'
@@ -9,7 +11,7 @@ function getToken(): string | null {
 }
 
 function getCompanyId(): string {
-  return localStorage.getItem(COMPANY_KEY) ?? '1000002'
+  return localStorage.getItem(COMPANY_KEY) ?? DEFAULT_COMPANY_ID
 }
 
 export function setAuth(token: string, companyId: string): void {

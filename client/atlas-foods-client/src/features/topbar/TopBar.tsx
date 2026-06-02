@@ -66,25 +66,6 @@ export function TopBar() {
         <Icon name="icon_xp_v1" className="w-5 h-5" />
       </div>
 
-      {/* Energy */}
-      <div className="flex items-center gap-2 px-4 h-full border-l border-amber-700/50">
-        <Icon name="icon_energy_v1" className="w-6 h-6" />
-        <div className="text-xs">
-          <div className="text-[10px] text-amber-300/70">Energy</div>
-          <div className="font-semibold">120 / 120</div>
-        </div>
-      </div>
-
-      {/* Workers */}
-      <div className="flex items-center gap-2 px-4 h-full border-l border-amber-700/50">
-        <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-        </svg>
-        <div className="text-xs">
-          <div className="text-[10px] text-amber-300/70">Workers</div>
-          <div className="font-semibold">8 / 10</div>
-        </div>
-      </div>
 
       {/* Power-up */}
       <button

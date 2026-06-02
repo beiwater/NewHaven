@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { IMAGE_LOAD_TIMEOUT_MS } from '@/constants'
+
 import { Texture, Sprite, Container, type Application } from 'pixi.js'
 import { useBuildings } from '@/api/buildings.api'
 import { useUIStore } from '@/store/ui.store'
@@ -15,9 +17,9 @@ const BUILDING_TEXTURES: Record<number, string> = {
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {
-  const { promise, resolve, reject } = Promise.withResolvers<HTMLImageElement>()
   const img = new Image()
-  const t = setTimeout(() => reject(new Error(`Timeout: ${url}`)), 10000)
+  const { promise, resolve, reject } = Promise.withResolvers<HTMLImageElement>()
+  const t = setTimeout(() => reject(new Error(`Timeout: ${url}`)), IMAGE_LOAD_TIMEOUT_MS)
   img.onload = () => { clearTimeout(t); resolve(img) }
   img.onerror = () => { clearTimeout(t); reject(new Error(`Failed: ${url}`)) }
   img.src = url

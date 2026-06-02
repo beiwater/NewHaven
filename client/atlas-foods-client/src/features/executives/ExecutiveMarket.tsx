@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useExecutiveSearch, useRecruitExecutive } from '@/api/executives.api'
 import { useCompany } from '@/api/company.api'
 import { ExecutiveCard } from './ExecutiveCard'
-import { formatMoney } from '@/game/executives'
 
 export function ExecutiveMarket() {
   const { data, isLoading, isError, error, refetch } = useExecutiveSearch()

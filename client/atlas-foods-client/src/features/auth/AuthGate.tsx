@@ -5,9 +5,10 @@ import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
-  const [authenticated, setAuthenticated] = useState(isAuthenticated())
+  const [password, setPassword] = useState('')
   const login = useLogin()
   const register = useRegister()
+  const [authenticated, setAuthenticated] = useState(isAuthenticated())
 
   useEffect(() => {
     const syncAuth = () => setAuthenticated(isAuthenticated())
@@ -28,11 +29,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    if (!username.trim()) return
+    if (!username.trim() || !password.trim()) return
     if (mode === 'login') {
-      login.mutate(username.trim())
+      login.mutate({ username: username.trim(), password })
     } else {
-      register.mutate(username.trim())
+      register.mutate({ username: username.trim(), password })
     }
   }
 
@@ -65,6 +66,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             placeholder="Enter your username"
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
             autoFocus
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
           {error && (

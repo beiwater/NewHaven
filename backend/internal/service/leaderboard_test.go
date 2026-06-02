@@ -82,20 +82,7 @@ func TestLeaderboard_ExcludesBots(t *testing.T) {
 
 func leaderboardTestService(t *testing.T) *Service {
 	t.Helper()
-	cfg := &config.Config{
-		DevMode:       true,
-		JWTSigningKey: "test-jwt-secret",
-		Game: &config.GameConfig{
-			CompanyID: 1, CompanyName: "Test Inc", StartMoney: 200000, StartLevel: 42,
-			MaxQuality: 100, ExchangeFeePct: 0.04, MaxBotOrders: 600,
-			AdminOverheadBase: 1.35, MaxLedgerEntries: 5000,
-			Bot1ID: 900001, Bot2ID: 900002,
-			BotMoney: 5000000, BotLevel: 99,
-			Bot1Name: "Atlas Trading Bot", Bot2Name: "Nova Market Bot",
-			BotOrderBase: 8.0, GovBidRefundRate: 0.8, BondFaceValue: 5000,
-			BaseBuildingCost: 50000,
-		},
-	}
+	cfg := config.DefaultTestConfig()
 	d := &data.StaticData{
 		Resources: []map[string]any{
 			{"id": 1, "name": "Power", "dbLetter": 1, "producedPerHourRaw": 100.0},

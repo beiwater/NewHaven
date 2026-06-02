@@ -65,8 +65,8 @@ export function usePlayerLevel() {
 
 export function useLogin() {
   return useMutation({
-    mutationFn: (username: string) =>
-      api.post<LoginResponse>('/api/login', { username }),
+    mutationFn: ({ username, password }: { username: string; password: string }) =>
+      api.post<LoginResponse>('/api/login', { username, password }),
     onSuccess: (data) => {
       const token = data.player?.token ?? data.token
       const companyId = data.player?.companyId ?? data.companyId ?? data.company?.id
@@ -80,8 +80,8 @@ export function useLogin() {
 
 export function useRegister() {
   return useMutation({
-    mutationFn: (username: string) =>
-      api.post<RegisterResponse>('/api/register', { username }),
+    mutationFn: ({ username, password }: { username: string; password: string }) =>
+      api.post<RegisterResponse>('/api/register', { username, password }),
     onSuccess: (data) => {
       const token = data.player?.token ?? data.token
       const companyId = data.companyID ?? data.player?.companyId ?? data.companyId ?? data.company?.id

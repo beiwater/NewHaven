@@ -18,8 +18,12 @@ func (s *Service) SimBoostsUse() map[string]any {
 	now := s.now().UTC()
 	active := []map[string]any{}
 	if s.State.BoostEndsAt != "" {
-		endsAt, _ := time.Parse(time.RFC3339, s.State.BoostEndsAt)
-		if now.Before(endsAt) {
+		endsAt, err := time.Parse(time.RFC3339, s.State.BoostEndsAt)
+		if err != nil {
+			// Corrupt timestamp; treat as expired.
+			s.State.BoostEndsAt = ""
+			s.State.BoostMultiplier = 1.0
+		} else if now.Before(endsAt) {
 			active = append(active, map[string]any{
 				"type":      s.State.BoostType,
 				"endsAt":    s.State.BoostEndsAt,

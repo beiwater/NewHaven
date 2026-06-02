@@ -169,3 +169,14 @@ func (s *Service) ResolveGovernmentDefaults() []model.GovContract {
 	}
 	return defaulted
 }
+
+// ContractsByCompany returns government contracts where the given company is the winner.
+func (s *Service) ContractsByCompany(companyID int) []model.GovContract {
+	var out []model.GovContract
+	for _, c := range s.State.GovernmentContracts {
+		if c.WinnerCompanyID == companyID {
+			out = append(out, c)
+		}
+	}
+	return out
+}

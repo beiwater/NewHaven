@@ -14,13 +14,9 @@ import (
 )
 
 func TestRegisterPlayerWithPassword(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "test-key-123",
-		ACEnabled:     false,
-		AMLEnabled:    false,
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "test-key-123"
 	svc := New(testData(), cfg, nil)
 
 	result, err := svc.RegisterPlayer("alice", "secret123")
@@ -52,11 +48,9 @@ func TestRegisterPlayerWithPassword(t *testing.T) {
 }
 
 func TestRegisterDuplicateUsername(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "test-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
 	_, err := svc.RegisterPlayer("bob", "pass1")
@@ -70,11 +64,9 @@ func TestRegisterDuplicateUsername(t *testing.T) {
 }
 
 func TestLoginWithCorrectPassword(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "login-test-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "login-test-key"
 	svc := New(testData(), cfg, nil)
 
 	_, err := svc.RegisterPlayer("carol", "my-password")
@@ -98,11 +90,9 @@ func TestLoginWithCorrectPassword(t *testing.T) {
 }
 
 func TestLoginWithWrongPassword(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "test-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
 	svc.RegisterPlayer("dave", "correct-password")
@@ -113,11 +103,9 @@ func TestLoginWithWrongPassword(t *testing.T) {
 }
 
 func TestLoginWithNonexistentUser(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "test-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
 	_, err := svc.LoginPlayer("nobody", "any-password")
@@ -127,11 +115,9 @@ func TestLoginWithNonexistentUser(t *testing.T) {
 }
 
 func TestPasswordHashNotReturned(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "test-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
 	result, err := svc.RegisterPlayer("eve", "safe-password")
@@ -207,11 +193,9 @@ func TestJWTTamperedPayload(t *testing.T) {
 }
 
 func TestTokenNotBase64Username(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "not-base64-test",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "not-base64-test"
 	svc := New(testData(), cfg, nil)
 
 	result, _ := svc.RegisterPlayer("mallory", "password")
@@ -228,11 +212,9 @@ func TestTokenNotBase64Username(t *testing.T) {
 }
 
 func TestMultiPlayerIsolation(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "isolation-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "isolation-key"
 	svc := New(testData(), cfg, nil)
 
 	r1, _ := svc.RegisterPlayer("player1", "pass1")
@@ -257,11 +239,8 @@ func TestMultiPlayerIsolation(t *testing.T) {
 }
 
 func TestDevModeCreatesDevPlayer(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       true,
-		JWTSigningKey: "dev-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.JWTSigningKey = "dev-key"
 	svc := New(testData(), cfg, nil)
 
 	if len(svc.State.Players) != 1 {
@@ -276,11 +255,9 @@ func TestDevModeCreatesDevPlayer(t *testing.T) {
 }
 
 func TestNoDevModeNoPlayers(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "prod-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "prod-key"
 	svc := New(testData(), cfg, nil)
 
 	if len(svc.State.Players) != 0 {
@@ -312,11 +289,9 @@ func TestJWTRoundTrip(t *testing.T) {
 }
 
 func TestValidateTokenFallback(t *testing.T) {
-	cfg := &config.Config{
-		DevMode:       false,
-		JWTSigningKey: "fallback-key",
-		Game:          testGameConfig(),
-	}
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "fallback-key"
 	svc := New(testData(), cfg, nil)
 
 	result, _ := svc.RegisterPlayer("fallback-user", "pw")
@@ -332,21 +307,6 @@ func TestValidateTokenFallback(t *testing.T) {
 }
 
 // --- helpers ---
-
-func testGameConfig() *config.GameConfig {
-	return &config.GameConfig{
-		CompanyID: 1, CompanyName: "Test Inc",
-		StartMoney: 200000, StartLevel: 1,
-		Bot1ID: 900001, Bot2ID: 900002,
-		BotMoney: 5000000, BotLevel: 99,
-		BotOrderBase:     8.0,
-		MaxBotOrders:     600,
-		ExchangeFeePct:   0.04,
-		AdminOverheadBase: 1.35,
-		MaxQuality:       100,
-	}
-}
-
 func testData() *data.StaticData {
 	return &data.StaticData{
 		Resources: []map[string]any{

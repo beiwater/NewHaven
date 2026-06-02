@@ -22,6 +22,13 @@ type Service struct {
 	AC    *anticheat.AntiCheat
 	SD    *anticheat.ScriptDetector
 	State model.GameState
+
+	// Persistent storage error tracking.
+	lastSaveErr   error
+	lastSaveErrMu sync.Mutex
+
+	// Per-instance executive state (not package-level global).
+	execState *execState
 }
 
 // now returns SimulatedAt if set, otherwise real time.
@@ -33,6 +40,21 @@ func (s *Service) now() time.Time {
 		}
 	}
 	return time.Now()
+}
+
+// setSaveError records a storage error (thread-safe).
+// Clears LastSaveError on nil.
+func (s *Service) setSaveError(saveErr error) {
+	s.lastSaveErrMu.Lock()
+	defer s.lastSaveErrMu.Unlock()
+	s.lastSaveErr = saveErr
+}
+
+// LastSaveError returns the most recent persistent storage error, if any.
+func (s *Service) LastSaveError() error {
+	s.lastSaveErrMu.Lock()
+	defer s.lastSaveErrMu.Unlock()
+	return s.lastSaveErr
 }
 
 func (s *Service) SetSimulatedAt(t string) {
@@ -49,13 +71,14 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 		defer cancel()
 		if loaded, err := st.LoadState(ctx); err == nil && loaded != nil && len(loaded.Companies) > 0 {
 			s := &Service{
-				Cfg:   cfg,
-				Data:  d,
-				Store: st,
-				AC:    anticheat.New(cfg.ACEnabled),
-				AML:   aml.New(cfg.AMLEnabled),
-				SD:    anticheat.NewScriptDetector(cfg.ScriptDetectEnabled),
-				State: *loaded,
+				Cfg:       cfg,
+				Data:      d,
+				Store:     st,
+				AC:        anticheat.New(cfg.ACEnabled),
+				AML:       aml.New(cfg.AMLEnabled),
+				SD:        anticheat.NewScriptDetector(cfg.ScriptDetectEnabled),
+				State:     *loaded,
+				execState: newExecState(),
 			}
 			s.ensureRuntimeState()
 			return s
@@ -180,6 +203,7 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 			MarketLocked:       map[int]bool{},
 			NationalTeamActive: map[int]bool{},
 		},
+		execState: newExecState(),
 	}
 }
 

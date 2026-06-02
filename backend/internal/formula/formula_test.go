@@ -430,3 +430,150 @@ func TestBondInterestEdgeCases(t *testing.T) {
 		t.Errorf("DailyBondInterest(100, 0.01) = %.0f; want 50", gotL)
 	}
 }
+
+// ─── Market Tick Step ────────────────────────────────────────────
+
+func TestTickStep_Boundaries(t *testing.T) {
+	cases := []struct {
+		price float64
+		want  float64
+	}{
+		{29999, 500},
+		{20000, 500},
+		{19999, 100},
+		{10000, 100},
+		{9999, 25},
+		{5000, 25},
+		{4999, 10},
+		{1000, 10},
+		{999, 5},
+		{500, 5},
+		{499, 2},
+		{200, 2},
+		{199, 1},
+		{100, 1},
+		{99, 0.5},
+		{50, 0.5},
+		{49, 0.25},
+		{20, 0.25},
+		{19, 0.1},
+		{5, 0.1},
+		{4.99, 0.05},
+		{2, 0.05},
+		{1.99, 0.01},
+		{1, 0.01},
+		{0.99, 0.005},
+		{0.5, 0.005},
+		{0.49, 0.001},
+		{0, 0.001},
+	}
+	for _, tc := range cases {
+		got := formula.TickStep(tc.price)
+		if got != tc.want {
+			t.Errorf("TickStep(%.4f) = %g, want %g", tc.price, got, tc.want)
+		}
+	}
+}
+
+func TestIsValidTick(t *testing.T) {
+	cases := []struct {
+		price float64
+		want  bool
+	}{
+		{100, true},    // step=1, valid tick
+		{101, true},    // step=1, valid tick
+		{100.51, false}, // step=1, not valid
+		{50.5, true},   // step=0.5, 50.5/0.5=101 exact
+		{10.10, true},  // step=0.1, 10.10/0.1=101 exact
+		{10.11, false}, // step=0.1, not valid
+		{18500, true},  // step=500, 18500/500=37 exact
+		{19000, true},  // step=500, 19000/500=38 exact
+		{18599, false}, // step=500, not valid
+	}
+	for _, tc := range cases {
+		got := formula.IsValidTick(tc.price)
+		if got != tc.want {
+			t.Errorf("IsValidTick(%.2f) = %v, want %v", tc.price, got, tc.want)
+		}
+	}
+}
+
+func TestExchangeFee(t *testing.T) {
+	fee := formula.ExchangeFee(100, 10.5, 0.04)
+	if fee != 42 {
+		t.Errorf("ExchangeFee(100, 10.5, 0.04) = %g, want 42", fee)
+	}
+	fee = formula.ExchangeFee(1, 1.5, 0.01)
+	if fee != 1 {
+		t.Errorf("ExchangeFee(1, 1.5, 0.01) = %g, want 1 (ceil)", fee)
+	}
+	fee = formula.ExchangeFee(0, 100, 0.1)
+	if fee != 0 {
+		t.Errorf("ExchangeFee(0, 100, 0.1) = %g, want 0", fee)
+	}
+}
+
+// ─── Retail ──────────────────────────────────────────────────────
+
+func TestUnitsSoldPerHour_StableMarket(t *testing.T) {
+	// Saturation=1.0: balanced market
+	got := formula.UnitsSoldPerHour(
+		0.8,   // buildingKindModifier
+		0.01,  // buildingLevelsNeededPerUnitPerHour
+		8.0,   // modeledProductionCostPerUnit
+		200.0, // modeledStoreWages
+		15.0,  // modeledUnitsSoldAnHour
+		24.0,  // price
+		6.0,   // quality
+		1.0,   // saturation (balanced)
+		0,     // salesModifierPct
+		1,     // size
+		1,     // acceleration
+		1,     // weatherSellingSpeedMultiplier
+	)
+	if got <= 0 {
+		t.Errorf("UnitsSoldPerHour stable market = %g, want > 0", got)
+	}
+	if got > 300 {
+		t.Errorf("UnitsSoldPerHour stable market = %g, want reasonable (< 300)", got)
+	}
+	t.Logf("UnitsSoldPerHour (stable) = %.2f", got)
+}
+
+func TestUnitsSoldPerHour_HighSaturation(t *testing.T) {
+	// Saturation=2.0: oversupply, should sell less
+	got := formula.UnitsSoldPerHour(0.8, 0.01, 8.0, 200.0, 15.0, 24.0, 6.0, 2.0, 0, 1, 1, 1)
+	if got <= 0 {
+		t.Errorf("UnitsSoldPerHour high saturation = %g, want > 0 (still sells but less)", got)
+	}
+	t.Logf("UnitsSoldPerHour (saturation=2.0) = %.2f", got)
+}
+
+func TestUnitsSoldPerHour_ZeroSaturation(t *testing.T) {
+	// Saturation=0: undersupply, should sell more
+	got := formula.UnitsSoldPerHour(0.8, 0.01, 8.0, 200.0, 15.0, 24.0, 6.0, 0, 0, 1, 1, 1)
+	if got <= 0 {
+		t.Errorf("UnitsSoldPerHour zero saturation = %g, want > 0", got)
+	}
+	t.Logf("UnitsSoldPerHour (saturation=0) = %.2f", got)
+}
+
+func TestUnitsSoldPerHour_LowPrice(t *testing.T) {
+	// Price below production cost → no units sold
+	got := formula.UnitsSoldPerHour(0.8, 0.01, 8.0, 200.0, 15.0, 5.0, 6.0, 1.0, 0, 1, 1, 1)
+	if got != 0 {
+		t.Errorf("UnitsSoldPerHour below-cost price = %g, want 0", got)
+	}
+}
+
+func TestSaturationPriceMultiplier_Clamping(t *testing.T) {
+	// Verify the clamp boundaries
+	got := formula.SaturationPriceMultiplier(0.1, 0.15) // extreme undersupply
+	if got > 1.10 {
+		t.Errorf("SaturationPriceMultiplier undersupply = %.4f, want <= 1.10", got)
+	}
+	got = formula.SaturationPriceMultiplier(10.0, 0.15) // extreme oversupply
+	if got < 0.70 {
+		t.Errorf("SaturationPriceMultiplier oversupply = %.4f, want >= 0.70", got)
+	}
+}

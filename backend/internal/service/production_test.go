@@ -2,6 +2,8 @@ package service
 
 import (
 	"testing"
+
+	"go-sim-api/internal/model"
 )
 
 func TestStartBuildingProduction(t *testing.T) {
@@ -107,5 +109,91 @@ func TestCheckBuildingSlot(t *testing.T) {
 	err := s.checkBuildingSlot(s.State.Companies[0].ID, "b-new")
 	if err == nil {
 		t.Errorf("expected error when no slots available")
+	}
+}
+
+func TestClaimProduction_WrongCompany(t *testing.T) {
+	s := newCoreTestService()
+	s.mu.Lock()
+	s.State.Companies[0].PlacedBuildings = []map[string]any{
+		{"id": "b-1", "kind": 2, "level": 1, "busy": true, "baseCost": 10000},
+	}
+	s.State.ProductionJobs = []model.ProductionJob{
+		{ID: "job-1", BuildingID: "b-1", ResourceID: 8, Amount: 10, Status: "running"},
+	}
+	s.mu.Unlock()
+
+	_, err := s.ClaimProduction(s.State.Companies[0].ID, "job-1")
+	if err == nil {
+		t.Fatal("expected error for wrong company")
+	}
+}
+
+func TestClaimProduction_AlreadyClaimed(t *testing.T) {
+	s := newCoreTestService()
+	s.mu.Lock()
+	s.State.Companies[0].PlacedBuildings = []map[string]any{
+		{"id": "b-1", "kind": 2, "level": 1, "busy": false, "baseCost": 10000},
+	}
+	s.State.ProductionJobs = []model.ProductionJob{
+		{ID: "job-1", BuildingID: "b-1", ResourceID: 8, Amount: 10, Status: "claimed"},
+	}
+	s.mu.Unlock()
+
+	_, err := s.ClaimProduction(s.State.Companies[0].ID, "job-1")
+	if err == nil {
+		t.Fatal("expected error for already claimed job")
+	}
+}
+func TestCalcProductionDuration_EdgeCases(t *testing.T) {
+	s := newCoreTestService()
+	// Positive durSec is returned as-is when no economy model override
+	dur := s.calcProductionDuration(1, 10, 60)
+	if dur != 60 {
+		t.Errorf("expected passthrough of 60, got %d", dur)
+	}
+	// Zero or negative durSec triggers fallback: max(30, amount*6)
+	dur = s.calcProductionDuration(1, 10, 0)
+	if dur != 60 {
+		t.Errorf("10*6=60, expected 60, got %d", dur)
+	}
+	dur = s.calcProductionDuration(1, 1, 0)
+	if dur != 30 {
+		t.Errorf("max(30, 1*6)=30, expected 30, got %d", dur)
+	}
+	dur = s.calcProductionDuration(1, 0, -1)
+	if dur != 30 {
+		t.Errorf("max(30, 0*6)=30, expected 30, got %d", dur)
+	}
+}
+
+func TestFindRecipe_NotFound(t *testing.T) {
+	s := newCoreTestService()
+	recipe := s.findRecipe(9999, 1)
+	if len(recipe) != 0 {
+		t.Errorf("expected empty map for nonexistent recipe, got %v", recipe)
+	}
+}
+
+func TestResolveQuality_Defaults(t *testing.T) {
+	s := newCoreTestService()
+	// reqQuality == 0 returns 0 immediately
+	q := s.resolveQuality(&s.State.Companies[0], 0, map[int]int{2: 10})
+	if q != 0 {
+		t.Errorf("expected quality 0 for reqQuality=0, got %d", q)
+	}
+	// Empty input returns reqQuality unchanged
+	q = s.resolveQuality(&s.State.Companies[0], 5, map[int]int{})
+	if q != 5 {
+		t.Errorf("expected quality 5 for empty input, got %d", q)
+	}
+}
+
+func TestCheckBuildingSlot_InvalidBuilding(t *testing.T) {
+	s := newCoreTestService()
+	// Company has no placed buildings — non-"b-new" building ID passes
+	err := s.checkBuildingSlot(s.State.Companies[0].ID, "nonexistent")
+	if err != nil {
+		t.Errorf("expected no error for non-new building, got %v", err)
 	}
 }

@@ -162,69 +162,79 @@ func generateMarketExecutives() []map[string]any {
 	return execs
 }
 
-func (s *Service) MyExecutives() []map[string]any {
-	globalExecState.mu.Lock()
-	defer globalExecState.mu.Unlock()
+// ── Per-instance state (owned by Service) ──────────────
 
-	result := make([]map[string]any, 0, len(globalExecState.hired))
-	for _, e := range globalExecState.hired {
+type execState struct {
+	mu          sync.Mutex
+	hired       map[string]*ExecutiveStub
+	market      []*ExecutiveStub
+	lastRefresh time.Time
+}
+
+// newExecState creates a fresh execState for a Service instance.
+func newExecState() *execState {
+	return &execState{hired: make(map[string]*ExecutiveStub)}
+}
+
+func (s *Service) MyExecutives() []map[string]any {
+	if s.execState == nil {
+		return nil
+	}
+	s.execState.mu.Lock()
+	defer s.execState.mu.Unlock()
+
+	result := make([]map[string]any, 0, len(s.execState.hired))
+	for _, e := range s.execState.hired {
 		result = append(result, stubToMap(e))
 	}
 	return result
 }
 
-// ── In-memory state ───────────────────────────────────
-
-type execState struct {
-	mu        sync.Mutex
-	hired     map[string]*ExecutiveStub
-	market    []*ExecutiveStub
-	lastRefresh time.Time
-}
-
-var globalExecState = &execState{
-	hired: make(map[string]*ExecutiveStub),
-}
-
 // ── Service methods (called by handlers) ──────────────
 
 func (s *Service) ExecutiveCatalog() []map[string]any {
-	globalExecState.mu.Lock()
-	defer globalExecState.mu.Unlock()
+	if s.execState == nil {
+		return nil
+	}
+	s.execState.mu.Lock()
+	defer s.execState.mu.Unlock()
 
 	// Refresh market periodically
-	if time.Since(globalExecState.lastRefresh) > 10*time.Minute || len(globalExecState.market) == 0 {
+	if time.Since(s.execState.lastRefresh) > 10*time.Minute || len(s.execState.market) == 0 {
 		raw := generateMarketExecutives()
-		globalExecState.market = make([]*ExecutiveStub, len(raw))
+		s.execState.market = make([]*ExecutiveStub, len(raw))
 		for i, r := range raw {
-			globalExecState.market[i] = stubFromMap(r)
+			s.execState.market[i] = stubFromMap(r)
 		}
-		globalExecState.lastRefresh = time.Now()
+		s.execState.lastRefresh = time.Now()
 	}
 
-	result := make([]map[string]any, len(globalExecState.market))
-	for i, e := range globalExecState.market {
+	result := make([]map[string]any, len(s.execState.market))
+	for i, e := range s.execState.market {
 		result[i] = stubToMap(e)
 	}
 	return result
 }
 
 func (s *Service) RecruitExecutive(execID string) map[string]any {
-	globalExecState.mu.Lock()
-	defer globalExecState.mu.Unlock()
+	if s.execState == nil {
+		return map[string]any{"ok": false, "error": "exec state not initialized"}
+	}
+	s.execState.mu.Lock()
+	defer s.execState.mu.Unlock()
 
 	// Find in market
-	for _, e := range globalExecState.market {
+	for _, e := range s.execState.market {
 		if e.ID == execID {
 			// Check if already hired
-			if _, exists := globalExecState.hired[execID]; exists {
+			if _, exists := s.execState.hired[execID]; exists {
 				return map[string]any{"ok": false, "error": "already recruited"}
 			}
 			// Clone to hired
 			clone := *e
 			clone.Status = "idle"
 			clone.TrainingEndTime = nil
-			globalExecState.hired[execID] = &clone
+			s.execState.hired[execID] = &clone
 			return map[string]any{"ok": true, "executive": stubToMap(&clone)}
 		}
 	}
@@ -232,10 +242,13 @@ func (s *Service) RecruitExecutive(execID string) map[string]any {
 }
 
 func (s *Service) TrainExecutive(execID string) map[string]any {
-	globalExecState.mu.Lock()
-	defer globalExecState.mu.Unlock()
+	if s.execState == nil {
+		return map[string]any{"ok": false, "error": "exec state not initialized"}
+	}
+	s.execState.mu.Lock()
+	defer s.execState.mu.Unlock()
 
-	e, exists := globalExecState.hired[execID]
+	e, exists := s.execState.hired[execID]
 	if !exists {
 		return map[string]any{"ok": false, "error": "executive not found"}
 	}
@@ -279,15 +292,18 @@ func updateExecutiveStats(e *ExecutiveStub) {
 }
 
 func (s *Service) ExecutiveDetail(execID string) (map[string]any, error) {
-	globalExecState.mu.Lock()
-	defer globalExecState.mu.Unlock()
+	if s.execState == nil {
+		return nil, fmt.Errorf("executive state not initialized")
+	}
+	s.execState.mu.Lock()
+	defer s.execState.mu.Unlock()
 
 	// Check hired first
-	if e, exists := globalExecState.hired[execID]; exists {
+	if e, exists := s.execState.hired[execID]; exists {
 		return stubToMap(e), nil
 	}
 	// Check market
-	for _, e := range globalExecState.market {
+	for _, e := range s.execState.market {
 		if e.ID == execID {
 			m := stubToMap(e)
 			m["morale"] = 100
@@ -308,8 +324,6 @@ func (s *Service) IncomingOffers() []map[string]any {
 func (s *Service) RespondToOffer(_ map[string]any) map[string]any {
 	return map[string]any{"ok": true}
 }
-
-// ── Conversion helpers ────────────────────────────────
 
 func stubFromMap(m map[string]any) *ExecutiveStub {
 	return &ExecutiveStub{

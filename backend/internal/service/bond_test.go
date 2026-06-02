@@ -10,14 +10,15 @@ import (
 
 func newBondTestService() *Service {
 	s := newCoreTestService()
+	companyID := s.State.Companies[0].ID
 	s.mu.Lock()
 	s.State.Bonds = []model.Bond{
 		{ID: "bond-1", Amount: 100, Interest: 0.012, PurchasedAt: time.Now().UTC().Format(time.RFC3339),
 			MissedPayments: 0, InterestCollected: 0.0, RatingWhenPurchased: "A",
-			IssuerCompanyID: 900001, OwnerCompanyID: 1, RestructurePct: 0.0},
+			IssuerCompanyID: 900001, OwnerCompanyID: companyID, RestructurePct: 0.0},
 		{ID: "bond-2", Amount: 50, Interest: 0.015, PurchasedAt: time.Now().UTC().Format(time.RFC3339),
 			MissedPayments: 0, InterestCollected: 0.0, RatingWhenPurchased: "A",
-			IssuerCompanyID: 1, OwnerCompanyID: 900001, RestructurePct: 0.0},
+			IssuerCompanyID: companyID, OwnerCompanyID: 900001, RestructurePct: 0.0},
 	}
 	s.mu.Unlock()
 	return s
@@ -98,18 +99,15 @@ func TestSettleBondInterest(t *testing.T) {
 		t.Errorf("expected expense 3750, got %.0f", expense)
 	}
 }
-
 func TestSettleBondInterestDefaultsWhenInsolvent(t *testing.T) {
 	s := newBondTestService()
-	// bond-1: issuer=bot, owner=player → income 6000
-	// bond-2 (modified): issuer=player, owner=bot, amount=100, interest=0.02 → expense 10000
-	// net = 6000 - 10000 = -4000, company has 1000 < 4000 → defaults
+	companyID := s.State.Companies[0].ID
 	s.mu.Lock()
 	s.State.Bonds[1] = model.Bond{
 		ID: "bond-2", Amount: 100, Interest: 0.02,
 		PurchasedAt:    time.Now().UTC().Format(time.RFC3339),
 		MissedPayments: 0, InterestCollected: 0.0, RatingWhenPurchased: "A",
-		IssuerCompanyID: 1, OwnerCompanyID: 900001, RestructurePct: 0.0,
+		IssuerCompanyID: companyID, OwnerCompanyID: 900001, RestructurePct: 0.0,
 	}
 	s.State.Companies[0].Money = 1000
 	s.mu.Unlock()

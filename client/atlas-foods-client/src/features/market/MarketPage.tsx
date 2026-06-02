@@ -17,6 +17,8 @@ import {
   formatResourceName,
   resourceIcon,
 } from '@/game/resources'
+import { PriceCurve } from './PriceCurve'
+import { ParticipantList } from './ParticipantList'
 
 export function MarketPage() {
   const [selectedResource, setSelectedResource] = useState(121)
@@ -297,123 +299,6 @@ export function MarketPage() {
   )
 }
 
-function PriceCurve({ series }: { series: Array<{ price: number; time: string }> }) {
-  const width = 640
-  const height = 160
-  const padding = 14
-  const prices = series.map((point) => point.price)
-  const min = prices.length ? Math.min(...prices) : 0
-  const max = prices.length ? Math.max(...prices) : 0
-  const spread = Math.max(1, max - min)
-  const points = series.map((point, index) => {
-    const x = padding + (index / Math.max(1, series.length - 1)) * (width - padding * 2)
-    const y = height - padding - ((point.price - min) / spread) * (height - padding * 2)
-    return `${x.toFixed(2)},${y.toFixed(2)}`
-  }).join(' ')
-  const lastPoint = series.at(-1)
-
-  return (
-    <div className="mt-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50 to-white/70 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-wider text-amber-700">Price Curve</div>
-          <div className="text-xs text-amber-600">48-hour synthetic + trade history ticker</div>
-        </div>
-        {lastPoint && (
-          <div className="text-right text-[10px] font-semibold text-amber-700">
-            Last update {new Date(lastPoint.time).toLocaleTimeString()}
-          </div>
-        )}
-      </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-40 w-full overflow-visible">
-        <defs>
-          <linearGradient id="marketCurveFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#d97706" stopOpacity="0.26" />
-            <stop offset="100%" stopColor="#d97706" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d6b27b" strokeDasharray="4 4" />
-        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#d6b27b" strokeDasharray="4 4" />
-        {points ? (
-          <>
-            <polyline
-              points={`${padding},${height - padding} ${points} ${width - padding},${height - padding}`}
-              fill="url(#marketCurveFill)"
-              stroke="none"
-            />
-            <polyline points={points} fill="none" stroke="#b45309" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          </>
-        ) : (
-          <text x={width / 2} y={height / 2} textAnchor="middle" className="fill-amber-500 text-xs">
-            No price history yet
-          </text>
-        )}
-      </svg>
-      <div className="mt-1 flex justify-between text-[10px] font-semibold text-amber-600">
-        <span>Low ${min.toFixed(2)}</span>
-        <span>High ${max.toFixed(2)}</span>
-      </div>
-    </div>
-  )
-}
-
-function ParticipantList({
-  title,
-  emptyText,
-  orders,
-  currentCompanyId,
-}: {
-  title: string
-  emptyText: string
-  orders: Array<{ id: string; companyId: number; price: number; remaining: number; quantity: number }>
-  currentCompanyId: number
-}) {
-  return (
-    <div className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
-      <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-amber-800">
-        {title} ({orders.length})
-      </h3>
-      <div className="space-y-2">
-        {orders.length === 0 && (
-          <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">
-            {emptyText}
-          </div>
-        )}
-        {orders.slice(0, 10).map((order, index) => (
-          <div key={`${order.id}-${order.companyId}-${index}`} className="grid grid-cols-[1fr_auto] gap-2 rounded-lg border border-amber-200/70 bg-white/70 px-3 py-2 text-xs">
-            <div className="min-w-0">
-              <div className="truncate font-black text-amber-950">
-                {companyLabel(order.companyId, currentCompanyId)}
-              </div>
-              <div className="text-[10px] text-amber-600">
-                Order {shortOrderId(order.id)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="font-black tabular-nums text-amber-950">${order.price.toFixed(2)}</div>
-              <div className="text-[10px] font-semibold text-amber-700">
-                {order.remaining.toLocaleString()} / {order.quantity.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function companyLabel(companyId: number, currentCompanyId: number): string {
-  if (companyId === currentCompanyId) return 'You'
-  if (companyId === 900001) return 'Atlas Trading Bot'
-  if (companyId === 900002) return 'Nova Market Bot'
-  if (companyId === 999999) return 'National Team'
-  return `Company #${companyId}`
-}
-
-function shortOrderId(id: string): string {
-  if (id.length <= 18) return id
-  return `${id.slice(0, 10)}...${id.slice(-6)}`
-}
 
 function Metric({
   label,

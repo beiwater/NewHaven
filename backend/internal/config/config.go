@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Config struct {
@@ -164,4 +165,40 @@ func envStr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// DefaultTestConfig returns a fresh Config suitable for tests.
+// It reuses defaultGameConfig() for the Game field to avoid economic-parameter drift,
+// so tests run against production-like values. Each call returns a new instance.
+// Tests that need overrides should copy from this:
+//
+//	cfg := config.DefaultTestConfig()
+//	cfg.DevMode = false
+//	cfg.JWTSigningKey = "test-key"
+func DefaultTestConfig() *Config {
+	return &Config{
+		DevMode:             true,
+		JWTSigningKey:       "test-jwt-secret",
+		ACEnabled:           false,
+		AMLEnabled:          false,
+		ScriptDetectEnabled: false,
+		BotEnabled:          false,
+		Game:                defaultGameConfig(),
+	}
+}
+
+// MustParseTimeRFC3339 parses s as an RFC 3339 timestamp and panics on failure.
+// Use in test helpers or when the string is verified to be valid.
+func MustParseTimeRFC3339(s string) time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		panic("config: invalid RFC 3339 timestamp: " + err.Error())
+	}
+	return t
+}
+
+// ParseTimeRFC3339 parses s as an RFC 3339 timestamp and returns the error.
+// Use this instead of raw time.Parse to avoid accidentally swallowing errors.
+func ParseTimeRFC3339(s string) (time.Time, error) {
+	return time.Parse(time.RFC3339, s)
 }
