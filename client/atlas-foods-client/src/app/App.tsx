@@ -1,0 +1,106 @@
+import { lazy, Suspense } from 'react'
+import { AuthGate } from '@/features/auth/AuthGate'
+import { TopBar } from '@/features/topbar/TopBar'
+import { LeftSidebar } from '@/features/sidebar/LeftSidebar'
+import { BuildingPanel } from '@/features/buildings/BuildingPanel'
+import { MarketTicker } from '@/features/market/MarketTicker'
+import { MarketPage } from '@/features/market/MarketPage'
+import { InventoryBar } from '@/features/inventory/InventoryBar'
+import { ContractList } from '@/features/contracts/ContractList'
+import { ChatPanel } from '@/features/chat/ChatPanel'
+import { useMarketWebSocket, useProductionWebSocket } from '@/api/websocket'
+import { BuildView } from '@/features/buildings/BuildView'
+import { useUIStore } from '@/store/ui.store'
+import { ErrorBoundary } from './ErrorBoundary'
+
+// Lazy-load PixiJS game canvas so it doesn't block React mount
+const GameCanvas = lazy(() => import('@/game/GameCanvas'))
+
+function PageContent() {
+  const activeView = useUIStore((s) => s.activeView)
+
+  switch (activeView) {
+    case 'market':
+      return <MarketPage />
+    case 'warehouse':
+      return <InventoryBar />
+    case 'build':
+      return <BuildView />
+    case 'contracts':
+      return <ContractList />
+    case 'research':
+      return (
+        <div className="p-4">
+          <h2 className="text-lg font-bold text-amber-900">Research Lab</h2>
+          <p className="text-xs text-amber-600 mt-1">Research projects coming soon.</p>
+        </div>
+      )
+    case 'map':
+    default:
+      return null
+  }
+}
+
+function MapSlot() {
+  return (
+    <ErrorBoundary fallback={
+      <div className="map flex items-center justify-center bg-amber-100">
+        <div className="text-center p-8">
+          <p className="text-amber-700 font-semibold">Map loading failed</p>
+          <p className="text-amber-500 text-xs mt-1">WebGL may not be supported</p>
+        </div>
+      </div>
+    }>
+      <Suspense fallback={
+        <div className="map flex items-center justify-center bg-amber-100">
+          <div className="text-amber-600 text-sm animate-pulse">Loading map...</div>
+        </div>
+      }>
+        <GameCanvas />
+      </Suspense>
+    </ErrorBoundary>
+  )
+}
+
+function GameLayout() {
+  const activeView = useUIStore((s) => s.activeView)
+  const setChatOpen = useUIStore((s) => s.setChatOpen)
+  const chatOpen = useUIStore((s) => s.chatOpen)
+  const isMapView = activeView === 'map'
+
+  useMarketWebSocket()
+  useProductionWebSocket()
+
+  return (
+    <div className={`game-layout ${isMapView ? 'map-mode' : 'page-mode'}`}>
+      <TopBar />
+      <LeftSidebar />
+      <div className="map">
+        {isMapView ? <MapSlot /> : <PageContent />}
+      </div>
+      {isMapView ? <BuildingPanel /> : <div className="right-panel page-spacer" />}
+      <MarketTicker />
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-[110px] right-4 z-50 w-10 h-10 bg-amber-800 hover:bg-amber-900 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </button>
+      )}
+      <ChatPanel />
+    </div>
+  )
+}
+
+export function App() {
+  return (
+    <ErrorBoundary>
+      <AuthGate>
+        <GameLayout />
+      </AuthGate>
+    </ErrorBoundary>
+  )
+}

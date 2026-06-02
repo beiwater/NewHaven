@@ -1,0 +1,11 @@
+﻿Use case: game background concept
+Asset type: 16:9 map background for game frontend
+Primary request: Create a warm 2.5D production map background for an idle resource management business game, centered on one wheat-to-bread-to-meal industry chain.
+Scene/backdrop: Expandable business park map with winding roads, empty plots, soft terrain, small district markers, and room for building sprites. Include subtle zones for grain production, mill processing, bakery production, small meal shop, market gate, warehouse corner, and future expansion plots.
+Subject: A playable map backdrop, not a finished illustration overloaded with unique buildings. It should feel like a map where separate transparent building sprites can be placed on top.
+Style/medium: Polished cozy strategy game map, clean readable shapes, handcrafted 2.5D tycoon mood.
+Composition/framing: 16:9 desktop layout, center map area with roads and plots, enough negative space for UI overlays around the edges, no embedded UI panels.
+Lighting/mood: Warm late afternoon light, inviting, productive, slightly whimsical.
+Color palette: Moss green terrain, warm cream paths, amber highlights, teal details, soft brown roads.
+Materials/textures: painterly ground, stone road edges, faint grid/plot outlines, expansion fog at map borders.
+Constraints: No embedded UI text, no labels, no watermark, no stock charts, no realistic farm photo look, no characters. This is a map background asset, not a UI screenshot.

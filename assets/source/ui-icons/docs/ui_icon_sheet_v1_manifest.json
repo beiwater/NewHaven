@@ -1,0 +1,258 @@
+[
+  {
+    "index": 1,
+    "row": 1,
+    "col": 1,
+    "id": "icon_coin_v1",
+    "zhName": "??/??",
+    "usage": "money coin",
+    "sourceCrop": [
+      0,
+      0,
+      314,
+      314
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_coin_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_coin_v1.png"
+  },
+  {
+    "index": 2,
+    "row": 1,
+    "col": 2,
+    "id": "icon_cash_v1",
+    "zhName": "????",
+    "usage": "cash money",
+    "sourceCrop": [
+      314,
+      0,
+      627,
+      314
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_cash_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_cash_v1.png"
+  },
+  {
+    "index": 3,
+    "row": 1,
+    "col": 3,
+    "id": "icon_level_badge_v1",
+    "zhName": "????",
+    "usage": "level badge",
+    "sourceCrop": [
+      627,
+      0,
+      940,
+      314
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_level_badge_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_level_badge_v1.png"
+  },
+  {
+    "index": 4,
+    "row": 1,
+    "col": 4,
+    "id": "icon_xp_v1",
+    "zhName": "?? XP",
+    "usage": "experience points",
+    "sourceCrop": [
+      940,
+      0,
+      1254,
+      314
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_xp_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_xp_v1.png"
+  },
+  {
+    "index": 5,
+    "row": 2,
+    "col": 1,
+    "id": "icon_upgrade_v1",
+    "zhName": "????",
+    "usage": "upgrade",
+    "sourceCrop": [
+      0,
+      314,
+      314,
+      627
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_upgrade_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_upgrade_v1.png"
+  },
+  {
+    "index": 6,
+    "row": 2,
+    "col": 2,
+    "id": "icon_collect_v1",
+    "zhName": "??/??",
+    "usage": "collect reward",
+    "sourceCrop": [
+      314,
+      314,
+      627,
+      627
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_collect_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_collect_v1.png"
+  },
+  {
+    "index": 7,
+    "row": 2,
+    "col": 3,
+    "id": "icon_timer_v1",
+    "zhName": "????",
+    "usage": "timer",
+    "sourceCrop": [
+      627,
+      314,
+      940,
+      627
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_timer_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_timer_v1.png"
+  },
+  {
+    "index": 8,
+    "row": 2,
+    "col": 4,
+    "id": "icon_market_v1",
+    "zhName": "????",
+    "usage": "market",
+    "sourceCrop": [
+      940,
+      314,
+      1254,
+      627
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_market_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_market_v1.png"
+  },
+  {
+    "index": 9,
+    "row": 3,
+    "col": 1,
+    "id": "icon_contract_v1",
+    "zhName": "????",
+    "usage": "contract",
+    "sourceCrop": [
+      0,
+      627,
+      314,
+      940
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_contract_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_contract_v1.png"
+  },
+  {
+    "index": 10,
+    "row": 3,
+    "col": 2,
+    "id": "icon_warehouse_v1",
+    "zhName": "????",
+    "usage": "warehouse crate",
+    "sourceCrop": [
+      314,
+      627,
+      627,
+      940
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_warehouse_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_warehouse_v1.png"
+  },
+  {
+    "index": 11,
+    "row": 3,
+    "col": 3,
+    "id": "icon_energy_v1",
+    "zhName": "??/??",
+    "usage": "energy boost",
+    "sourceCrop": [
+      627,
+      627,
+      940,
+      940
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_energy_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_energy_v1.png"
+  },
+  {
+    "index": 12,
+    "row": 3,
+    "col": 4,
+    "id": "icon_builder_v1",
+    "zhName": "??/??",
+    "usage": "construction builder",
+    "sourceCrop": [
+      940,
+      627,
+      1254,
+      940
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_builder_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_builder_v1.png"
+  },
+  {
+    "index": 13,
+    "row": 4,
+    "col": 1,
+    "id": "icon_wheat_resource_v1",
+    "zhName": "????",
+    "usage": "wheat resource",
+    "sourceCrop": [
+      0,
+      940,
+      314,
+      1254
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_wheat_resource_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_wheat_resource_v1.png"
+  },
+  {
+    "index": 14,
+    "row": 4,
+    "col": 2,
+    "id": "icon_factory_v1",
+    "zhName": "??/??",
+    "usage": "factory processing",
+    "sourceCrop": [
+      314,
+      940,
+      627,
+      1254
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_factory_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_factory_v1.png"
+  },
+  {
+    "index": 15,
+    "row": 4,
+    "col": 3,
+    "id": "icon_restaurant_v1",
+    "zhName": "??/??",
+    "usage": "restaurant sales",
+    "sourceCrop": [
+      627,
+      940,
+      940,
+      1254
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_restaurant_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_restaurant_v1.png"
+  },
+  {
+    "index": 16,
+    "row": 4,
+    "col": 4,
+    "id": "icon_refresh_v1",
+    "zhName": "??/??",
+    "usage": "refresh cycle",
+    "sourceCrop": [
+      940,
+      940,
+      1254,
+      1254
+    ],
+    "rawSlice": "art-src/ui-icons/slices/icon_refresh_v1_cell.png",
+    "transparent128": "art-src/ui-icons/transparent/icon_refresh_v1.png"
+  }
+]
