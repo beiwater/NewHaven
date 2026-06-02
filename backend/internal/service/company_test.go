@@ -73,13 +73,13 @@ func TestMarketOrderDepth(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
 	s.State.Orders = []model.MarketOrder{
-		{ID: "b1", ResourceID: 8, Kind: 1, Price: 10.0, Quality: 0, Quantity: 5, Remaining: 5, CompanyID: 1},
-		{ID: "b2", ResourceID: 8, Kind: 1, Price: 9.0, Quality: 0, Quantity: 3, Remaining: 3, CompanyID: 1},
-		{ID: "s1", ResourceID: 8, Kind: 0, Price: 11.0, Quality: 0, Quantity: 4, Remaining: 4, CompanyID: 2},
+		{ID: "b1", ResourceID: 3, Kind: 1, Price: 10.0, Quality: 0, Quantity: 5, Remaining: 5, CompanyID: 1},
+		{ID: "b2", ResourceID: 3, Kind: 1, Price: 9.0, Quality: 0, Quantity: 3, Remaining: 3, CompanyID: 1},
+		{ID: "s1", ResourceID: 3, Kind: 0, Price: 11.0, Quality: 0, Quantity: 4, Remaining: 4, CompanyID: 2},
 	}
 	s.mu.Unlock()
 
-	d := s.OrderBookDepth(8, 0)
+	d := s.OrderBookDepth(3, 0)
 	buys := d["buys"].([]depthLevel)
 	sells := d["sells"].([]depthLevel)
 	if len(buys) != 2 || len(sells) != 1 {

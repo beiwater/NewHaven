@@ -13,22 +13,13 @@ const (
 	GroupFinance        = 9
 )
 
-// ResourceCommodityGroup maps resource IDs → commodity group.
-// Built from the spec v1.3.2 commodity group table.
+// ResourceCommodityGroup maps resource IDs to commodity groups.
+// v1.3.1's minimal chain is Wheat -> Flour -> Bread -> Meals.
 var ResourceCommodityGroup = map[int]int{
-	// Grain
-	1: GroupGrain, 2: GroupGrain, 3: GroupGrain, 4: GroupGrain, 5: GroupGrain, 6: GroupGrain,
-	// Dairy
-	66: GroupDairy, 72: GroupDairy, 120: GroupDairy,
-	// GeneralMarket
-	8: GroupGeneralMarket, 9: GroupGeneralMarket, 10: GroupGeneralMarket,
-	11: GroupGeneralMarket, 12: GroupGeneralMarket,
-	// Processed
-	7: GroupProcessed, 121: GroupProcessed, 122: GroupProcessed, 127: GroupProcessed,
-	133: GroupProcessed, 134: GroupProcessed, 135: GroupProcessed, 137: GroupProcessed,
-	139: GroupProcessed, 141: GroupProcessed,
-	// Bakery
-	115: GroupBakery, 116: GroupBakery, 117: GroupBakery,
+	1: GroupGrain,
+	2: GroupProcessed,
+	3: GroupBakery,
+	4: GroupRestaurantMeal,
 }
 
 // GroupOf returns the commodity group for a resource ID, defaulting to GroupGeneralMarket.

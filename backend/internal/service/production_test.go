@@ -16,10 +16,8 @@ func TestStartBuildingProduction(t *testing.T) {
 	s.State.Companies[0].Inventory[1] = 5000 // power
 	s.mu.Unlock()
 
-	// Resources don't have a producedFrom for ID=1 (Power), so this will return "recipe not found"
-	// Let's find a resource that has a recipe - ID=1 is Power which has producedFrom
 	result := s.StartBuildingProduction(s.State.Companies[0].ID, "b-1", map[string]any{
-		"kind": 8, "amount": 10,
+		"kind": 2, "amount": 10,
 	})
 	if err, ok := result["error"]; ok {
 		t.Logf("production returned error (may be expected): %v", err)
@@ -34,26 +32,32 @@ func TestStartBuildingProductionDoesNotCreditOutputImmediately(t *testing.T) {
 	s.State.Companies[0].PlacedBuildings = []map[string]any{
 		{"id": "b-1", "kind": 2, "level": 1, "busy": false, "baseCost": 10000},
 	}
-	s.State.Companies[0].Inventory[8] = 0
-	s.State.Companies[0].Inventory[2] = 3000
+	s.State.Companies[0].Inventory[2] = 0
+	s.State.Companies[0].Inventory[1] = 3000
 	s.mu.Unlock()
 
 	result := s.StartBuildingProduction(s.State.Companies[0].ID, "b-1", map[string]any{
-		"kind": 8, "amount": 10,
+		"kind": 2, "amount": 10,
 	})
 	if err, ok := result["error"]; ok {
 		t.Fatalf("StartBuildingProduction() unexpected error: %v", err)
 	}
-	if got := s.State.Companies[0].Inventory[8]; got != 0 {
+	if got := s.State.Companies[0].Inventory[2]; got != 0 {
 		t.Fatalf("output inventory credited before claim = %d, want 0", got)
+	}
+	if got := s.State.ProductionJobs[0].Output[2]; got != 10 {
+		t.Fatalf("job output = %d, want selected amount 10", got)
 	}
 }
 
 func TestCalcProductionDuration(t *testing.T) {
 	s := newCoreTestService()
-	dur := s.calcProductionDuration(1, 10, 60)
+	dur := s.calcProductionDuration(1, 10, 1)
 	if dur <= 0 {
 		t.Errorf("expected positive duration, got %d", dur)
+	}
+	if dur != 360 {
+		t.Errorf("10 wheat at 100/h should take 360 seconds, got %d", dur)
 	}
 }
 
@@ -73,13 +77,15 @@ func TestResolveQuality(t *testing.T) {
 
 func TestFindRecipe(t *testing.T) {
 	s := newCoreTestService()
-	// Resource 8 (Beef) has producedFrom: {"2": "3"}
-	recipe := s.findRecipe(8, 10)
-	if len(recipe) == 0 {
-		t.Fatal("expected recipe for resource 8")
+	recipe, ok := s.findRecipe(2, 10)
+	if !ok {
+		t.Fatal("expected recipe resource to exist")
 	}
-	if recipe[2] != 30 {
-		t.Errorf("expected 30 water units (3*10), got %d", recipe[2])
+	if len(recipe) == 0 {
+		t.Fatal("expected recipe for resource 2")
+	}
+	if recipe[1] != 20 {
+		t.Errorf("expected 20 wheat units (2*10), got %d", recipe[1])
 	}
 }
 
@@ -119,7 +125,7 @@ func TestClaimProduction_WrongCompany(t *testing.T) {
 		{"id": "b-1", "kind": 2, "level": 1, "busy": true, "baseCost": 10000},
 	}
 	s.State.ProductionJobs = []model.ProductionJob{
-		{ID: "job-1", BuildingID: "b-1", ResourceID: 8, Amount: 10, Status: "running"},
+		{ID: "job-1", BuildingID: "b-1", ResourceID: 2, Amount: 10, Status: "running"},
 	}
 	s.mu.Unlock()
 
@@ -136,7 +142,7 @@ func TestClaimProduction_AlreadyClaimed(t *testing.T) {
 		{"id": "b-1", "kind": 2, "level": 1, "busy": false, "baseCost": 10000},
 	}
 	s.State.ProductionJobs = []model.ProductionJob{
-		{ID: "job-1", BuildingID: "b-1", ResourceID: 8, Amount: 10, Status: "claimed"},
+		{ID: "job-1", BuildingID: "b-1", ResourceID: 3, Amount: 10, Status: "claimed"},
 	}
 	s.mu.Unlock()
 
@@ -147,31 +153,44 @@ func TestClaimProduction_AlreadyClaimed(t *testing.T) {
 }
 func TestCalcProductionDuration_EdgeCases(t *testing.T) {
 	s := newCoreTestService()
-	// Positive durSec is returned as-is when no economy model override
-	dur := s.calcProductionDuration(1, 10, 60)
-	if dur != 60 {
-		t.Errorf("expected passthrough of 60, got %d", dur)
+	dur := s.calcProductionDuration(1, 10, 2)
+	if dur != 180 {
+		t.Errorf("level 2 should halve duration to 180 seconds, got %d", dur)
 	}
-	// Zero or negative durSec triggers fallback: max(30, amount*6)
-	dur = s.calcProductionDuration(1, 10, 0)
-	if dur != 60 {
-		t.Errorf("10*6=60, expected 60, got %d", dur)
+	dur = s.calcProductionDuration(1, 1, 1)
+	if dur != 36 {
+		t.Errorf("1 wheat at 100/h should take 36 seconds, got %d", dur)
 	}
-	dur = s.calcProductionDuration(1, 1, 0)
-	if dur != 30 {
-		t.Errorf("max(30, 1*6)=30, expected 30, got %d", dur)
+	dur = s.calcProductionDuration(1, 0, 1)
+	if dur != 36 {
+		t.Errorf("zero amount should default to 1 unit, got %d", dur)
 	}
-	dur = s.calcProductionDuration(1, 0, -1)
-	if dur != 30 {
-		t.Errorf("max(30, 0*6)=30, expected 30, got %d", dur)
+}
+
+func TestStartBuildingProductionRejectsOver48Hours(t *testing.T) {
+	s := newCoreTestService()
+	s.mu.Lock()
+	s.State.Companies[0].PlacedBuildings = []map[string]any{
+		{"id": "b-1", "kind": 1, "level": 1, "busy": false, "baseCost": 10000},
+	}
+	s.mu.Unlock()
+
+	result := s.StartBuildingProduction(s.State.Companies[0].ID, "b-1", map[string]any{
+		"kind": 1, "amount": 4801,
+	})
+	if _, ok := result["error"]; !ok {
+		t.Fatalf("expected over-48h production error, got %v", result)
+	}
+	if got := intFromAny(result["maxAmount"]); got != 4800 {
+		t.Errorf("maxAmount = %d, want 4800", got)
 	}
 }
 
 func TestFindRecipe_NotFound(t *testing.T) {
 	s := newCoreTestService()
-	recipe := s.findRecipe(9999, 1)
-	if len(recipe) != 0 {
-		t.Errorf("expected empty map for nonexistent recipe, got %v", recipe)
+	recipe, ok := s.findRecipe(9999, 1)
+	if ok || len(recipe) != 0 {
+		t.Errorf("expected empty map and missing flag for nonexistent recipe, got %v %v", recipe, ok)
 	}
 }
 

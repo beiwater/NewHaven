@@ -8,30 +8,36 @@ import (
 func (s *Service) BuildingMarket() []map[string]any {
 	return []map[string]any{
 		{
-			"id": "b-shop-1", "name": "Farm Plot", "kind": 1, "cost": 50000.0,
-			"description":     "Grows staples and crops",
-			"produces":        []int{3, 4, 5, 6, 66, 72, 120},
-			"starterProduces": []int{66, 6},
-			"starterRole":     "Start here: Water -> Seeds -> Grain",
+			"id": "b-shop-1", "name": "Farm", "kind": 1, "cost": 10000.0,
+			"unlockLevel":     BuildingUnlockLevel(1),
+			"description":     "Produces Wheat at 100 units per hour at level 1.",
+			"produces":        []int{1},
+			"starterProduces": []int{1},
+			"starterRole":     "Start here: Farm -> Wheat",
 		},
 		{
-			"id": "b-shop-2", "name": "Food Factory", "kind": 2, "cost": 120000.0,
-			"description":     "Processes farm goods into food products",
-			"produces":        []int{7, 8, 9, 121, 122, 127, 133, 134, 135, 137, 139, 141},
-			"starterProduces": []int{133},
-			"starterRole":     "Then process Grain -> Flour",
+			"id": "b-shop-2", "name": "Mill", "kind": 2, "cost": 20000.0,
+			"unlockLevel":     BuildingUnlockLevel(2),
+			"description":     "Mills Wheat into Flour at 80 units per hour at level 1.",
+			"produces":        []int{2},
+			"starterProduces": []int{2},
+			"starterRole":     "Then process Wheat -> Flour",
 		},
 		{
-			"id": "b-shop-3", "name": "Warehouse", "kind": 3, "cost": 30000.0,
-			"description": "Storage building",
-			"produces":    []int{},
-			"starterRole": "Stores Seeds, Grain, and Flour while the chain runs",
+			"id": "b-shop-3", "name": "Bakery", "kind": 3, "cost": 30000.0,
+			"unlockLevel":     BuildingUnlockLevel(3),
+			"description":     "Bakes Flour into Bread at 40 units per hour at level 1.",
+			"produces":        []int{3},
+			"starterProduces": []int{3},
+			"starterRole":     "Then bake Flour -> Bread",
 		},
 		{
-			"id": "b-shop-4", "name": "Research Lab", "kind": 4, "cost": 80000.0,
-			"description": "Research new technologies",
-			"produces":    []int{},
-			"starterRole": "Future unlock point after the starter chain is stable",
+			"id": "b-shop-4", "name": "Restaurant", "kind": 4, "cost": 40000.0,
+			"unlockLevel":     BuildingUnlockLevel(4),
+			"description":     "Serves Bread as Meals at 30 units per hour at level 1.",
+			"produces":        []int{4},
+			"starterProduces": []int{4},
+			"starterRole":     "Finally serve Bread -> Meals",
 		},
 	}
 }
@@ -54,20 +60,23 @@ func (s *Service) BuyBuilding(companyID int, buildingID string) (map[string]any,
 	if item == nil {
 		return nil, fmt.Errorf("building not found")
 	}
+	kind := intFromAny(item["kind"])
+	if company.Level < BuildingUnlockLevel(kind) {
+		return nil, fmt.Errorf("building unlocks at level %d", BuildingUnlockLevel(kind))
+	}
+	maxBuildings := BuildingSlotsForLevel(company.Level)
+	usedBuildings := companyBuildingCount(company)
+	if usedBuildings >= maxBuildings {
+		return nil, fmt.Errorf("building limit reached: %d/%d slots used", usedBuildings, maxBuildings)
+	}
 	cost := floatFromAny(item["cost"])
 	if company.Money < cost {
 		return nil, fmt.Errorf("not enough money: need %.0f, have %.0f", cost, company.Money)
 	}
-	// Check warehouse capacity
-	cap := (company.WarehouseLevel + 1) * 1000
-	used := len(company.PlacedBuildings) + len(company.UnplacedBuildings)
-	if used >= cap {
-		return nil, fmt.Errorf("warehouse full: %d/%d slots used", used, cap)
-	}
 	company.Money -= cost
 	b := map[string]any{
 		"id":       fmt.Sprintf("b-%d", s.now().UnixNano()),
-		"kind":     intFromAny(item["kind"]),
+		"kind":     kind,
 		"level":    1,
 		"name":     item["name"],
 		"baseCost": intFromAny(item["cost"]),
@@ -94,6 +103,12 @@ func (s *Service) PlaceBuilding(companyID int, buildingID string, x, y int) (map
 	if company == nil {
 		return nil, fmt.Errorf("company not found")
 	}
+	if companyBuildingCount(company) > BuildingSlotsForLevel(company.Level) {
+		return nil, fmt.Errorf("building limit reached: %d/%d slots used", companyBuildingCount(company), BuildingSlotsForLevel(company.Level))
+	}
+	if err := validateMapPlacement(company.PlacedBuildings, "", x, y); err != nil {
+		return nil, err
+	}
 	for i, b := range company.UnplacedBuildings {
 		if b["id"] != buildingID {
 			continue
@@ -116,6 +131,9 @@ func (s *Service) MoveBuilding(companyID int, buildingID string, x, y int) (map[
 	if company == nil {
 		return nil, fmt.Errorf("company not found")
 	}
+	if err := validateMapPlacement(company.PlacedBuildings, buildingID, x, y); err != nil {
+		return nil, err
+	}
 	for _, b := range company.PlacedBuildings {
 		if b["id"] == buildingID {
 			b["x"] = x
@@ -125,6 +143,21 @@ func (s *Service) MoveBuilding(companyID int, buildingID string, x, y int) (map[
 		}
 	}
 	return nil, fmt.Errorf("building not found")
+}
+
+func validateMapPlacement(buildings []map[string]any, movingID string, x, y int) error {
+	if x < 1 || x > 12 || y < 1 || y > 10 {
+		return fmt.Errorf("map position out of bounds")
+	}
+	for _, b := range buildings {
+		if movingID != "" && fmt.Sprint(b["id"]) == movingID {
+			continue
+		}
+		if intFromAny(b["x"]) == x && intFromAny(b["y"]) == y {
+			return fmt.Errorf("map position already occupied")
+		}
+	}
+	return nil
 }
 
 func (s *Service) DemolishBuilding(companyID int, buildingID string) (map[string]any, error) {

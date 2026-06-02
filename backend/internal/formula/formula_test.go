@@ -18,15 +18,15 @@ func TestOutputPerHour(t *testing.T) {
 		level    int
 		want     float64
 	}{
-		{500, 0, 1, 500},           // Farm Lv1, no bonus
-		{500, 10, 1, 550},          // Farm Lv1, +10% → 550
-		{500, 0, 3, 1500},           // Farm Lv3, no bonus → 500*3
-		{500, 10, 3, 1650},          // Farm Lv3, +10% → 550*3
-		{320, 0, 1, 320},            // Barn Lv1
-		{220, 5, 1, 231},            // Mill Lv1, +5% → 231
-		{90, 0, 2, 180},             // Bakery Lv2
-		{0, 0, 1, 0},                // zero output
-		{500, 0, 0, 500},            // level < 1 → clamped to 1
+		{500, 0, 1, 500},   // Farm Lv1, no bonus
+		{500, 10, 1, 550},  // Farm Lv1, +10% → 550
+		{500, 0, 3, 1500},  // Farm Lv3, no bonus → 500*3
+		{500, 10, 3, 1650}, // Farm Lv3, +10% → 550*3
+		{320, 0, 1, 320},   // Barn Lv1
+		{220, 5, 1, 231},   // Mill Lv1, +5% → 231
+		{90, 0, 2, 180},    // Bakery Lv2
+		{0, 0, 1, 0},       // zero output
+		{500, 0, 0, 500},   // level < 1 → clamped to 1
 	}
 	for _, tc := range tests {
 		got := formula.OutputPerHour(tc.base, tc.speedPct, tc.level)
@@ -150,11 +150,10 @@ func TestGroupOf(t *testing.T) {
 		want int
 	}{
 		{1, formula.GroupGrain},
-		{66, formula.GroupDairy},
-		{8, formula.GroupGeneralMarket},
-		{7, formula.GroupProcessed},
-		{115, formula.GroupBakery},
-		{999, formula.GroupGeneralMarket}, // unknown → default
+		{2, formula.GroupProcessed},
+		{3, formula.GroupBakery},
+		{4, formula.GroupRestaurantMeal},
+		{999, formula.GroupGeneralMarket}, // unknown -> default
 	}
 	for _, tc := range tests {
 		g := formula.GroupOf(tc.rid)
@@ -480,15 +479,15 @@ func TestIsValidTick(t *testing.T) {
 		price float64
 		want  bool
 	}{
-		{100, true},    // step=1, valid tick
-		{101, true},    // step=1, valid tick
+		{100, true},     // step=1, valid tick
+		{101, true},     // step=1, valid tick
 		{100.51, false}, // step=1, not valid
-		{50.5, true},   // step=0.5, 50.5/0.5=101 exact
-		{10.10, true},  // step=0.1, 10.10/0.1=101 exact
-		{10.11, false}, // step=0.1, not valid
-		{18500, true},  // step=500, 18500/500=37 exact
-		{19000, true},  // step=500, 19000/500=38 exact
-		{18599, false}, // step=500, not valid
+		{50.5, true},    // step=0.5, 50.5/0.5=101 exact
+		{10.10, true},   // step=0.1, 10.10/0.1=101 exact
+		{10.11, false},  // step=0.1, not valid
+		{18500, true},   // step=500, 18500/500=37 exact
+		{19000, true},   // step=500, 19000/500=38 exact
+		{18599, false},  // step=500, not valid
 	}
 	for _, tc := range cases {
 		got := formula.IsValidTick(tc.price)

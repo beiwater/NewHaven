@@ -9,6 +9,8 @@ import (
 	"go-sim-api/internal/model"
 )
 
+const maxProductionDurationSeconds = 48 * 60 * 60
+
 func (s *Service) StartBuildingProduction(companyID int, buildingID string, body map[string]any) map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -40,8 +42,20 @@ func (s *Service) StartBuildingProduction(companyID int, buildingID string, body
 	}
 
 	buildLevel := s.findBuilding(companyID, buildingID)
-	input := s.findRecipe(resourceID, amount)
-	if len(input) == 0 {
+	durSec := s.calcProductionDuration(resourceID, amount, buildLevel)
+	if s.State.BoostMultiplier > 1.0 {
+		durSec = int(math.Ceil(float64(durSec) / s.State.BoostMultiplier))
+	}
+	if durSec > maxProductionDurationSeconds {
+		maxAmount := s.maxProductionAmount(resourceID, buildLevel)
+		return map[string]any{
+			"error":     fmt.Sprintf("production duration exceeds 48 hours; max amount is %d", maxAmount),
+			"maxAmount": maxAmount,
+		}
+	}
+
+	input, recipeKnown := s.findRecipe(resourceID, amount)
+	if !recipeKnown {
 		return map[string]any{"error": "recipe not found"}
 	}
 	actualQuality := s.resolveQuality(company, reqQuality, input)
@@ -56,23 +70,18 @@ func (s *Service) StartBuildingProduction(companyID int, buildingID string, body
 
 	s.addLedger("production_input", float64(amount), "out", map[string]any{"resourceId": resourceID, "buildingId": buildingID, "quality": actualQuality})
 	now := s.now().UTC()
-	durSec := s.calcProductionDuration(resourceID, amount, intFromAny(body["estimatedSecondsToFinish"]))
-	if s.State.BoostMultiplier > 1.0 {
-		durSec = int(float64(durSec) / s.State.BoostMultiplier)
-	}
-	outputTotal := amount * buildLevel
 
 	job := model.ProductionJob{
 		ID:         fmt.Sprintf("job-%d", s.now().UnixNano()),
 		BuildingID: buildingID, ResourceID: resourceID, Amount: amount, Quality: actualQuality,
-		Input: input, Output: map[int]int{resourceID: outputTotal},
+		Input: input, Output: map[int]int{resourceID: amount},
 		StartedAt: now.Format(time.RFC3339), CompletesAt: now.Add(time.Duration(durSec) * time.Second).Format(time.RFC3339), Status: "running",
 	}
 	s.State.ProductionJobs = append([]model.ProductionJob{job}, s.State.ProductionJobs...)
 	s.saveCompanyLocked(company)
 	return map[string]any{
 		"building":             map[string]any{"id": buildingID, "busy": true, "jobId": job.ID},
-		"resourceTransactions": []map[string]any{{"kind": resourceID, "amount": outputTotal, "quality": actualQuality, "buildingLevel": buildLevel}},
+		"resourceTransactions": []map[string]any{{"kind": resourceID, "amount": amount, "quality": actualQuality, "buildingLevel": buildLevel}},
 		"followerErrors":       []any{},
 	}
 }
@@ -117,7 +126,7 @@ func (s *Service) findBuilding(companyID int, buildingID string) int {
 	return 1
 }
 
-func (s *Service) findRecipe(resourceID, amount int) map[int]int {
+func (s *Service) findRecipe(resourceID, amount int) (map[int]int, bool) {
 	input := map[int]int{}
 	for _, r := range s.Data.Resources {
 		if intFromAny(r["dbLetter"]) != resourceID {
@@ -132,9 +141,9 @@ func (s *Service) findRecipe(resourceID, amount int) map[int]int {
 				}
 			}
 		}
-		break
+		return input, true
 	}
-	return input
+	return input, false
 }
 
 func (s *Service) checkBuildingCanProduce(company *model.Company, buildingID string, resourceID int) error {
@@ -162,9 +171,13 @@ func (s *Service) checkBuildingCanProduce(company *model.Company, buildingID str
 func (s *Service) productionIDsForKind(kind int) []int {
 	switch kind {
 	case 1:
-		return []int{3, 4, 5, 6, 66, 72, 120}
+		return []int{1}
 	case 2:
-		return []int{7, 8, 9, 121, 122, 127, 133, 134, 135, 137, 139, 141}
+		return []int{2}
+	case 3:
+		return []int{3}
+	case 4:
+		return []int{4}
 	default:
 		return []int{}
 	}
@@ -215,20 +228,39 @@ func (s *Service) deductInputs(company *model.Company, input map[int]int, qualit
 	return nil
 }
 
-func (s *Service) calcProductionDuration(resourceID, amount int, durSec int) int {
-	if durSec <= 0 {
-		durSec = max(30, amount*6)
+func (s *Service) calcProductionDuration(resourceID, amount int, level int) int {
+	if amount <= 0 {
+		amount = 1
 	}
-	if models, ok := s.Data.EconomyModel["models"].(map[string]any); ok {
-		if resM, ok := models[fmt.Sprintf("%d", resourceID)].(map[string]any); ok {
-			if st1, ok := resM["state_1"].(map[string]any); ok {
-				if bl, ok := st1["buildingLevelsNeededPerUnitPerHour"].(float64); ok && bl > 0 {
-					durSec = max(durSec, int(math.Round(float64(amount)/bl/20)))
-				}
+	rate := s.outputPerHour(resourceID, level)
+	if rate <= 0 {
+		return maxProductionDurationSeconds
+	}
+	return max(30, int(math.Ceil(float64(amount)/rate*3600)))
+}
+
+func (s *Service) maxProductionAmount(resourceID, level int) int {
+	rate := s.outputPerHour(resourceID, level)
+	if rate <= 0 {
+		return 1
+	}
+	return max(1, int(math.Floor(rate*48)))
+}
+
+func (s *Service) outputPerHour(resourceID, level int) float64 {
+	if level < 1 {
+		level = 1
+	}
+	for _, r := range s.Data.Resources {
+		if intFromAny(r["dbLetter"]) == resourceID {
+			base := floatFromAny(r["producedPerHourRaw"])
+			if base <= 0 {
+				return 0
 			}
+			return base * float64(level)
 		}
 	}
-	return durSec
+	return 0
 }
 
 func (s *Service) refreshProductionJobs(companyID int) {

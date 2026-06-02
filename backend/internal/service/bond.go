@@ -168,7 +168,10 @@ func (s *Service) CallBond(companyID int, bondID string, amount int) (map[string
 		if b.ID != bondID {
 			continue
 		}
-		callableAfter, _ := time.Parse(time.RFC3339, b.CallableAfter)
+		callableAfter, err := time.Parse(time.RFC3339, b.CallableAfter)
+		if err != nil {
+			return nil, fmt.Errorf("invalid callableAfter for bond %q: %w", bondID, err)
+		}
 		if s.now().UTC().Before(callableAfter) {
 			return nil, fmt.Errorf("bond is still locked for 14 days")
 		}

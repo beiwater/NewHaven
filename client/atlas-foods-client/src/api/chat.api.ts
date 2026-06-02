@@ -38,7 +38,9 @@ export function useMessages() {
   return useQuery({
     queryKey: ['chat', 'messages'],
     queryFn: () => api.get<ChatMessage[]>('/api/messages/'),
-    refetchInterval: 15_000,
+    refetchInterval: (data) => (data ? 15_000 : false),
+    retry: 2,
+    retryDelay: 5000,
   })
 }
 
@@ -64,7 +66,9 @@ export function useChatroom() {
   return useQuery({
     queryKey: ['chat', 'chatroom'],
     queryFn: () => api.get<ChatMessage[]>('/api/v2/chatroom/'),
-    refetchInterval: 15_000,
+    refetchInterval: (data) => (data ? 15_000 : false),
+    retry: 2,
+    retryDelay: 5000,
   })
 }
 

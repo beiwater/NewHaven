@@ -16,6 +16,24 @@ function getBuildingPreview(kind: number): string {
   return BUILDING_PREVIEW[kind] ?? '/assets/buildings/bakery_shop_lv1_idle_trimmed.png'
 }
 
+function outputPerHour(baseOutput: number | undefined, level: number): number {
+  return Math.max(0, baseOutput ?? 0) * Math.max(1, level)
+}
+
+function maxAmountFor48Hours(rate: number): number {
+  return Math.max(1, Math.floor(rate * 48))
+}
+
+function durationLabel(amount: number, rate: number): string {
+  if (rate <= 0) return '--'
+  const totalSeconds = Math.max(30, Math.ceil((amount / rate) * 3600))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.ceil((totalSeconds % 3600) / 60)
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h`
+  return `${Math.max(1, minutes)}m`
+}
+
 interface BuildingCardProps {
   building: Building
   onClose: () => void
@@ -33,6 +51,11 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
     if (optionsData.length === 0) return null
     return optionsData.find((option) => option.resourceId === selectedResourceId) ?? optionsData[0]
   }, [optionsData, selectedResourceId])
+  const numericAmount = Math.max(1, parseInt(amount, 10) || 1)
+  const selectedRate = outputPerHour(selectedOption?.producedPerHourRaw, building.level)
+  const maxAmount = maxAmountFor48Hours(selectedRate)
+  const safeAmount = Math.min(numericAmount, maxAmount)
+  const estimatedDuration = durationLabel(safeAmount, selectedRate)
   const sortedOptions = useMemo(() => {
     const starter = new Set(building.starterProduces ?? [])
     return [...optionsData].sort((a, b) => {
@@ -50,7 +73,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
     startProd.mutate({
       buildingId: building.id,
       kind: selectedOption.resourceId,
-      amount: Math.max(1, parseInt(amount, 10) || 1),
+      amount: safeAmount,
     })
   }
 
@@ -135,10 +158,30 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
           <input
             type="number"
             min="1"
+            max={maxAmount}
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              const next = Math.max(1, Math.min(maxAmount, parseInt(e.target.value, 10) || 1))
+              setAmount(String(next))
+            }}
             className="mt-2 w-full rounded-md border border-amber-300 bg-white px-2 py-1.5 text-xs text-amber-900"
           />
+          {selectedOption && (
+            <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] text-amber-700">
+              <div className="rounded bg-white/60 px-2 py-1">
+                <div className="uppercase tracking-wider text-amber-500">Rate</div>
+                <div className="font-bold text-amber-900">{selectedRate.toLocaleString()} / h</div>
+              </div>
+              <div className="rounded bg-white/60 px-2 py-1">
+                <div className="uppercase tracking-wider text-amber-500">Time</div>
+                <div className="font-bold text-amber-900">{estimatedDuration}</div>
+              </div>
+              <div className="rounded bg-white/60 px-2 py-1">
+                <div className="uppercase tracking-wider text-amber-500">48h Max</div>
+                <div className="font-bold text-amber-900">{maxAmount.toLocaleString()}</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

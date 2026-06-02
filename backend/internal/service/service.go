@@ -9,6 +9,7 @@ import (
 	"go-sim-api/internal/data"
 	"go-sim-api/internal/model"
 	"go-sim-api/internal/storage"
+	"golang.org/x/crypto/bcrypt"
 	"sync"
 	"time"
 )
@@ -97,15 +98,16 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 		// Dev mode: create a demo company and dev player so login works immediately
 		mainCompany := model.Company{
 			ID: cfg.Game.CompanyID, Name: cfg.Game.CompanyName, Money: cfg.Game.StartMoney, Level: cfg.Game.StartLevel,
-			Inventory:         map[int]int{1: 2000, 2: 1800, 3: 900, 8: 300, 9: 120},
-			PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 2, "level": 3, "busy": false, "baseCost": 10000, "x": 2, "y": 1, "placedAt": now}},
+			Inventory:         map[int]int{1: 2000, 2: 800, 3: 1000},
+			PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 1, "level": 3, "name": "Farm", "busy": false, "baseCost": 10000, "x": 2, "y": 1, "placedAt": now, "produces": []int{1}}},
 			UnplacedBuildings: []map[string]any{},
 			WarehouseLevel:    0,
 		}
 		companies = append(companies, mainCompany)
 		// Create a dev player record so /api/login works
+		devHash, _ := bcrypt.GenerateFromPassword([]byte("dev"), bcrypt.DefaultCost)
 		devPlayer := model.Player{
-			ID: 0, Username: "dev", PasswordHash: "",
+			ID: 0, Username: "dev", PasswordHash: string(devHash),
 			CompanyID: cfg.Game.CompanyID, RegisteredAt: now,
 		}
 		players = append(players, devPlayer)
@@ -146,7 +148,7 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 			BotCompanies:        []model.Company{botA, botB},
 			MarketTicks:         map[int][]map[string]any{},
 			ProductionJobs:      []model.ProductionJob{},
-			GovernmentContracts: []model.GovContract{{ID: "gov-1", ResourceID: 8, Quality: 0, Quantity: 500, MaxPrice: 12.4, DepositRate: 0.1, Status: "open", Bids: []map[string]any{}, WinnerCompanyID: 0}},
+			GovernmentContracts: []model.GovContract{{ID: "gov-1", ResourceID: 3, Quality: 0, Quantity: 500, MaxPrice: 12.4, DepositRate: 0.1, Status: "open", Bids: []map[string]any{}, WinnerCompanyID: 0}},
 			Executives:          []map[string]any{{"id": "ex-coo-1", "role": "COO", "skill": 8}, {"id": "ex-cto-1", "role": "CTO", "skill": 7}},
 			XP:                  0,
 			XpToNextLevel:       100,
@@ -155,43 +157,43 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 			ResearchedQuality:   map[int]int{},
 			ResearchProjects: []model.ResearchProject{
 				{
-					ID: "research-project-29", Name: "Plant Research",
-					Building: "Plant Research Center",
-					ResourceCost: map[int]int{24: 200, 25: 150},
-					CashCost: 50000, DurationHours: 6,
-					QualityResourceID: 3, Status: "available", Progress: 0,
+					ID: "research-project-29", Name: "Wheat Quality Research",
+					Building:     "Farm",
+					ResourceCost: map[int]int{1: 200},
+					CashCost:     50000, DurationHours: 6,
+					QualityResourceID: 1, Status: "available", Progress: 0,
 				},
 				{
-					ID: "research-project-30", Name: "Energy Research",
-					Building: "Physics Lab",
-					ResourceCost: map[int]int{24: 300, 25: 200},
-					CashCost: 80000, DurationHours: 8,
-					QualityResourceID: 11, Status: "in_progress", Progress: 45,
+					ID: "research-project-30", Name: "Flour Quality Research",
+					Building:     "Mill",
+					ResourceCost: map[int]int{1: 300, 2: 150},
+					CashCost:     80000, DurationHours: 8,
+					QualityResourceID: 2, Status: "in_progress", Progress: 45,
 					StartedAt: now, CompletesAt: time.Now().UTC().Add(8 * time.Hour).Format(time.RFC3339),
 				},
 				{
-					ID: "research-project-31", Name: "Mining Research",
-					Building: "Physics Lab",
-					ResourceCost: map[int]int{24: 400, 25: 300},
-					CashCost: 100000, DurationHours: 10,
-					QualityResourceID: 10, Status: "in_progress", Progress: 12,
+					ID: "research-project-31", Name: "Bread Quality Research",
+					Building:     "Bakery",
+					ResourceCost: map[int]int{2: 300, 3: 120},
+					CashCost:     100000, DurationHours: 10,
+					QualityResourceID: 3, Status: "in_progress", Progress: 12,
 					StartedAt: now, CompletesAt: time.Now().UTC().Add(10 * time.Hour).Format(time.RFC3339),
 				},
 				{
-					ID: "research-project-32", Name: "Chemical Research",
-					Building: "Physics Lab",
-					ResourceCost: map[int]int{24: 500, 25: 400},
-					CashCost: 120000, DurationHours: 12,
-					QualityResourceID: 7, Status: "available", Progress: 0,
+					ID: "research-project-32", Name: "Meal Quality Research",
+					Building:     "Restaurant",
+					ResourceCost: map[int]int{3: 250, 4: 100},
+					CashCost:     120000, DurationHours: 12,
+					QualityResourceID: 4, Status: "available", Progress: 0,
 				},
 			},
 			Auctions: []model.Auction{
 				{ID: "auction-1", Item: "Industrial Warehouse", ItemID: "b-auction-1", StartingBid: 50000, CurrentBid: 50000, HighestBidder: 0, EndsAt: time.Now().UTC().Add(48 * time.Hour).Format(time.RFC3339), Status: "open", CreatedAt: now},
 				{ID: "auction-2", Item: "Farmland Expansion", ItemID: "b-auction-2", StartingBid: 25000, CurrentBid: 25000, HighestBidder: 0, EndsAt: time.Now().UTC().Add(72 * time.Hour).Format(time.RFC3339), Status: "open", CreatedAt: now},
 			},
-			Ledger:           ledger,
-			LastActiveAt:     now,
-			ProcessedRequests: map[string]map[string]any{},
+			Ledger:             ledger,
+			LastActiveAt:       now,
+			ProcessedRequests:  map[string]map[string]any{},
 			DailyTradeVolume:   map[int]float64{},
 			DailyTradeQty:      map[int]int{},
 			DailyHighPrice:     map[int]float64{},

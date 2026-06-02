@@ -55,7 +55,10 @@ const researchKey = ['research', 'projects'] as const
 export function useResearch() {
   return useQuery({
     queryKey: researchKey,
-    queryFn: () => api.get<ResearchProject[]>('/api/v2/research/'),
+    queryFn: async () => {
+      const data = await api.get<ResearchListResponse>('/api/v2/research/')
+      return data.projects ?? []
+    },
   })
 }
 

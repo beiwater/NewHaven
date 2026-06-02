@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -33,9 +34,10 @@ func newCoreTestService() *Service {
 	cfg := config.DefaultTestConfig()
 	d := &data.StaticData{
 		Resources: []map[string]any{
-			{"id": 1, "name": "Power", "dbLetter": 1, "producedPerHourRaw": 100.0},
-			{"id": 2, "name": "Water", "dbLetter": 2, "producedPerHourRaw": 80.0},
-			{"id": 8, "name": "Beef", "dbLetter": 8, "producedPerHourRaw": 12.0, "producedFrom": map[string]any{"2": 3}},
+			{"id": 1, "name": "Wheat", "dbLetter": 1, "producedPerHourRaw": 100.0},
+			{"id": 2, "name": "Flour", "dbLetter": 2, "producedPerHourRaw": 80.0, "producedFrom": map[string]any{"1": 2}},
+			{"id": 3, "name": "Bread", "dbLetter": 3, "producedPerHourRaw": 40.0, "producedFrom": map[string]any{"2": 2}},
+			{"id": 4, "name": "Meals", "dbLetter": 4, "producedPerHourRaw": 30.0, "producedFrom": map[string]any{"3": 2}},
 		},
 		EconomyModel: map[string]any{"models": map[string]any{}},
 	}
@@ -71,23 +73,23 @@ func TestAddXP(t *testing.T) {
 func TestInventoryQuality(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
-	s.State.Companies[0].Inventory[8] = 100
+	s.State.Companies[0].Inventory[3] = 100
 	s.State.Companies[0].QualityInventory = map[string]int{}
 
-	if v := s.inventoryGet(&s.State.Companies[0], 8, 0); v != 100 {
+	if v := s.inventoryGet(&s.State.Companies[0], 3, 0); v != 100 {
 		t.Errorf("expected inventory 100, got %d", v)
 	}
-	if v := s.inventoryGet(&s.State.Companies[0], 8, 1); v != 0 {
+	if v := s.inventoryGet(&s.State.Companies[0], 3, 1); v != 0 {
 		t.Errorf("expected quality inventory 0, got %d", v)
 	}
-	s.inventoryAdd(&s.State.Companies[0], 8, 1, 50)
-	if v := s.inventoryGet(&s.State.Companies[0], 8, 1); v != 50 {
+	s.inventoryAdd(&s.State.Companies[0], 3, 1, 50)
+	if v := s.inventoryGet(&s.State.Companies[0], 3, 1); v != 50 {
 		t.Errorf("expected quality inventory 50, got %d", v)
 	}
-	if !s.inventorySub(&s.State.Companies[0], 8, 1, 30) {
+	if !s.inventorySub(&s.State.Companies[0], 3, 1, 30) {
 		t.Fatal("inventorySub returned false")
 	}
-	if v := s.inventoryGet(&s.State.Companies[0], 8, 1); v != 20 {
+	if v := s.inventoryGet(&s.State.Companies[0], 3, 1); v != 20 {
 		t.Errorf("expected quality inventory 20, got %d", v)
 	}
 	s.mu.Unlock()
@@ -96,12 +98,12 @@ func TestInventoryQuality(t *testing.T) {
 func TestOrderBookDepth(t *testing.T) {
 	s := newCoreTestService()
 	s.State.Orders = []model.MarketOrder{
-		{ID: "b1", ResourceID: 8, Kind: 1, Price: 10.0, Quality: 0, Quantity: 10, Remaining: 10, CompanyID: 1},
-		{ID: "b2", ResourceID: 8, Kind: 1, Price: 9.5, Quality: 0, Quantity: 5, Remaining: 5, CompanyID: 1},
-		{ID: "s1", ResourceID: 8, Kind: 0, Price: 10.5, Quality: 0, Quantity: 8, Remaining: 8, CompanyID: 2},
-		{ID: "s2", ResourceID: 8, Kind: 0, Price: 11.0, Quality: 0, Quantity: 3, Remaining: 3, CompanyID: 2},
+		{ID: "b1", ResourceID: 3, Kind: 1, Price: 10.0, Quality: 0, Quantity: 10, Remaining: 10, CompanyID: 1},
+		{ID: "b2", ResourceID: 3, Kind: 1, Price: 9.5, Quality: 0, Quantity: 5, Remaining: 5, CompanyID: 1},
+		{ID: "s1", ResourceID: 3, Kind: 0, Price: 10.5, Quality: 0, Quantity: 8, Remaining: 8, CompanyID: 2},
+		{ID: "s2", ResourceID: 3, Kind: 0, Price: 11.0, Quality: 0, Quantity: 3, Remaining: 3, CompanyID: 2},
 	}
-	depth := s.OrderBookDepth(8, 0)
+	depth := s.OrderBookDepth(3, 0)
 	buys := depth["buys"].([]depthLevel)
 	sells := depth["sells"].([]depthLevel)
 	if len(buys) != 2 {
@@ -116,7 +118,7 @@ func TestFinancialStatements(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
 	s.State.Companies[0].Money = 100000
-	s.State.Companies[0].Inventory[8] = 50
+	s.State.Companies[0].Inventory[3] = 50
 	s.mu.Unlock()
 
 	fs := s.FinancialStatements(s.State.Companies[0].ID)
@@ -137,6 +139,39 @@ func TestCompanyProfile(t *testing.T) {
 	}
 	if auth["money"] != 200000.0 {
 		t.Errorf("expected 200000, got %v", auth["money"])
+	}
+}
+
+func TestBuyBuildingRespectsUnlockLevel(t *testing.T) {
+	s := newCoreTestService()
+	companyID := s.State.Companies[0].ID
+	s.State.Companies[0].Level = 1
+
+	_, err := s.BuyBuilding(companyID, "b-shop-2")
+	if err == nil {
+		t.Fatal("expected level lock error")
+	}
+	if !strings.Contains(err.Error(), "level 2") {
+		t.Fatalf("expected level 2 error, got %v", err)
+	}
+}
+
+func TestBuyBuildingRespectsBuildingSlots(t *testing.T) {
+	s := newCoreTestService()
+	companyID := s.State.Companies[0].ID
+	s.State.Companies[0].Level = 1
+	s.State.Companies[0].PlacedBuildings = []map[string]any{
+		{"id": "b-1", "kind": 1, "x": 1, "y": 1},
+		{"id": "b-2", "kind": 1, "x": 2, "y": 1},
+	}
+	s.State.Companies[0].UnplacedBuildings = nil
+
+	_, err := s.BuyBuilding(companyID, "b-shop-1")
+	if err == nil {
+		t.Fatal("expected building slot error")
+	}
+	if !strings.Contains(err.Error(), "building limit") {
+		t.Fatalf("expected building limit error, got %v", err)
 	}
 }
 
@@ -207,9 +242,9 @@ func TestNewInitializesRuntimeMapsForLoadedState(t *testing.T) {
 	}
 	s := New(&data.StaticData{}, cfg, &fakeStorage{state: loaded})
 
-	s.State.MarketPressure[8] += 0.1
-	s.State.DailyTradeVolume[8] += 100
-	s.State.MarketLocked[8] = true
+	s.State.MarketPressure[3] += 0.1
+	s.State.DailyTradeVolume[3] += 100
+	s.State.MarketLocked[3] = true
 	s.State.ProcessedRequests["req-1"] = map[string]any{"ok": true}
 
 	if s.State.Companies[0].Inventory == nil {
@@ -223,7 +258,7 @@ func TestNewInitializesRuntimeMapsForLoadedState(t *testing.T) {
 func TestConcurrentStateAccessSmoke(t *testing.T) {
 	s := newCoreTestService()
 	s.State.Companies[0].Money = 1_000_000
-	s.State.Companies[0].Inventory[8] = 10_000
+	s.State.Companies[0].Inventory[3] = 10_000
 
 	var wg sync.WaitGroup
 	errs := make(chan error, 200)
@@ -239,7 +274,7 @@ func TestConcurrentStateAccessSmoke(t *testing.T) {
 		}(i)
 		go func(i int) {
 			defer wg.Done()
-			if _, err := s.CreateOrder(s.State.Companies[0].ID, 8, 0, 0, 1, 10); err != nil {
+			if _, err := s.CreateOrder(s.State.Companies[0].ID, 3, 0, 0, 1, 10); err != nil {
 				errs <- fmt.Errorf("create order %d: %w", i, err)
 			}
 		}(i)

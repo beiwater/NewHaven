@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"go-sim-api/internal/service"
 )
 
 func (h *Handler) RegisterPlayer(mux *http.ServeMux) {
@@ -79,7 +81,8 @@ func (h *Handler) handleLevel(w http.ResponseWriter, r *http.Request) {
 	c := st.GetCompany(h.companyID(r))
 	writeJSON(w, 200, map[string]any{
 		"level": c.Level, "currentXp": st.XP, "xpToNextLevel": st.XpToNextLevel,
-		"buildingSlots": 1 + c.Level/5, "buildingsUsed": len(c.PlacedBuildings),
+		"buildingSlots": service.BuildingSlotsForLevel(c.Level), "buildingsUsed": len(c.PlacedBuildings) + len(c.UnplacedBuildings),
+		"unlocks": service.FeatureUnlockPayload(c.Level),
 	})
 }
 

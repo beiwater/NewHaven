@@ -39,8 +39,14 @@ func (s *Service) CalculateOfflineIncome(companyID int) map[string]any {
 		if j.Status != "running" {
 			continue
 		}
-		started, _ := time.Parse(time.RFC3339, j.StartedAt)
-		completes, _ := time.Parse(time.RFC3339, j.CompletesAt)
+		started, err := time.Parse(time.RFC3339, j.StartedAt)
+		if err != nil {
+			continue
+		}
+		completes, err := time.Parse(time.RFC3339, j.CompletesAt)
+		if err != nil {
+			continue
+		}
 		duration := completes.Sub(started).Hours()
 		if duration <= 0 {
 			continue

@@ -25,6 +25,7 @@ func (s *Service) CompanyProfile(companyID int) map[string]any {
 		},
 		"authUser":    map[string]any{"playerId": "dev-player", "isModerator": false, "supporter": false},
 		"levelInfo":   map[string]any{"level": company.Level, "xp": 12800, "inTutorial": false},
+		"unlocks":     FeatureUnlockPayload(company.Level),
 		"preferences": map[string]any{"theme": "System"},
 	}
 }

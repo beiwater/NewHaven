@@ -92,10 +92,6 @@ func (h *Handler) handleAdminOverhead(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) handleV3Companies(w http.ResponseWriter, r *http.Request) {
-	if strings.Contains(r.URL.Path, "/executives/") {
-		writeJSON(w, 200, h.svc.Snapshot().Executives)
-		return
-	}
 	if r.Method != http.MethodGet {
 		writeErr(w, 405, "method not allowed")
 		return

@@ -159,11 +159,18 @@ func (h *Handler) handleWeather(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) handleProductionModifiers(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, 200, map[string]any{
-		"resourceProductionModifiers": []map[string]any{
-			{"resource": 8, "modifier": h.svc.Cfg.Game.ProductionMod},
-		},
-	})
+	modifiers := make([]map[string]any, 0, len(h.svc.Data.Resources))
+	for _, it := range h.svc.Data.Resources {
+		rid := intFromAny(it["dbLetter"])
+		if rid <= 0 {
+			continue
+		}
+		modifiers = append(modifiers, map[string]any{
+			"resource": rid,
+			"modifier": h.svc.Cfg.Game.ProductionMod,
+		})
+	}
+	writeJSON(w, 200, map[string]any{"resourceProductionModifiers": modifiers})
 }
 
 func (h *Handler) handleMarketDepth(w http.ResponseWriter, r *http.Request) {
