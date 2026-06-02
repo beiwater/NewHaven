@@ -19,6 +19,8 @@ export function TopBar() {
   const currentXp = levelData?.currentXp ?? companyData?.levelInfo?.xp ?? 0
   const xpToNext = levelData?.xpToNextLevel ?? 100
   const xpPct = xpToNext > 0 ? Math.min(100, (currentXp / xpToNext) * 100) : 0
+  const financeUnlocked = levelData?.unlocks?.features?.finance ?? companyData?.unlocks?.features?.finance ?? true
+  const financeUnlockLevel = levelData?.unlocks?.featureLevels?.finance ?? companyData?.unlocks?.featureLevels?.finance ?? 6
   const activePowerupCount = activePowerupData?.active?.length ?? 0
   const remainingPowerups = activePowerupData?.remaining ?? companyData?.authCompany?.simBoosts ?? 0
   const powerupStatus = activePowerupCount > 0 ? `${activePowerupCount} active` : `${remainingPowerups} ready`
@@ -46,14 +48,20 @@ export function TopBar() {
 
       {/* Cash */}
       <button
-        onClick={() => setActiveView('finance')}
-        className="flex items-center gap-2 px-5 h-full border-r border-amber-700/50 hover:bg-amber-700/30 transition-colors text-left"
-        title="View financials"
+        onClick={() => {
+          if (financeUnlocked) setActiveView('finance')
+        }}
+        disabled={!financeUnlocked}
+        className={`flex items-center gap-2 px-5 h-full border-r border-amber-700/50 transition-colors text-left ${
+          financeUnlocked ? 'hover:bg-amber-700/30' : 'opacity-60 cursor-not-allowed'
+        }`}
+        title={financeUnlocked ? 'View financials' : `Finance unlocks at level ${financeUnlockLevel}`}
       >
         <Icon name="icon_coin_v1" className="w-7 h-7" />
         <div>
           <div className="text-[10px] text-amber-300/70 uppercase tracking-wider">Cash</div>
           <div className="font-bold text-sm tabular-nums">${cash.toLocaleString()}</div>
+          {!financeUnlocked && <div className="text-[9px] text-amber-200/80">Lv.{financeUnlockLevel}</div>}
         </div>
       </button>
 

@@ -45,13 +45,19 @@ func TestStartBuildingProductionDoesNotCreditOutputImmediately(t *testing.T) {
 	if got := s.State.Companies[0].Inventory[2]; got != 0 {
 		t.Fatalf("output inventory credited before claim = %d, want 0", got)
 	}
+	if got := s.State.ProductionJobs[0].Output[2]; got != 10 {
+		t.Fatalf("job output = %d, want selected amount 10", got)
+	}
 }
 
 func TestCalcProductionDuration(t *testing.T) {
 	s := newCoreTestService()
-	dur := s.calcProductionDuration(1, 10, 60)
+	dur := s.calcProductionDuration(1, 10, 1)
 	if dur <= 0 {
 		t.Errorf("expected positive duration, got %d", dur)
+	}
+	if dur != 360 {
+		t.Errorf("10 wheat at 100/h should take 360 seconds, got %d", dur)
 	}
 }
 
@@ -147,23 +153,36 @@ func TestClaimProduction_AlreadyClaimed(t *testing.T) {
 }
 func TestCalcProductionDuration_EdgeCases(t *testing.T) {
 	s := newCoreTestService()
-	// Positive durSec is returned as-is when no economy model override
-	dur := s.calcProductionDuration(1, 10, 60)
-	if dur != 60 {
-		t.Errorf("expected passthrough of 60, got %d", dur)
+	dur := s.calcProductionDuration(1, 10, 2)
+	if dur != 180 {
+		t.Errorf("level 2 should halve duration to 180 seconds, got %d", dur)
 	}
-	// Zero or negative durSec triggers fallback: max(30, amount*6)
-	dur = s.calcProductionDuration(1, 10, 0)
-	if dur != 60 {
-		t.Errorf("10*6=60, expected 60, got %d", dur)
+	dur = s.calcProductionDuration(1, 1, 1)
+	if dur != 36 {
+		t.Errorf("1 wheat at 100/h should take 36 seconds, got %d", dur)
 	}
-	dur = s.calcProductionDuration(1, 1, 0)
-	if dur != 30 {
-		t.Errorf("max(30, 1*6)=30, expected 30, got %d", dur)
+	dur = s.calcProductionDuration(1, 0, 1)
+	if dur != 36 {
+		t.Errorf("zero amount should default to 1 unit, got %d", dur)
 	}
-	dur = s.calcProductionDuration(1, 0, -1)
-	if dur != 30 {
-		t.Errorf("max(30, 0*6)=30, expected 30, got %d", dur)
+}
+
+func TestStartBuildingProductionRejectsOver48Hours(t *testing.T) {
+	s := newCoreTestService()
+	s.mu.Lock()
+	s.State.Companies[0].PlacedBuildings = []map[string]any{
+		{"id": "b-1", "kind": 1, "level": 1, "busy": false, "baseCost": 10000},
+	}
+	s.mu.Unlock()
+
+	result := s.StartBuildingProduction(s.State.Companies[0].ID, "b-1", map[string]any{
+		"kind": 1, "amount": 4801,
+	})
+	if _, ok := result["error"]; !ok {
+		t.Fatalf("expected over-48h production error, got %v", result)
+	}
+	if got := intFromAny(result["maxAmount"]); got != 4800 {
+		t.Errorf("maxAmount = %d, want 4800", got)
 	}
 }
 

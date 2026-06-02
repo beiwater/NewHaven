@@ -1,50 +1,65 @@
 import { useUIStore, type ActiveView } from '@/store/ui.store'
 import { systemIcon } from '@/game/icons'
-import { useCompany } from '@/api/company.api'
+import { useCompany, usePlayerLevel } from '@/api/company.api'
 
-const navItems: Array<{ id: ActiveView; label: string; sysIcon: string }> = [
-  { id: 'map', label: 'Map', sysIcon: 'inventory' },
-  { id: 'build', label: 'Build', sysIcon: 'market' },
-  { id: 'warehouse', label: 'Warehouse', sysIcon: 'inventory' },
-  { id: 'market', label: 'Market', sysIcon: 'market' },
-  { id: 'contracts', label: 'Contracts', sysIcon: 'quest' },
-  { id: 'research', label: 'Research', sysIcon: 'research' },
-  { id: 'executives', label: 'Executives', sysIcon: 'executive' },
-  { id: 'finance', label: 'Finance', sysIcon: 'financial' },
-  { id: 'leaderboard', label: 'Leaderboard', sysIcon: 'leaderboard' },
+const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature: string }> = [
+  { id: 'map', label: 'Map', sysIcon: 'inventory', feature: 'map' },
+  { id: 'build', label: 'Build', sysIcon: 'market', feature: 'build' },
+  { id: 'warehouse', label: 'Warehouse', sysIcon: 'inventory', feature: 'warehouse' },
+  { id: 'market', label: 'Market', sysIcon: 'market', feature: 'market' },
+  { id: 'contracts', label: 'Contracts', sysIcon: 'quest', feature: 'contracts' },
+  { id: 'research', label: 'Research', sysIcon: 'research', feature: 'research' },
+  { id: 'executives', label: 'Executives', sysIcon: 'executive', feature: 'executives' },
+  { id: 'finance', label: 'Finance', sysIcon: 'financial', feature: 'finance' },
+  { id: 'leaderboard', label: 'Leaderboard', sysIcon: 'leaderboard', feature: 'leaderboard' },
 ]
 
 export function LeftSidebar() {
   const activeView = useUIStore((s) => s.activeView)
   const setActiveView = useUIStore((s) => s.setActiveView)
   const { data: companyData } = useCompany()
+  const { data: levelData } = usePlayerLevel()
   const level = companyData?.levelInfo?.level ?? companyData?.authCompany?.level ?? 1
   const cash = companyData?.authCompany?.money ?? 0
+  const unlocks = levelData?.unlocks ?? companyData?.unlocks
 
   return (
     <nav className="sidebar flex flex-col bg-[#f5e6c8] border-r-2 border-amber-700/30 overflow-y-auto">
       {navItems.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => setActiveView(item.id)}
-          className={`
+        (() => {
+          const isUnlocked = unlocks?.features?.[item.feature] ?? true
+          const unlockLevel = unlocks?.featureLevels?.[item.feature] ?? 1
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (isUnlocked) setActiveView(item.id)
+              }}
+              disabled={!isUnlocked}
+              title={isUnlocked ? item.label : `Unlocks at level ${unlockLevel}`}
+              className={`
             flex flex-col items-center justify-center gap-1 py-4 px-2
             border-b border-amber-700/10 transition-all duration-150
-            ${activeView === item.id
-              ? 'bg-amber-200/70 text-amber-900 font-semibold shadow-inner'
-              : 'text-amber-800/70 hover:bg-amber-100/50 hover:text-amber-900'
+            ${!isUnlocked
+              ? 'cursor-not-allowed opacity-45 grayscale text-amber-800/50'
+              : activeView === item.id
+                ? 'bg-amber-200/70 text-amber-900 font-semibold shadow-inner'
+                : 'text-amber-800/70 hover:bg-amber-100/50 hover:text-amber-900'
             }
           `}
-          style={{ height: activeView === item.id ? '68px' : '80px' }}
-        >
-          <img
-            src={systemIcon(item.sysIcon)}
-            alt={item.label}
-            className="w-9 h-9 object-contain"
-            loading="lazy"
-          />
-          <span className="text-[11px] uppercase tracking-wider">{item.label}</span>
-        </button>
+              style={{ height: activeView === item.id ? '68px' : '80px' }}
+            >
+              <img
+                src={systemIcon(item.sysIcon)}
+                alt={item.label}
+                className="w-9 h-9 object-contain"
+                loading="lazy"
+              />
+              <span className="text-[11px] uppercase tracking-wider">{item.label}</span>
+              {!isUnlocked && <span className="text-[9px] font-bold">Lv.{unlockLevel}</span>}
+            </button>
+          )
+        })()
       ))}
 
       {/* Company Status */}

@@ -23,6 +23,7 @@ export function useBuyBuilding() {
         return [...current, next]
       })
       qc.invalidateQueries({ queryKey: ['company'] })
+      qc.invalidateQueries({ queryKey: ['buildings'] })
     },
   })
 }

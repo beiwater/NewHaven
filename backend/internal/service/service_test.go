@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -138,6 +139,39 @@ func TestCompanyProfile(t *testing.T) {
 	}
 	if auth["money"] != 200000.0 {
 		t.Errorf("expected 200000, got %v", auth["money"])
+	}
+}
+
+func TestBuyBuildingRespectsUnlockLevel(t *testing.T) {
+	s := newCoreTestService()
+	companyID := s.State.Companies[0].ID
+	s.State.Companies[0].Level = 1
+
+	_, err := s.BuyBuilding(companyID, "b-shop-2")
+	if err == nil {
+		t.Fatal("expected level lock error")
+	}
+	if !strings.Contains(err.Error(), "level 2") {
+		t.Fatalf("expected level 2 error, got %v", err)
+	}
+}
+
+func TestBuyBuildingRespectsBuildingSlots(t *testing.T) {
+	s := newCoreTestService()
+	companyID := s.State.Companies[0].ID
+	s.State.Companies[0].Level = 1
+	s.State.Companies[0].PlacedBuildings = []map[string]any{
+		{"id": "b-1", "kind": 1, "x": 1, "y": 1},
+		{"id": "b-2", "kind": 1, "x": 2, "y": 1},
+	}
+	s.State.Companies[0].UnplacedBuildings = nil
+
+	_, err := s.BuyBuilding(companyID, "b-shop-1")
+	if err == nil {
+		t.Fatal("expected building slot error")
+	}
+	if !strings.Contains(err.Error(), "building limit") {
+		t.Fatalf("expected building limit error, got %v", err)
 	}
 }
 

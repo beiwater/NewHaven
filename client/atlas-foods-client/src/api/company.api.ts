@@ -34,7 +34,13 @@ export interface CompanyData {
     level: number
     xp: number
   }
+  unlocks?: UnlockInfo
   preferences: Record<string, unknown>
+}
+
+export interface UnlockInfo {
+  features: Record<string, boolean>
+  featureLevels: Record<string, number>
 }
 
 export interface PlayerLevel {
@@ -43,6 +49,7 @@ export interface PlayerLevel {
   xpToNextLevel: number
   buildingSlots: number
   buildingsUsed: number
+  unlocks?: UnlockInfo
 }
 
 export function useCompany() {
