@@ -110,6 +110,5 @@ go run ./cmd/simapi/
 
 反编译资源数据位于 `decompiled/data/`，仅供复刻参考。
 
-## License
+[MIT](../LICENSE)
 
-MIT
