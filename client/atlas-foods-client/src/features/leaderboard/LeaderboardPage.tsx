@@ -13,6 +13,7 @@ import {
 export function LeaderboardPage() {
   const [sort, setSort] = useState<SortDimension>('net_worth')
   const [page, setPage] = useState(1)
+  const [selectedCompany, setSelectedCompany] = useState<LeaderboardEntry | null>(null)
   const limit = 10
 
   const { data, isLoading, isError, error } = useLeaderboard(sort, page, limit)
@@ -37,6 +38,17 @@ export function LeaderboardPage() {
           </div>
         </div>
 
+        {/* Company detail overlay */}
+        {selectedCompany && (
+          <div className="mb-5">
+            <CompanyDetailCard
+              entry={selectedCompany}
+              sort={sort}
+              onClose={() => setSelectedCompany(null)}
+            />
+          </div>
+        )}
+
         {/* Grid: left main area | right info panel */}
         <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
           <div className="space-y-5">
@@ -45,7 +57,7 @@ export function LeaderboardPage() {
               {SORT_DIMENSIONS.map((dim) => (
                 <button
                   key={dim}
-                  onClick={() => { setSort(dim); setPage(1) }}
+                  onClick={() => { setSort(dim); setPage(1); setSelectedCompany(null) }}
                   className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
                     sort === dim
                       ? 'bg-amber-800 text-white shadow'
@@ -75,13 +87,13 @@ export function LeaderboardPage() {
 
             {/* Podium — top 3 */}
             {!isLoading && !isError && podium.length > 0 && (
-              <PodiumSection entries={podium} sort={sort} />
+              <PodiumSection entries={podium} sort={sort} onSelect={setSelectedCompany} />
             )}
 
             {/* Ranking table */}
             {!isLoading && !isError && (
               <>
-                <RankingTable entries={entries} sort={sort} />
+                <RankingTable entries={entries} sort={sort} onSelect={setSelectedCompany} />
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between rounded-xl border border-amber-200/60 bg-white/60 px-4 py-3">
@@ -120,39 +132,21 @@ export function LeaderboardPage() {
 function PodiumSection({
   entries,
   sort,
+  onSelect,
 }: {
   entries: LeaderboardEntry[]
   sort: SortDimension
+  onSelect: (entry: LeaderboardEntry) => void
 }) {
-  // Order: 2nd (left), 1st (center), 3rd (right)
   const second = entries.find((e) => e.rank === 2)
   const first = entries.find((e) => e.rank === 1)
   const third = entries.find((e) => e.rank === 3)
 
   return (
     <div className="flex items-end justify-center gap-3 md:gap-5">
-      {/* 2nd */}
-      <PodiumCard
-        entry={second}
-        pos={2}
-        sort={sort}
-        className="w-1/3 md:w-1/4"
-      />
-      {/* 1st */}
-      <PodiumCard
-        entry={first}
-        pos={1}
-        sort={sort}
-        className="w-1/3 md:w-1/3 scale-105 z-10"
-        champion
-      />
-      {/* 3rd */}
-      <PodiumCard
-        entry={third}
-        pos={3}
-        sort={sort}
-        className="w-1/3 md:w-1/4"
-      />
+      <PodiumCard entry={second} pos={2} sort={sort} onSelect={onSelect} className="w-1/3 md:w-1/4" />
+      <PodiumCard entry={first} pos={1} sort={sort} onSelect={onSelect} className="w-1/3 md:w-1/3 scale-105 z-10" champion />
+      <PodiumCard entry={third} pos={3} sort={sort} onSelect={onSelect} className="w-1/3 md:w-1/4" />
     </div>
   )
 }
@@ -163,12 +157,14 @@ function PodiumCard({
   sort,
   className = '',
   champion = false,
+  onSelect,
 }: {
   entry?: LeaderboardEntry
   pos: number
   sort: SortDimension
   className?: string
   champion?: boolean
+  onSelect: (entry: LeaderboardEntry) => void
 }) {
   if (!entry) {
     return <div className={`rounded-2xl border border-dashed border-amber-200/50 bg-white/30 p-4 text-center ${className}`}>
@@ -180,12 +176,13 @@ function PodiumCard({
   const badgeTexts = ['text-yellow-900', 'text-slate-800', 'text-orange-800']
 
   return (
-    <div className={`rounded-2xl border-2 bg-white/60 p-4 text-center shadow-sm ${champion ? 'border-yellow-400 shadow-md' : 'border-amber-200/60'} ${className}`}>
-      {/* Medal */}
+    <button
+      onClick={() => onSelect(entry)}
+      className={`rounded-2xl border-2 bg-white/60 p-4 text-center shadow-sm cursor-pointer hover:shadow-md transition-shadow ${champion ? 'border-yellow-400 shadow-md' : 'border-amber-200/60'} ${className}`}
+    >
       <div className={`mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full ${badgeColors[pos - 1]} ${badgeTexts[pos - 1]} text-sm font-black`}>
         {pos}
       </div>
-      {/* Avatar */}
       <div className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full text-white text-sm font-black
         ${champion ? 'bg-yellow-500' : 'bg-amber-400'}`}
       >
@@ -196,7 +193,7 @@ function PodiumCard({
       <div className="mt-1 text-sm font-black text-green-700">
         {formatMainStat(entry.mainStat, sort)}
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -205,9 +202,11 @@ function PodiumCard({
 function RankingTable({
   entries,
   sort,
+  onSelect,
 }: {
   entries: LeaderboardEntry[]
   sort: SortDimension
+  onSelect: (entry: LeaderboardEntry) => void
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white/60 shadow-sm">
@@ -218,7 +217,7 @@ function RankingTable({
             <th className="px-4 py-3 font-bold uppercase tracking-wider text-amber-700">Company</th>
             <th className="px-4 py-3 font-bold uppercase tracking-wider text-amber-700 text-center w-20">Level</th>
             <th className="px-4 py-3 font-bold uppercase tracking-wider text-amber-700 text-right">
-              Main Stat ({SORT_LABELS[sort]})
+              {SORT_LABELS[sort]}
               <span className="ml-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-200 text-[8px] font-bold text-amber-600 cursor-help" title={`Sorted by ${SORT_LABELS[sort]}`}>i</span>
             </th>
           </tr>
@@ -236,19 +235,18 @@ function RankingTable({
             return (
               <tr
                 key={entry.companyId}
-                className={`border-b border-amber-100/60 transition-colors ${
+                onClick={() => onSelect(entry)}
+                className={`border-b border-amber-100/60 transition-colors cursor-pointer ${
                   isMe
                     ? 'bg-green-50/80 hover:bg-green-100/80'
                     : 'hover:bg-amber-50/50'
                 }`}
               >
-                {/* Rank */}
                 <td className="px-4 py-3">
                   <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${rankColor(entry.rank)}`}>
-                    {entry.rank <= 3 ? entry.rank : entry.rank}
+                    {entry.rank}
                   </span>
                 </td>
-                {/* Company */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold
@@ -266,11 +264,9 @@ function RankingTable({
                     </div>
                   </div>
                 </td>
-                {/* Level */}
                 <td className="px-4 py-3 text-center font-bold text-amber-900">
                   {entry.level}
                 </td>
-                {/* Main Stat */}
                 <td className="px-4 py-3 text-right font-bold text-green-700">
                   {formatMainStat(entry.mainStat, sort)}
                 </td>
@@ -279,6 +275,82 @@ function RankingTable({
           })}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// ── Company Detail Card ─────────────────────────────
+
+function CompanyDetailCard({
+  entry,
+  sort,
+  onClose,
+}: {
+  entry: LeaderboardEntry
+  sort: SortDimension
+  onClose: () => void
+}) {
+  const isMe = isCurrentCompany(entry)
+
+  return (
+    <div className="rounded-2xl border-2 border-amber-300/40 bg-gradient-to-b from-amber-50 to-white p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-full text-white text-lg font-black ${
+            isMe ? 'bg-green-600' : 'bg-amber-500'
+          }`}>
+            {entry.companyName.charAt(0)}
+          </div>
+          <div>
+            <div className="text-sm font-bold text-amber-950">{entry.companyName}</div>
+            <div className="text-[10px] text-amber-600">
+              Rank #{entry.rank} · Level {entry.level}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 text-[11px] font-semibold transition-colors active:scale-95"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Close
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-amber-100/50 rounded-lg p-2.5 border border-amber-200/30">
+          <div className="text-[9px] text-amber-600 uppercase tracking-wider">Rank</div>
+          <div className="text-sm font-bold text-amber-900">#{entry.rank}</div>
+        </div>
+        <div className="bg-amber-100/50 rounded-lg p-2.5 border border-amber-200/30">
+          <div className="text-[9px] text-amber-600 uppercase tracking-wider">Level</div>
+          <div className="text-sm font-bold text-amber-900">{entry.level}</div>
+        </div>
+        <div className="bg-amber-100/50 rounded-lg p-2.5 border border-amber-200/30">
+          <div className="text-[9px] text-amber-600 uppercase tracking-wider">{SORT_LABELS[sort]}</div>
+          <div className="text-sm font-bold text-green-700">{formatMainStat(entry.mainStat, sort)}</div>
+        </div>
+        <div className="bg-amber-100/50 rounded-lg p-2.5 border border-amber-200/30">
+          <div className="text-[9px] text-amber-600 uppercase tracking-wider">Company ID</div>
+          <div className="text-sm font-bold text-amber-900">#{entry.companyId}</div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border-2 border-dashed border-amber-300/40 bg-amber-50/50 p-6 text-center">
+        <svg className="w-8 h-8 text-amber-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+        <p className="text-xs text-amber-600 font-semibold">
+          {isMe ? 'Your Company Map' : `${entry.companyName}'s Map`}
+        </p>
+        <p className="text-[10px] text-amber-400 mt-1">
+          {isMe
+            ? 'View your buildings and layout on the main map'
+            : 'Map viewing for other companies is coming soon'}
+        </p>
+      </div>
     </div>
   )
 }
@@ -316,14 +388,6 @@ function PublicDataPanel({ sort }: { sort: SortDimension }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5.5 21v-6.5H4a1 1 0 01-1-1V9a1 1 0 011-1h1.5V3A1.5 1.5 0 017 1.5h10A1.5 1.5 0 0118.5 3v5H20a1 1 0 011 1v4.5a1 1 0 01-1 1h-1.5V21a1.5 1.5 0 01-1.5 1.5H7A1.5 1.5 0 015.5 21z" />
             </svg>
           }
-          label="Company Logo"
-        />
-        <InfoRow
-          icon={
-            <svg className="h-4 w-4 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 1.944A11.954 11.954 0 012.166 5C2.056 5.647 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.353-.166-2A11.954 11.954 0 0112 1.944z" />
-            </svg>
-          }
           label="Level"
         />
         <InfoRow
@@ -344,18 +408,6 @@ function PublicDataPanel({ sort }: { sort: SortDimension }) {
           <p className="text-[10px] leading-relaxed text-amber-700">
             Private information such as resources, buildings, contracts, and player activity is hidden to ensure fair competition.
           </p>
-        </div>
-      </div>
-
-      {/* Podium decoration */}
-      <div className="mt-5 flex items-end justify-center gap-3 opacity-30">
-        <div className="h-8 w-8 rounded-t bg-amber-300" />
-        <div className="h-12 w-8 rounded-t bg-yellow-400" />
-        <div className="h-6 w-8 rounded-t bg-orange-300" />
-        <div className="absolute ml-14 flex gap-1.5 mt-1">
-          <span className="text-[9px] font-bold text-amber-500">1</span>
-          <span className="text-[9px] font-bold text-amber-500">2</span>
-          <span className="text-[9px] font-bold text-amber-500">3</span>
         </div>
       </div>
     </div>

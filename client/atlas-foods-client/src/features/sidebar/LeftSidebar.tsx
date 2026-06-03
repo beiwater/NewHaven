@@ -12,8 +12,9 @@ const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature:
   { id: 'executives', label: 'Executives', sysIcon: 'executive', feature: 'executives' },
   { id: 'finance', label: 'Finance', sysIcon: 'financial', feature: 'finance' },
   { id: 'leaderboard', label: 'Leaderboard', sysIcon: 'leaderboard', feature: 'leaderboard' },
+  { id: 'inspect', label: 'Inspect', sysIcon: 'achievement', feature: 'map' },
+  { id: 'settings', label: 'Settings', sysIcon: 'settings', feature: 'map' },
 ]
-
 export function LeftSidebar() {
   const activeView = useUIStore((s) => s.activeView)
   const setActiveView = useUIStore((s) => s.setActiveView)

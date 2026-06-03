@@ -99,3 +99,22 @@ export function useRegister() {
     },
   })
 }
+
+export function useSavePreferences() {
+  const qc = useQueryClient()
+  const companyId = getCompanyId()
+  return useMutation({
+    mutationFn: async (prefs: Record<string, unknown>) => {
+      // Get playerId from cached company data
+      const data = qc.getQueryData<CompanyData>(['company', companyId])
+      const playerId = data?.authUser?.playerId ?? 'dev-player'
+      return api.post<Record<string, unknown>>(
+        `/api/v2/players/${playerId}/preferences/`,
+        prefs,
+      )
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['company', companyId] })
+    },
+  })
+}

@@ -17,6 +17,10 @@ import { FinancialPage } from '@/features/financial/FinancialPage'
 import { ResearchPage } from '@/features/research/ResearchPage'
 import { ErrorBoundary } from './ErrorBoundary'
 import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage'
+import { SettingsPage } from '@/features/settings/SettingsPage'
+import { InspectPage } from '@/features/inspect/InspectPage'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { MobileLayout } from '@/features/mobile'
 
 // Lazy-load PixiJS game canvas so it doesn't block React mount
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
@@ -41,6 +45,10 @@ function PageContent() {
       return <ResearchPage />
     case 'leaderboard':
       return <LeaderboardPage />
+    case 'settings':
+      return <SettingsPage />
+    case 'inspect':
+      return <InspectPage />
     case 'map':
     default:
       return null
@@ -103,10 +111,11 @@ function GameLayout() {
 }
 
 export function App() {
+  const isMobile = useIsMobile()
   return (
     <ErrorBoundary>
       <AuthGate>
-        <GameLayout />
+        {isMobile ? <MobileLayout /> : <GameLayout />}
       </AuthGate>
     </ErrorBoundary>
   )

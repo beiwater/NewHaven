@@ -133,6 +133,88 @@ function GameCanvas() {
 
         let panning = false; let dragged = false
         const panStart = { x: 0, y: 0 }; const pivotStart = { x: 0, y: 0 }
+
+         // ── Touch events (mobile) ──
+        let touches: Map<number, { clientX: number; clientY: number }> = new Map()
+        let pinchStartDist = 0
+        let pinchStartZoom = 1
+
+        canvas.addEventListener('touchstart', (e: TouchEvent) => {
+          e.preventDefault()
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i]
+            touches.set(t.identifier, { clientX: t.clientX, clientY: t.clientY })
+          }
+          if (touches.size === 1) {
+            panning = true; dragged = false
+            const first = touches.values().next().value!
+            panStart.x = first.clientX; panStart.y = first.clientY
+            pivotStart.x = app!.stage.pivot.x; pivotStart.y = app!.stage.pivot.y
+          }
+          if (touches.size === 2) {
+            panning = false
+            const pts = [...touches.values()]
+            pinchStartDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY)
+            pinchStartZoom = zoom
+          }
+        }, { passive: false })
+
+        canvas.addEventListener('touchmove', (e: TouchEvent) => {
+          e.preventDefault()
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i]
+            touches.set(t.identifier, { clientX: t.clientX, clientY: t.clientY })
+          }
+          if (touches.size === 1 && panning) {
+            const first = touches.values().next().value!
+            if (Math.abs(first.clientX - panStart.x) + Math.abs(first.clientY - panStart.y) > 6) dragged = true
+            app!.stage.pivot.x = pivotStart.x - (first.clientX - panStart.x) / app!.stage.scale.x
+            app!.stage.pivot.y = pivotStart.y - (first.clientY - panStart.y) / app!.stage.scale.y
+            clampPivot()
+          }
+          if (touches.size === 2) {
+            const pts = [...touches.values()]
+            const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY)
+            if (pinchStartDist > 0) {
+              const scale = dist / pinchStartDist
+              const next = Math.max(minZoom, Math.min(maxZoom, pinchStartZoom * scale))
+              if (next !== zoom) { zoom = next; app!.stage.scale.set(zoom); clampPivot() }
+            }
+          }
+        }, { passive: false })
+
+        canvas.addEventListener('touchend', (e: TouchEvent) => {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            touches.delete(e.changedTouches[i].identifier)
+          }
+          if (touches.size === 0 && !dragged && panning) {
+            const state = useUIStore.getState()
+            const world = screenToMap(panStart.x, panStart.y)
+            const grid = toGrid(world.x, world.y)
+            if (state.movingBuildingId) {
+              moveBuildingRef.current({ buildingId: state.movingBuildingId, x: grid.x, y: grid.y }, {
+                onSuccess: () => clearBuildingMove(),
+                onError: () => clearBuildingMove(),
+              })
+            } else if (state.placementBuildingId) {
+              placeBuildingRef.current({ buildingId: state.placementBuildingId, x: grid.x, y: grid.y }, {
+                onSuccess: () => clearBuildingPlacement(),
+              })
+            }
+          }
+          if (touches.size === 1) {
+            // Transition from pinch to pan
+            panning = true; dragged = false
+            const first = touches.values().next().value!
+            panStart.x = first.clientX; panStart.y = first.clientY
+            pivotStart.x = app!.stage.pivot.x; pivotStart.y = app!.stage.pivot.y
+          }
+          if (touches.size === 0) {
+            panning = false
+            pinchStartDist = 0
+          }
+        })
+        // ── Mouse events (desktop) ──
         canvas.addEventListener('mousedown', (e: MouseEvent) => {
           if (e.button !== 0 && e.button !== 1) return
           panning = true; dragged = false
