@@ -33,6 +33,8 @@ export interface CompanyData {
   levelInfo: {
     level: number
     xp: number
+    inTutorial?: boolean
+    tutorialCompleted?: boolean
   }
   unlocks?: UnlockInfo
   preferences: Record<string, unknown>
@@ -70,8 +72,20 @@ export function usePlayerLevel() {
   })
 }
 
+export function useCompleteTutorial() {
+  const qc = useQueryClient()
+  const companyId = getCompanyId()
+  return useMutation({
+    mutationFn: () => api.post<{ ok: boolean }>('/api/v2/companies/me/tutorial/', {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['company', companyId] })
+    },
+  })
+}
+
 export function useLogin() {
   return useMutation({
+
     mutationFn: ({ username, password }: { username: string; password: string }) =>
       api.post<LoginResponse>('/api/login', { username, password }),
     onSuccess: (data) => {

@@ -25,9 +25,18 @@ func (s *Service) CompanyProfile(companyID int) map[string]any {
 			"displayCaseSlots": 3,
 		},
 		"authUser":    map[string]any{"playerId": "dev-player", "isModerator": false, "supporter": false},
-		"levelInfo":   map[string]any{"level": company.Level, "xp": 12800, "inTutorial": false},
+		"levelInfo":   map[string]any{"level": company.Level, "xp": 12800, "inTutorial": false, "tutorialCompleted": company.TutorialCompleted},
 		"unlocks":     FeatureUnlockPayload(company.Level),
 		"preferences": map[string]any{"theme": "System"},
+	}
+}
+
+func (s *Service) CompleteTutorial(companyID int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	company := s.getCompanyLocked(companyID)
+	if company != nil {
+		company.TutorialCompleted = true
 	}
 }
 

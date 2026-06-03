@@ -102,7 +102,8 @@ type Company struct {
 	QualityInventory  map[string]int   `json:"qualityInventory,omitempty"`
 	PlacedBuildings   []map[string]any `json:"placedBuildings"`
 	UnplacedBuildings []map[string]any `json:"unplacedBuildings"`
-	WarehouseLevel    int              `json:"warehouseLevel"`
+	WarehouseLevel    int `json:"warehouseLevel"`
+	TutorialCompleted bool `json:"tutorialCompleted"`
 }
 
 type Player struct {

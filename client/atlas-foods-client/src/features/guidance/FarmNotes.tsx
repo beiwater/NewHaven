@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useBuildings } from '@/api/buildings.api'
 import { useWarehouse } from '@/api/inventory.api'
 import { useProductionJobs } from '@/api/production.api'
-import { useCompany } from '@/api/company.api'
+import { useCompany, useCompleteTutorial } from '@/api/company.api'
 import { resourceIcon } from '@/game/resources'
 import { useUIStore } from '@/store/ui.store'
 
@@ -21,13 +21,16 @@ interface GuideNote {
 // are kept in git history but currently not rendered after tutorial completion.
 
 export function FarmNotes() {
-  const [showTips, setShowTips] = useState(true)
-  const [showCelebration, setShowCelebration] = useState(false)
-  const [celebrationDone, setCelebrationDone] = useState(false)
   const { data: buildingsData } = useBuildings()
   const { data: warehouse } = useWarehouse()
   const { data: jobsData } = useProductionJobs()
   const { data: companyData } = useCompany()
+  const completeTutorial = useCompleteTutorial()
+  const [showTips, setShowTips] = useState(true)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [celebrationDone, setCelebrationDone] = useState(
+    companyData?.levelInfo?.tutorialCompleted ?? false,
+  )
   const activeView = useUIStore((s) => s.activeView)
   const selectedBuildingId = useUIStore((s) => s.selectedBuildingId)
   const placementBuildingId = useUIStore((s) => s.placementBuildingId)
@@ -66,16 +69,18 @@ export function FarmNotes() {
     const timer = setTimeout(() => setShowCelebration(false), 6000)
     return () => clearTimeout(timer)
   }, [showCelebration])
+
   // Detect tutorial completion: first harvest done and no active jobs left
   useEffect(() => {
     if (collectedOnce && activeJobs.length === 0 && !celebrationDone) {
       setShowCelebration(true)
       setCelebrationDone(true)
+      // Persist to backend so it survives browser clears
+      completeTutorial.mutate()
     }
   }, [collectedOnce, activeJobs.length, celebrationDone])
 
   // Pre-tutorial: early guidance before first complete harvest cycle
-  // (all notes before collectedOnce + activeJobs.length === 0)
   const note = useMemo<GuideNote | null>(() => {
     if (collectedOnce && activeJobs.length === 0) {
       // Tutorial just hit the milestone — celebration shown above, return no card here
@@ -226,7 +231,6 @@ export function FarmNotes() {
         <div className="relative rounded-xl border-2 border-amber-500/70 bg-gradient-to-br from-amber-50 to-amber-100/95 px-6 py-5 shadow-2xl shadow-amber-950/20 backdrop-blur">
           <div className="absolute -inset-1 -z-10 rounded-[14px] border-2 border-amber-300/70 farm-guide-pulse" />
           <div className="flex flex-col items-center text-center gap-2">
-            {/* Sparkle icon */}
             <svg className="w-10 h-10 text-amber-500 farm-celebration-sparkle" viewBox="0 0 24 24" fill="none">
               <path d="M12 2l1.5 6.5L20 9l-5 4.5 1.5 7L12 16l-5.5 4.5L8 14.5 3 10l6.5-.5L12 2z" fill="currentColor" />
             </svg>
@@ -249,7 +253,6 @@ export function FarmNotes() {
   if (celebrationDone) return null
 
   if (!note) return null
-
 
   const cardClass = note.card === 'rightPanel'
     ? 'right-[320px] top-[132px]'

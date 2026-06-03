@@ -29,6 +29,7 @@ func (h *Handler) RegisterCompany(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v2/companies/me/auctions/", h.withAuth(h.handleMyAuctions))
 	mux.HandleFunc("/api/v2/auctions/", h.withAuth(h.handleAuctions))
 	mux.HandleFunc("/api/v2/companies/me/warehouse/", h.withAuth(h.handleWarehouse))
+	mux.HandleFunc("/api/v2/companies/me/tutorial/", h.withAuth(h.handleCompleteTutorial))
 }
 
 func (h *Handler) handleCSRF(w http.ResponseWriter, _ *http.Request) {
@@ -217,4 +218,14 @@ func (h *Handler) handleWarehouse(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"inventory": inv, "capacity": h.svc.WarehouseCapacity(c.WarehouseLevel), "used": used,
 	})
+}
+
+
+func (h *Handler) handleCompleteTutorial(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, 405, "method not allowed")
+		return
+	}
+	h.svc.CompleteTutorial(h.companyID(r))
+	writeJSON(w, 200, map[string]any{"ok": true})
 }
