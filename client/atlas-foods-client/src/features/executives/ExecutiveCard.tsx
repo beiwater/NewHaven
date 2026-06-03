@@ -1,5 +1,6 @@
 import type { Executive } from '@/game/executives'
 import { RARITY_COLORS, RARITY_BG, formatMoney } from '@/game/executives'
+import { formatTrainingRemaining, useTrainingNow } from './trainingTimer'
 
 interface ExecutiveCardProps {
   executive: Executive
@@ -25,6 +26,9 @@ export function ExecutiveCard({
 }: ExecutiveCardProps) {
   const rarityColor = RARITY_COLORS[executive.rarity]
   const cardBg = RARITY_BG[executive.rarity]
+  const isTraining = executive.status === 'training'
+  const now = useTrainingNow(isTraining)
+  const trainingLabel = formatTrainingRemaining(executive.trainingEndTime, now)
 
   return (
     <div className={`rounded-xl border-2 p-4 shadow-sm transition-shadow hover:shadow-md ${cardBg}`}>
@@ -89,14 +93,14 @@ export function ExecutiveCard({
           </button>
           <button
             onClick={() => onTrain?.(executive.id)}
-            disabled={isPending || executive.status === 'training'}
-            className={`flex-1 rounded-lg py-2 text-xs font-black transition-colors ${
-              executive.status === 'training'
+            disabled={isPending || isTraining}
+            className={`flex-1 rounded-lg px-2 py-2 text-xs font-black transition-colors whitespace-nowrap tabular-nums ${
+              isTraining
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-green-700 text-white hover:bg-green-800'
             }`}
           >
-            {isPending ? 'Training...' : executive.status === 'training' ? 'Training...' : 'Train'}
+            {isPending ? 'Training...' : isTraining ? `Training ${trainingLabel}` : 'Train'}
           </button>
         </div>
       )}

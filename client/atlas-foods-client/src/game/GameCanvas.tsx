@@ -1,20 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IMAGE_LOAD_TIMEOUT_MS } from '@/constants'
 
-import { Assets, Texture, Sprite, Container, type Application } from 'pixi.js'
+import { Assets, Texture, Sprite, Container, Text, Graphics, type Application } from 'pixi.js'
 import { useBuildings, usePlaceBuilding, useMoveBuilding } from '@/api/buildings.api'
+import { useProductionJobs, useClaimProduction } from '@/api/production.api'
 import { useUIStore } from '@/store/ui.store'
 import { createBuildingNode } from './pixi/buildingLayer'
 import { createGameApp } from './pixi/createApp'
-import type { Building } from './types'
+import { resourceIcon } from '@/game/resources'
+import { buildingIcon } from '@/game/icons'
+import type { Building, ProductionJob } from './types'
 
 const MAP_BG = '/assets/backgrounds/map_background_v1.png'
 const BUILDING_TEXTURE_URLS: Record<number, string> = {
   1: '/assets/buildings/grain_plot_lv1_idle_trimmed.png',
-  2: '/assets/buildings/mill_house_lv1_idle_trimmed.png',
-  3: '/assets/buildings/bakery_shop_lv1_idle_trimmed.png',
-  4: '/assets/buildings/meal_kiosk_lv1_idle_trimmed.png',
+  2: buildingIcon(2),
+  3: '/assets/buildings/mill_house_lv1_idle_trimmed.png',
+  4: buildingIcon(4),
+  5: '/assets/buildings/bakery_shop_lv1_idle_trimmed.png',
+  6: buildingIcon(6),
+  7: buildingIcon(7),
+  8: buildingIcon(8),
+  9: '/assets/buildings/meal_kiosk_lv1_idle_trimmed.png',
+  10: buildingIcon(10),
+  11: buildingIcon(11),
+  12: buildingIcon(12),
 }
+const RESOURCE_TEXTURE_URLS: Record<number, string> = Object.fromEntries(
+  Array.from({ length: 12 }, (_, i) => [i + 1, resourceIcon(i + 1)]),
+)
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   const img = new Image()
@@ -36,15 +50,93 @@ async function preloadBuildingTextures(): Promise<Record<number, Texture>> {
   return cache
 }
 
+async function preloadResourceTextures(): Promise<Record<number, Texture>> {
+  const urls = Object.values(RESOURCE_TEXTURE_URLS)
+  const loaded: Record<string, Texture> = await Assets.load(urls)
+  const cache: Record<number, Texture> = {}
+  for (const [idStr, url] of Object.entries(RESOURCE_TEXTURE_URLS)) {
+    if (loaded[url]) cache[Number(idStr)] = loaded[url]
+  }
+  return cache
+}
+
+function jobProgress(job: ProductionJob, now: number): number {
+  const start = new Date(job.startedAt).getTime()
+  const end = new Date(job.completesAt).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 1
+  return Math.max(0, Math.min(1, (now - start) / (end - start)))
+}
+
+function accruedAmount(job: ProductionJob, now: number): number {
+  if (job.status === 'claimed') return job.amount
+  return Math.floor(jobProgress(job, now) * job.amount)
+}
+
+function collectableAmount(job: ProductionJob, now: number): number {
+  if (job.status === 'claimed') return 0
+  return Math.max(job.claimableAmount ?? 0, accruedAmount(job, now) - (job.claimedAmount ?? 0), 0)
+}
+
+function addHarvestFloat(layer: Container, pos: { x: number; y: number }, texture: Texture | undefined, amount: number) {
+  const node = new Container()
+  node.x = pos.x + 52
+  node.y = pos.y + 4
+
+  const bubble = new Graphics()
+  bubble.roundRect(-12, -18, 68, 28, 10)
+  bubble.fill({ color: 0xfff7dc, alpha: 0.96 })
+  bubble.stroke({ width: 1, color: 0x7aa34b, alpha: 0.7 })
+  node.addChild(bubble)
+
+  if (texture) {
+    const icon = new Sprite(texture)
+    const scale = Math.min(18 / Math.max(1, texture.width), 18 / Math.max(1, texture.height))
+    icon.scale.set(scale)
+    icon.anchor.set(0.5)
+    icon.x = 0
+    icon.y = -4
+    node.addChild(icon)
+  }
+
+  const text = new Text({
+    text: `+${amount}`,
+    style: { fontSize: 12, fontWeight: 'bold', fill: 0x3f6212, fontFamily: 'Inter, system-ui, sans-serif' },
+  })
+  text.anchor.set(0, 0.5)
+  text.x = 12
+  text.y = -4
+  node.addChild(text)
+  layer.addChild(node)
+
+  const start = performance.now()
+  const tick = () => {
+    if (node.destroyed) return
+    const elapsed = performance.now() - start
+    const pct = Math.min(1, elapsed / 900)
+    node.y = pos.y + 4 - pct * 34
+    node.alpha = 1 - pct
+    if (pct >= 1) {
+      node.destroy({ children: true })
+      return
+    }
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+
 function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<Application | null>(null)
   const textureCacheRef = useRef<Record<number, Texture>>({})
+  const resourceTextureCacheRef = useRef<Record<number, Texture>>({})
   const buildingLayerRef = useRef<Container | null>(null)
   const startedRef = useRef(false)
   const [layerReady, setLayerReady] = useState(false)
+  const [clock, setClock] = useState(Date.now())
 
   const { data: buildingsData } = useBuildings()
+  const { data: jobsData } = useProductionJobs()
+  const claimProduction = useClaimProduction()
   const placeBuilding = usePlaceBuilding()
   const moveBuilding = useMoveBuilding()
   const placeBuildingRef = useRef(placeBuilding.mutate)
@@ -61,6 +153,11 @@ function GameCanvas() {
     () => Array.isArray(buildingsData) ? buildingsData.filter((b) => b.placed !== false) : [],
     [buildingsData],
   )
+
+  useEffect(() => {
+    const timer = setInterval(() => setClock(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     placeBuildingRef.current = placeBuilding.mutate
@@ -83,6 +180,7 @@ function GameCanvas() {
         appRef.current = app
         app.renderer.background.color = 0xe8dcc8
         textureCacheRef.current = await preloadBuildingTextures()
+        resourceTextureCacheRef.current = await preloadResourceTextures()
 
         const sprite = new Sprite(Texture.from(img))
         sprite.anchor.set(0, 0)
@@ -194,7 +292,6 @@ function GameCanvas() {
             if (state.movingBuildingId) {
               moveBuildingRef.current({ buildingId: state.movingBuildingId, x: grid.x, y: grid.y }, {
                 onSuccess: () => clearBuildingMove(),
-                onError: () => clearBuildingMove(),
               })
             } else if (state.placementBuildingId) {
               placeBuildingRef.current({ buildingId: state.placementBuildingId, x: grid.x, y: grid.y }, {
@@ -236,7 +333,6 @@ function GameCanvas() {
             if (state.movingBuildingId) {
               moveBuildingRef.current({ buildingId: state.movingBuildingId, x: grid.x, y: grid.y }, {
                 onSuccess: () => clearBuildingMove(),
-                onError: () => clearBuildingMove(),
               })
             } else if (state.placementBuildingId) {
               placeBuildingRef.current({ buildingId: state.placementBuildingId, x: grid.x, y: grid.y }, {
@@ -265,19 +361,47 @@ function GameCanvas() {
     if (!layer) return
     layer.removeChildren().forEach((c) => c.destroy({ children: true }))
     const cache = textureCacheRef.current
+    const resourceCache = resourceTextureCacheRef.current
+    const jobs = jobsData ?? []
+    const now = clock
+    const pulse = (Math.sin(now / 650) + 1) / 2
     for (const b of buildings) {
       const tex = cache[b.kind] ?? Texture.from(BUILDING_TEXTURE_URLS[b.kind] ?? BUILDING_TEXTURE_URLS[2])
+      const buildingJobs = jobs.filter((job) => job.buildingId === b.id && job.status !== 'claimed')
+      const harvestJob = buildingJobs.find((job) => collectableAmount(job, now) > 0)
+      const activeJob = harvestJob ?? buildingJobs[0]
+      const collectable = harvestJob ? collectableAmount(harvestJob, now) : 0
+      const progress = activeJob ? jobProgress(activeJob, now) : undefined
       const node = createBuildingNode(tex, {
         name: b.name ?? `Building ${b.kind}`,
         level: b.level ?? 1,
-        status: b.status ?? 'idle',
+        status: activeJob ? activeJob.status : (b.status ?? 'idle'),
+        progress,
+        collectableAmount: collectable,
+        pulse,
+        resourceTexture: activeJob ? resourceCache[activeJob.resourceId] : undefined,
         isSelected: b.id === selectedBuildingId,
-      }, () => selectBuilding(b.id))
+      }, () => {
+        const state = useUIStore.getState()
+        if (state.movingBuildingId || state.placementBuildingId) return
+        selectBuilding(b.id)
+      }, () => {
+        if (!harvestJob) return
+        const amount = collectableAmount(harvestJob, Date.now())
+        claimProduction.mutate(harvestJob.id, {
+          onSuccess: () => {
+            const currentLayer = buildingLayerRef.current
+            if (currentLayer) {
+              addHarvestFloat(currentLayer, buildingToMapPosition(b), resourceCache[harvestJob.resourceId], amount)
+            }
+          },
+        })
+      })
       const pos = buildingToMapPosition(b)
       node.x = pos.x; node.y = pos.y; node.zIndex = pos.y * 100 + pos.x
       layer.addChild(node)
     }
-  }, [buildings, selectedBuildingId, selectBuilding, layerReady])
+  }, [buildings, jobsData, selectedBuildingId, selectBuilding, layerReady, claimProduction, clock])
 
   return (
     <div ref={containerRef} className="relative h-full w-full bg-[#e8dcc8]">

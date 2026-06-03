@@ -63,7 +63,7 @@ func (s *Service) StartResearch(companyID int, projectID string) (map[string]any
 		p.StartedAt = now.Format(time.RFC3339)
 		p.CompletesAt = now.Add(time.Duration(p.DurationHours) * time.Hour).Format(time.RFC3339)
 		p.Progress = 0
-		s.addLedger("research_start", -p.CashCost, "out", map[string]any{"project": p.ID})
+		s.addLedger("research_start", p.CashCost, "out", map[string]any{"project": p.ID})
 		return map[string]any{"project": p, "status": "started"}, nil
 	}
 	return nil, fmt.Errorf("project not found")

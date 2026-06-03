@@ -78,7 +78,7 @@ function ToggleRow({
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
-  const [saved, setSaved] = useState(false)
+  const [saved] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: companyData } = useCompany()
   const savePrefs = useSavePreferences()

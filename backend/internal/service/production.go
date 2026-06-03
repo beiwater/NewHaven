@@ -168,18 +168,41 @@ func (s *Service) checkBuildingCanProduce(company *model.Company, buildingID str
 }
 
 func (s *Service) productionIDsForKind(kind int) []int {
-	switch kind {
-	case 1:
-		return []int{1}
-	case 2:
-		return []int{2}
-	case 3:
-		return []int{3}
-	case 4:
-		return []int{4}
-	default:
-		return []int{}
+	if s.Data != nil && s.Data.Buildings != nil {
+		for _, raw := range s.Data.Buildings {
+			building, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			buildingKind := intFromAny(building["kind"])
+			if buildingKind <= 0 {
+				buildingKind = intFromAny(building["id"])
+			}
+			if buildingKind != kind {
+				continue
+			}
+			produces := intSliceFromAny(building["produces"])
+			if len(produces) > 0 {
+				return produces
+			}
+			if output := intFromAny(building["outputResourceId"]); output > 0 {
+				return []int{output}
+			}
+			return []int{}
+		}
 	}
+	if kind > 0 {
+		for _, r := range s.Data.Resources {
+			id := intFromAny(r["dbLetter"])
+			if id <= 0 {
+				id = intFromAny(r["id"])
+			}
+			if id == kind {
+				return []int{kind}
+			}
+		}
+	}
+	return []int{}
 }
 
 func (s *Service) resolveQuality(company *model.Company, reqQuality int, input map[int]int) int {
@@ -266,12 +289,21 @@ func (s *Service) refreshProductionJobs(companyID int) {
 	now := s.now().UTC()
 	for i := range s.State.ProductionJobs {
 		j := &s.State.ProductionJobs[i]
-		if j.Status != "running" {
+		if j.Status == "claimed" {
+			j.ClaimableAmount = 0
 			continue
 		}
-		t, err := time.Parse(time.RFC3339, j.CompletesAt)
-		if err == nil && !now.Before(t) {
+		j.ClaimableAmount = s.claimableAmountForJob(j, now)
+		if j.ClaimedAmount >= j.Amount {
+			j.Status = "claimed"
+			j.ClaimableAmount = 0
+			continue
+		}
+		completeAt, err := time.Parse(time.RFC3339, j.CompletesAt)
+		if err == nil && !now.Before(completeAt) {
 			j.Status = "ready"
+		} else {
+			j.Status = "running"
 		}
 	}
 	// Count running jobs per building, enforce slot limits
@@ -295,6 +327,29 @@ func (s *Service) refreshProductionJobs(companyID int) {
 		b["busy"] = byBuilding[bid] >= slots
 	}
 }
+
+func (s *Service) claimableAmountForJob(j *model.ProductionJob, now time.Time) int {
+	if j == nil || j.Amount <= 0 || j.Status == "claimed" {
+		return 0
+	}
+	start, errStart := time.Parse(time.RFC3339, j.StartedAt)
+	complete, errComplete := time.Parse(time.RFC3339, j.CompletesAt)
+	if errStart != nil || errComplete != nil {
+		return 0
+	}
+	totalSeconds := complete.Sub(start).Seconds()
+	if totalSeconds <= 0 || !now.Before(complete) {
+		return max(0, j.Amount-j.ClaimedAmount)
+	}
+	if now.Before(start) {
+		return 0
+	}
+	produced := int(math.Floor(now.Sub(start).Seconds() / totalSeconds * float64(j.Amount)))
+	if produced > j.Amount {
+		produced = j.Amount
+	}
+	return max(0, produced-j.ClaimedAmount)
+}
 func (s *Service) RefreshProductionJobs(companyID int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -309,9 +364,14 @@ func (s *Service) ProductionQueue(companyID int) map[string]any {
 	}
 	// Group jobs by building
 	byBuilding := map[string][]model.ProductionJob{}
+	inUse := 0
 	for _, j := range s.State.ProductionJobs {
+		if j.Status == "claimed" {
+			continue
+		}
 		bid := j.BuildingID
 		byBuilding[bid] = append(byBuilding[bid], j)
+		inUse++
 	}
 	slots := company.ProductionSlots
 	if slots <= 0 {
@@ -320,7 +380,7 @@ func (s *Service) ProductionQueue(companyID int) map[string]any {
 	return map[string]any{
 		"byBuilding": byBuilding,
 		"maxSlots":   slots * len(company.PlacedBuildings),
-		"inUse":      len(s.State.ProductionJobs),
+		"inUse":      inUse,
 	}
 }
 
@@ -338,7 +398,7 @@ func (s *Service) AddProductionSlot(companyID int) (map[string]any, error) {
 	}
 	company.Money -= cost
 	company.ProductionSlots++
-	s.addLedger("slot_upgrade", -cost, "out", map[string]any{"newSlots": company.ProductionSlots})
+	s.addLedger("slot_upgrade", cost, "out", map[string]any{"newSlots": company.ProductionSlots})
 	s.saveCompanyLocked(company)
 	return map[string]any{"slots": company.ProductionSlots, "cost": cost}, nil
 }

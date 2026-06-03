@@ -19,6 +19,8 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { InspectPage } from '@/features/inspect/InspectPage'
+import { FarmNotes } from '@/features/guidance/FarmNotes'
+import { ProductionQueue } from '@/features/production/ProductionQueue'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { MobileLayout } from '@/features/mobile'
 
@@ -31,8 +33,11 @@ function PageContent() {
   switch (activeView) {
     case 'market':
       return <MarketPage />
+    case 'chain':
     case 'warehouse':
       return <InventoryBar />
+    case 'production':
+      return <ProductionQueue />
     case 'build':
       return <BuildView />
     case 'contracts':
@@ -92,6 +97,7 @@ function GameLayout() {
       <div className="map">
         {isMapView ? <MapSlot /> : <PageContent />}
       </div>
+      <FarmNotes />
       {isMapView ? <BuildingPanel /> : <div className="right-panel page-spacer" />}
       <MarketTicker />
       {!chatOpen && (

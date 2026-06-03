@@ -1,5 +1,6 @@
 import type { Executive } from '@/game/executives'
 import { productionBonusAtLevel, salesBonusAtLevel, mgmtDiscountAtLevel, formatMoney } from '@/game/executives'
+import { formatTrainingRemaining, useTrainingNow } from './trainingTimer'
 
 interface MyExecutivesProps {
   executives: Executive[]
@@ -16,6 +17,9 @@ export function MyExecutives({
   onTrain,
   selectedId,
 }: MyExecutivesProps) {
+  const hasTraining = executives.some((exec) => exec.status === 'training')
+  const now = useTrainingNow(hasTraining)
+
   if (isLoading) {
     return (
       <section>
@@ -52,6 +56,8 @@ export function MyExecutives({
           const nextSales = salesBonusAtLevel(exec.level + 1)
           const nextMgmt = mgmtDiscountAtLevel(exec.level + 1)
           const isSelected = selectedId === exec.id
+          const isTraining = exec.status === 'training'
+          const trainingLabel = formatTrainingRemaining(exec.trainingEndTime, now)
 
           return (
             <div
@@ -120,14 +126,14 @@ export function MyExecutives({
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); onTrain(exec.id) }}
-                      disabled={exec.status === 'training'}
-                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors ${
-                        exec.status === 'training'
+                      disabled={isTraining}
+                      className={`rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors whitespace-nowrap tabular-nums ${
+                        isTraining
                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                           : 'bg-green-700 text-white hover:bg-green-800'
                       }`}
                     >
-                      {exec.status === 'training' ? 'Training...' : 'Train'}
+                      {isTraining ? `Training ${trainingLabel}` : 'Train'}
                     </button>
                   </div>
                 </div>

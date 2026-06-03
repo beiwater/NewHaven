@@ -22,7 +22,7 @@ import { ParticipantList } from './ParticipantList'
 
 export function MarketPage() {
   const [selectedResource, setSelectedResource] = useState(1)
-  const [selectedGroup, setSelectedGroup] = useState<(typeof MARKET_GROUPS)[number]['id']>('core')
+  const [selectedGroup, setSelectedGroup] = useState<(typeof MARKET_GROUPS)[number]['id']>('raw')
   const [orderKind, setOrderKind] = useState<'buy' | 'sell'>('buy')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('10.00')
@@ -140,11 +140,11 @@ export function MarketPage() {
               Select Product
             </div>
             <div className="grid gap-2">
-              {visibleResources.map((resource) => resource && (
+              {visibleResources.map((resource, index) => resource && (
                 <button
                   key={resource.resourceId}
                   onClick={() => setSelectedResource(resource.resourceId)}
-                  className={`flex items-center gap-3 rounded-xl border p-2 text-left transition-colors ${
+                  className={`${index === 0 ? 'tutorial-market-product' : ''} flex items-center gap-3 rounded-xl border p-2 text-left transition-colors ${
                     selectedResource === resource.resourceId
                       ? 'border-amber-700 bg-amber-100 text-amber-950'
                       : 'border-amber-200/60 bg-white/45 text-amber-800 hover:bg-white/80'
@@ -215,7 +215,7 @@ export function MarketPage() {
                   min="1"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-amber-950"
+                  className="tutorial-market-quantity mb-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-amber-950"
                 />
                 <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-700">
                   Limit Price
@@ -226,12 +226,12 @@ export function MarketPage() {
                   step="0.01"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-amber-950"
+                  className="tutorial-market-price mb-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-amber-950"
                 />
                 <button
                   onClick={handleCreateOrder}
                   disabled={createOrder.isPending || !!localOrderError}
-                  className="w-full rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-black text-white hover:bg-amber-900 disabled:bg-amber-400"
+                  className="tutorial-market-order w-full rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-black text-white hover:bg-amber-900 disabled:bg-amber-400"
                 >
                   {createOrder.isPending ? 'Submitting...' : `Place ${orderKind === 'buy' ? 'Buy' : 'Sell'} Order`}
                 </button>

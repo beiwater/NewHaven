@@ -1,8 +1,7 @@
 import { useMarketTicker } from '@/api/market.api'
 import { FALLBACK_MARKET_RESOURCES, resourceIcon } from '@/game/resources'
 
-const TRACKED_IDS = [1, 2, 3, 4]
-const TRACKED_RESOURCES = FALLBACK_MARKET_RESOURCES.filter((r) => TRACKED_IDS.includes(r.resourceId))
+const TRACKED_RESOURCES = FALLBACK_MARKET_RESOURCES
 
 function PriceCard({ resource }: { resource: typeof TRACKED_RESOURCES[number] }) {
   const { data } = useMarketTicker(resource.resourceId)
@@ -13,7 +12,7 @@ function PriceCard({ resource }: { resource: typeof TRACKED_RESOURCES[number] })
   const isUp = last >= prev
 
   return (
-    <div className="flex min-w-[190px] items-center gap-3 border-r border-amber-200/60 px-4 py-2">
+    <div className="flex min-w-[176px] items-center gap-3 border-r border-amber-200/60 px-4 py-2">
       <img
         src={resourceIcon(resource.resourceId)}
         alt={resource.name}
@@ -47,10 +46,12 @@ export function MarketTicker() {
           <div className="text-xs font-bold uppercase text-amber-800">Live Prices</div>
         </div>
       </div>
-      <div className="flex flex-1 overflow-x-auto">
-        {TRACKED_RESOURCES.map((r) => (
-          <PriceCard key={r.resourceId} resource={r} />
-        ))}
+      <div className="ticker-window flex-1 overflow-hidden">
+        <div className="ticker-track flex w-max">
+          {[...TRACKED_RESOURCES, ...TRACKED_RESOURCES].map((r, index) => (
+            <PriceCard key={`${r.resourceId}-${index}`} resource={r} />
+          ))}
+        </div>
       </div>
     </div>
   )

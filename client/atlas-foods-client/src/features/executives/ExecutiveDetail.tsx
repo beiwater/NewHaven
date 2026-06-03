@@ -10,6 +10,7 @@ import {
   formatDuration,
   RARITY_COLORS,
 } from '@/game/executives'
+import { formatTrainingRemaining, useTrainingNow } from './trainingTimer'
 
 interface ExecutiveDetailProps {
   executiveId: string | null
@@ -21,6 +22,7 @@ export function ExecutiveDetail({ executiveId, onTrainingComplete }: ExecutiveDe
   const { data: detail, isLoading, isError, error } = useExecutiveDetail(executiveId)
   const trainExec = useTrainExecutive()
   const { data: companyData } = useCompany()
+  const now = useTrainingNow(detail?.status === 'training')
 
   const cash = companyData?.authCompany?.money ?? 0
 
@@ -60,6 +62,7 @@ export function ExecutiveDetail({ executiveId, onTrainingComplete }: ExecutiveDe
   const cost = trainingCost(detail.level)
   const time = trainingTimeSeconds(detail.level)
   const canTrain = cash >= cost && detail.status !== 'training'
+  const trainingLabel = formatTrainingRemaining(detail.trainingEndTime, now)
 
   const handleTrain = async () => {
     try {
@@ -189,7 +192,7 @@ export function ExecutiveDetail({ executiveId, onTrainingComplete }: ExecutiveDe
         {trainExec.isPending
           ? 'Training...'
           : detail.status === 'training'
-            ? 'Already Training'
+            ? `Training ${trainingLabel}`
             : !canTrain
               ? `Need $${formatMoney(cost - cash)} more`
               : 'Train Executive'}

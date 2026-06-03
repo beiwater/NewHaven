@@ -178,7 +178,9 @@ func (h *Handler) handleWarehouse(w http.ResponseWriter, r *http.Request) {
 	snap := h.svc.Snapshot()
 	c := snap.GetCompany(h.companyID(r))
 	inv := make([]map[string]any, 0)
+	used := 0
 	for rid, qty := range c.Inventory {
+		used += qty
 		name := ""
 		for _, rr := range h.svc.Data.Resources {
 			if intFromAny(rr["dbLetter"]) == rid {
@@ -193,6 +195,7 @@ func (h *Handler) handleWarehouse(w http.ResponseWriter, r *http.Request) {
 	}
 	if c.QualityInventory != nil {
 		for key, qty := range c.QualityInventory {
+			used += qty
 			parts := strings.Split(key, "_")
 			if len(parts) == 2 {
 				rid, _ := strconv.Atoi(parts[0])
@@ -212,6 +215,6 @@ func (h *Handler) handleWarehouse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, 200, map[string]any{
-		"inventory": inv, "capacity": 2000, "used": len(c.Inventory) + len(c.QualityInventory),
+		"inventory": inv, "capacity": h.svc.WarehouseCapacity(c.WarehouseLevel), "used": used,
 	})
 }

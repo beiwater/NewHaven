@@ -30,6 +30,7 @@ export function LeftSidebar() {
         (() => {
           const isUnlocked = unlocks?.features?.[item.feature] ?? true
           const unlockLevel = unlocks?.featureLevels?.[item.feature] ?? 1
+          const isActive = activeView === item.id || (item.id === 'warehouse' && activeView === 'chain')
           return (
             <button
               key={item.id}
@@ -43,12 +44,12 @@ export function LeftSidebar() {
             border-b border-amber-700/10 transition-all duration-150
             ${!isUnlocked
               ? 'cursor-not-allowed opacity-45 grayscale text-amber-800/50'
-              : activeView === item.id
+              : isActive
                 ? 'bg-amber-200/70 text-amber-900 font-semibold shadow-inner'
                 : 'text-amber-800/70 hover:bg-amber-100/50 hover:text-amber-900'
             }
           `}
-              style={{ height: activeView === item.id ? '68px' : '80px' }}
+              style={{ height: isActive ? '68px' : '80px' }}
             >
               <img
                 src={systemIcon(item.sysIcon)}

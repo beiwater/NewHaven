@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ActiveView = 'map' | 'build' | 'warehouse' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect'
+export type ActiveView = 'map' | 'build' | 'warehouse' | 'chain' | 'production' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect'
 
 interface UIState {
   activeView: ActiveView

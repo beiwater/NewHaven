@@ -51,12 +51,20 @@ export const KIND_LABELS: Record<string, string> = {
   gov_contract_reward: 'Contract Rewards',
   gov_bid_deposit: 'Contract Deposits',
   bond_interest_income: 'Bond Interest',
-  bond_interest_expense: 'Bond Interest',
+  bond_interest_expense: 'Bond Payment',
   bond_buy: 'Bond Investment',
   bond_call: 'Bond Call',
   bond_issue: 'Bond Issuance',
+  buy_building: 'Building Purchase',
+  building_upgrade: 'Building Upgrade',
+  demolish_building: 'Building Refund',
+  warehouse_upgrade: 'Warehouse Upgrade',
   production_input: 'Production Input',
   production_output: 'Production Output',
+  research_start: 'Research Started',
+  research_complete: 'Research Complete',
+  slot_upgrade: 'Production Slot Upgrade',
+  daily_order_reward: 'Order Reward',
 }
 
 export function kindLabel(kind: string): string {

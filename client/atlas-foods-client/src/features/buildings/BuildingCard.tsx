@@ -1,10 +1,11 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
-import { useMoveBuilding, useDemolishBuilding } from '@/api/buildings.api'
+import { useMoveBuilding, useDemolishBuilding, useUpgradeBuilding } from '@/api/buildings.api'
 import { useUIStore } from '@/store/ui.store'
-import type { Building } from '@/game/types'
+import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
 import { resourceIcon } from '@/game/resources'
+import { buildingIcon } from '@/game/icons'
 
 const BUILDING_PREVIEW: Record<number, string> = {
   1: '/assets/buildings/grain_plot_lv1_idle_trimmed.png',
@@ -14,7 +15,7 @@ const BUILDING_PREVIEW: Record<number, string> = {
 }
 
 function getBuildingPreview(kind: number): string {
-  return BUILDING_PREVIEW[kind] ?? '/assets/buildings/bakery_shop_lv1_idle_trimmed.png'
+  return BUILDING_PREVIEW[kind] ?? buildingIcon(kind)
 }
 
 function outputPerHour(baseOutput: number | undefined, level: number): number {
@@ -54,6 +55,21 @@ function progressPct(startedAt: string | undefined, completesAt: string | undefi
   return Math.min(100, Math.round((elapsed / total) * 100))
 }
 
+function accruedAmount(job: ProductionJob, now: number): number {
+  const start = new Date(job.startedAt).getTime()
+  const end = new Date(job.completesAt).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return job.amount
+  if (now >= end) return job.amount
+  if (now <= start) return 0
+  return Math.floor(((now - start) / (end - start)) * job.amount)
+}
+
+function collectableAmount(job: ProductionJob, now: number): number {
+  if (job.status === 'claimed') return 0
+  const claimed = job.claimedAmount ?? 0
+  return Math.max(job.claimableAmount ?? 0, accruedAmount(job, now) - claimed, 0)
+}
+
 interface BuildingCardProps {
   building: Building
   onClose: () => void
@@ -71,11 +87,14 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   const startProd = useStartProduction()
   const claimProd = useClaimProduction()
   const moveBuilding = useMoveBuilding()
+  const upgradeBuilding = useUpgradeBuilding()
   const demolishBuilding = useDemolishBuilding()
   const startBuildingMove = useUIStore((s) => s.startBuildingMove)
+  const setActiveView = useUIStore((s) => s.setActiveView)
 
   const runningJob = buildingJobs.find((j) => j.status === 'running')
-  const readyJob = buildingJobs.find((j) => j.status === 'ready')
+  const collectableJob = buildingJobs.find((j) => collectableAmount(j, now) > 0)
+  const shouldGuideProductionStart = !collectableJob && buildingJobs.length === 0
 
   // Countdown ticker
   useEffect(() => {
@@ -94,6 +113,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   const maxAmount = maxAmountFor48Hours(selectedRate)
   const safeAmount = Math.min(numericAmount, maxAmount)
   const estimatedDuration = durationLabel(safeAmount, selectedRate)
+  const upgradeCost = (building.level + 1) * (building.baseCost ?? 10000)
 
   const sortedOptions = useMemo(() => {
     const starter = new Set(building.starterProduces ?? [])
@@ -114,12 +134,19 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   }
 
   const handleCollect = () => {
-    if (readyJob) claimProd.mutate(readyJob.id)
+    if (collectableJob) claimProd.mutate(collectableJob.id)
   }
 
   const handleMove = () => {
     startBuildingMove(building.id)
-    onClose()
+  }
+
+  const handleUpgrade = () => {
+    upgradeBuilding.mutate(building.id)
+  }
+
+  const handleViewJobs = () => {
+    setActiveView('production')
   }
 
   const handleDemolish = () => {
@@ -199,7 +226,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
               const next = Math.max(1, Math.min(maxAmount, parseInt(e.target.value, 10) || 1))
               setAmount(String(next))
             }}
-            className="mt-2 w-full rounded-md border border-amber-300 bg-white px-2 py-1.5 text-xs text-amber-900"
+            className={`${shouldGuideProductionStart ? 'tutorial-production-amount' : ''} mt-2 w-full rounded-md border border-amber-300 bg-white px-2 py-1.5 text-xs text-amber-900`}
           />
           {selectedOption && (
             <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] text-amber-700">
@@ -241,6 +268,10 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
               />
             </div>
           </>
+        ) : collectableJob ? (
+          <div className="rounded-md bg-green-50 px-2 py-2 text-xs font-semibold text-green-700">
+            Ready to collect {collectableAmount(collectableJob, now).toLocaleString()} units
+          </div>
         ) : (
           <div className="text-xs text-amber-500 italic">Not producing</div>
         )}
@@ -259,16 +290,16 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
 
       {/* Actions */}
       <div className="flex gap-2 px-3 py-3 border-b border-amber-200/40">
-        {readyJob ? (
-          <button onClick={handleCollect} className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md transition-colors btn-collect-pulse flex items-center justify-center gap-1">
+        {collectableJob ? (
+          <button onClick={handleCollect} className="tutorial-collect-production flex-1 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md transition-colors btn-collect-pulse flex items-center justify-center gap-1">
             <Icon name="icon_collect_v1" className="w-4 h-4" />
-            Collect
+            Collect {collectableAmount(collectableJob, now).toLocaleString()}
           </button>
         ) : (
           <button
             onClick={handleStart}
             disabled={startProd.isPending || !selectedOption}
-            className="flex-1 py-2 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-xs font-bold rounded-md transition-colors"
+            className={`${shouldGuideProductionStart ? 'tutorial-start-production' : ''} flex-1 py-2 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-xs font-bold rounded-md transition-colors`}
           >
             {startProd.isPending ? 'Starting...' : 'Start'}
           </button>
@@ -289,10 +320,19 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
             <div className="text-[10px] text-amber-500">Increase output capacity</div>
           </div>
         </div>
-        <button className="px-3 py-1.5 bg-amber-200/80 hover:bg-amber-300/80 text-amber-900 text-xs font-bold rounded-md transition-colors">
-          ${(building.level + 1) * 10000}
+        <button
+          onClick={handleUpgrade}
+          disabled={upgradeBuilding.isPending}
+          className="px-3 py-1.5 bg-amber-200/80 hover:bg-amber-300/80 disabled:bg-amber-100 disabled:text-amber-500 text-amber-900 text-xs font-bold rounded-md transition-colors"
+        >
+          {upgradeBuilding.isPending ? '...' : '$' + upgradeCost.toLocaleString()}
         </button>
       </div>
+      {upgradeBuilding.error instanceof Error && (
+        <div className="mx-3 mb-3 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] font-semibold text-red-700">
+          {upgradeBuilding.error.message}
+        </div>
+      )}
 
       {/* Move Building */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/40">
@@ -356,16 +396,21 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
         <div className="space-y-1.5">
           {buildingJobs.map((job) => (
             <div key={job.id} className="flex items-center gap-2 py-1 px-2 rounded bg-white/40 text-xs">
-              <span className={`w-1.5 h-1.5 rounded-full ${job.status === 'ready' ? 'bg-green-500' : 'bg-blue-500'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${collectableAmount(job, now) > 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
               <span className="text-amber-800 truncate">#{job.resourceId} x{job.amount}</span>
-              <span className="ml-auto text-[10px] text-amber-500">{job.status}</span>
+              <span className="ml-auto text-[10px] text-amber-500">
+                {(job.claimedAmount ?? 0).toLocaleString()} / {job.amount.toLocaleString()}
+              </span>
             </div>
           ))}
           {buildingJobs.length === 0 && (
             <div className="text-[10px] text-amber-400 italic py-2">No active jobs</div>
           )}
         </div>
-        <button className="w-full mt-2 py-1.5 bg-amber-200/50 hover:bg-amber-300/50 text-amber-800 text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1">
+        <button
+          onClick={handleViewJobs}
+          className="w-full mt-2 py-1.5 bg-amber-200/50 hover:bg-amber-300/50 text-amber-800 text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1"
+        >
           <Icon name="icon_timer_v1" className="w-4 h-4" />
           View All Jobs
         </button>

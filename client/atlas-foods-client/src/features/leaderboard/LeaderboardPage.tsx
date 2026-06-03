@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { useBuildings } from '@/api/buildings.api'
+import { buildingIcon } from '@/game/icons'
+import { useUIStore } from '@/store/ui.store'
+import type { Building } from '@/game/types'
 import {
   useLeaderboard,
   rankColor,
@@ -291,6 +295,17 @@ function CompanyDetailCard({
   onClose: () => void
 }) {
   const isMe = isCurrentCompany(entry)
+  const setActiveView = useUIStore((s) => s.setActiveView)
+  const { data: buildingsData } = useBuildings()
+  const buildings = isMe && Array.isArray(buildingsData)
+    ? buildingsData.filter((building) => building.placed !== false)
+    : []
+
+  const handleOpenMap = () => {
+    if (!isMe) return
+    onClose()
+    setActiveView('map')
+  }
 
   return (
     <div className="rounded-2xl border-2 border-amber-300/40 bg-gradient-to-b from-amber-50 to-white p-5 space-y-4">
@@ -338,19 +353,81 @@ function CompanyDetailCard({
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-dashed border-amber-300/40 bg-amber-50/50 p-6 text-center">
-        <svg className="w-8 h-8 text-amber-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-        </svg>
-        <p className="text-xs text-amber-600 font-semibold">
-          {isMe ? 'Your Company Map' : `${entry.companyName}'s Map`}
-        </p>
-        <p className="text-[10px] text-amber-400 mt-1">
-          {isMe
-            ? 'View your buildings and layout on the main map'
-            : 'Map viewing for other companies is coming soon'}
-        </p>
-      </div>
+      {isMe ? (
+        <button
+          type="button"
+          onClick={handleOpenMap}
+          className="group w-full rounded-xl border-2 border-amber-300/50 bg-amber-50/70 p-3 text-left transition-colors hover:bg-amber-100/70 active:scale-[0.99]"
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-amber-800">Your Company Map</p>
+              <p className="text-[10px] font-semibold text-amber-500">
+                {buildings.length > 0 ? `${buildings.length} buildings placed` : 'No buildings placed yet'}
+              </p>
+            </div>
+            <span className="rounded-md bg-amber-800 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white transition-colors group-hover:bg-amber-900">
+              Open
+            </span>
+          </div>
+          <CompanyMapPreview buildings={buildings} />
+        </button>
+      ) : (
+        <div className="rounded-xl border-2 border-dashed border-amber-300/40 bg-amber-50/50 p-6 text-center">
+          <svg className="w-8 h-8 text-amber-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          <p className="text-xs text-amber-600 font-semibold">{entry.companyName}'s Map</p>
+          <p className="text-[10px] text-amber-400 mt-1">Map viewing for other companies is coming soon</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CompanyMapPreview({ buildings }: { buildings: Building[] }) {
+  const placed = buildings.filter((building) => typeof building.x === 'number' && typeof building.y === 'number')
+  const xs = placed.map((building) => building.x ?? 0)
+  const ys = placed.map((building) => building.y ?? 0)
+  const minX = xs.length > 0 ? Math.min(...xs) : 0
+  const maxX = xs.length > 0 ? Math.max(...xs) : 10
+  const minY = ys.length > 0 ? Math.min(...ys) : 0
+  const maxY = ys.length > 0 ? Math.max(...ys) : 10
+  const spanX = Math.max(1, maxX - minX)
+  const spanY = Math.max(1, maxY - minY)
+
+  return (
+    <div className="relative h-40 overflow-hidden rounded-lg border border-amber-300/60 bg-[#d9b879] shadow-inner">
+      <div
+        className="absolute inset-0 opacity-45"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(120, 83, 39, 0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 83, 39, 0.22) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+      <div className="absolute inset-x-0 bottom-0 h-12 bg-green-700/15" />
+      {placed.length === 0 ? (
+        <div className="absolute inset-0 flex items-center justify-center text-center">
+          <span className="rounded-md bg-white/65 px-3 py-1.5 text-[10px] font-bold text-amber-700">
+            Empty map
+          </span>
+        </div>
+      ) : (
+        placed.slice(0, 18).map((building) => {
+          const left = 12 + (((building.x ?? 0) - minX) / spanX) * 76
+          const top = 14 + (((building.y ?? 0) - minY) / spanY) * 68
+          return (
+            <img
+              key={building.id}
+              src={buildingIcon(building.kind)}
+              alt={building.name ?? `Building ${building.kind}`}
+              className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-md border border-amber-900/15 bg-white/70 object-contain p-0.5 shadow-sm"
+              style={{ left: `${left}%`, top: `${top}%` }}
+              loading="lazy"
+            />
+          )
+        })
+      )}
     </div>
   )
 }

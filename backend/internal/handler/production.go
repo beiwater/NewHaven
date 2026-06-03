@@ -102,13 +102,16 @@ func (h *Handler) handleClaimable(w http.ResponseWriter, r *http.Request) {
 	claimable := make([]map[string]any, 0)
 	h.svc.RefreshProductionJobs(h.companyID(r))
 	for _, j := range h.svc.Snapshot().ProductionJobs {
-		if j.Status == "ready" {
+		if j.ClaimableAmount > 0 {
 			claimable = append(claimable, map[string]any{
-				"jobId":      j.ID,
-				"buildingId": j.BuildingID,
-				"resourceId": j.ResourceID,
-				"amount":     j.Amount,
-				"quality":    j.Quality,
+				"jobId":           j.ID,
+				"buildingId":      j.BuildingID,
+				"resourceId":      j.ResourceID,
+				"amount":          j.ClaimableAmount,
+				"totalAmount":     j.Amount,
+				"claimedAmount":   j.ClaimedAmount,
+				"claimableAmount": j.ClaimableAmount,
+				"quality":         j.Quality,
 			})
 		}
 	}
@@ -120,7 +123,7 @@ func (h *Handler) handleClaimAll(w http.ResponseWriter, r *http.Request) {
 	claimed := make([]map[string]any, 0)
 	errors := make([]string, 0)
 	for _, j := range h.svc.Snapshot().ProductionJobs {
-		if j.Status == "ready" {
+		if j.ClaimableAmount > 0 {
 			if result, err := h.svc.ClaimProduction(h.companyID(r), j.ID); err != nil {
 				errors = append(errors, err.Error())
 			} else {

@@ -69,6 +69,7 @@ export function useClaimProduction() {
       qc.invalidateQueries({ queryKey: ['productionJobs'] })
       qc.invalidateQueries({ queryKey: ['claimableJobs'] })
       qc.invalidateQueries({ queryKey: ['company'] })
+      qc.invalidateQueries({ queryKey: ['playerLevel'] })
       qc.invalidateQueries({ queryKey: ['warehouse'] })
     },
   })
@@ -84,6 +85,7 @@ export function useClaimAll() {
       qc.invalidateQueries({ queryKey: ['productionJobs'] })
       qc.invalidateQueries({ queryKey: ['claimableJobs'] })
       qc.invalidateQueries({ queryKey: ['company'] })
+      qc.invalidateQueries({ queryKey: ['playerLevel'] })
       qc.invalidateQueries({ queryKey: ['warehouse'] })
     },
   })

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"go-sim-api/internal/model"
@@ -15,6 +16,9 @@ func (s *Service) Now() time.Time {
 }
 
 func (s *Service) addLedger(kind string, amount float64, direction string, meta map[string]any) {
+	if amount < 0 {
+		amount = math.Abs(amount)
+	}
 	entry := model.LedgerEntry{
 		ID: fmt.Sprintf("led-%d", s.now().UnixNano()), At: s.now().UTC().Format(time.RFC3339),
 		Kind: kind, Amount: amount, Direction: direction, Meta: meta,

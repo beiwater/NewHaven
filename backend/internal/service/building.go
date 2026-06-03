@@ -29,7 +29,7 @@ func (s *Service) UpgradeBuilding(companyID int, buildingID string) (map[string]
 		}
 		company.Money -= cost
 		company.PlacedBuildings[i]["level"] = float64(nextLevel)
-		s.addLedger("building_upgrade", -cost, "out", map[string]any{"buildingId": buildingID, "oldLevel": currLevel, "newLevel": nextLevel})
+		s.addLedger("building_upgrade", cost, "out", map[string]any{"buildingId": buildingID, "oldLevel": currLevel, "newLevel": nextLevel})
 		s.saveCompanyLocked(company)
 		return map[string]any{
 			"buildingId":       buildingID,

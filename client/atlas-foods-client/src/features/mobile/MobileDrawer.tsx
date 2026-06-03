@@ -68,6 +68,7 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
           {navItems.map((item) => {
             const isUnlocked = levelData?.unlocks?.features?.[item.feature] ?? true
             const unlockLevel = levelData?.unlocks?.featureLevels?.[item.feature] ?? 1
+            const isActive = activeView === item.id || (item.id === 'warehouse' && activeView === 'chain')
 
             return (
               <button
@@ -77,7 +78,7 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
                   ${!isUnlocked ? 'opacity-40' : ''}
-                  ${activeView === item.id
+                  ${isActive
                     ? 'bg-amber-200/70 text-amber-900 font-semibold'
                     : 'text-amber-800/70 hover:bg-amber-100/50'
                   }

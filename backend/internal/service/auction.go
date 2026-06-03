@@ -97,7 +97,7 @@ func (s *Service) PlaceAuctionBid(companyID int, auctionID string, amount float6
 			Amount:    amount,
 			At:        s.now().UTC().Format(time.RFC3339),
 		})
-		s.addLedger("auction_bid", -amount, "out", map[string]any{"auction": auctionID})
+		s.addLedger("auction_bid", amount, "out", map[string]any{"auction": auctionID})
 		s.saveCompanyLocked(company)
 		s.saveStateLocked()
 		return map[string]any{"auction": a, "status": "bid_placed"}, nil
@@ -134,7 +134,7 @@ func (s *Service) processAuctionDeadlines() {
 				"placedAt":    now.Format(time.RFC3339),
 				"fromAuction": true,
 			})
-			s.addLedger("auction_win", -a.CurrentBid, "out", map[string]any{"auction": a.ID, "item": a.ItemID})
+			s.addLedger("auction_win", a.CurrentBid, "out", map[string]any{"auction": a.ID, "item": a.ItemID})
 		}
 		a.Status = "awarded"
 	}

@@ -134,7 +134,7 @@ func defaultGameConfig() *GameConfig {
 		MaxBotOrders: 600, MaxLedgerEntries: 5000,
 		WeatherSpeedMult: 1.06, ProductionMod: 1.02, GovBidRefundRate: 0.8,
 		BotCycleAmplitude: 0.06, BotSpread: 0.05, BotOrderQty: 200,
-		BotResources: "1,2,3,4", BotOrderBase: 8.0,
+		BotResources: "1,2,3,4,5,6,7,8,9,10,11,12", BotOrderBase: 8.0,
 		BaseBuildingCost: 50000, WarehouseBaseCap: 1000, WarehouseUpgradeCost: 25000,
 		MaxQuality: 100, QualitySalesFactor: 0.0833, QualityResearchCost: 5000,
 		DailyOrderCount: 5, DailyOrderRewardBase: 1000, DailyOrderXPBase: 50,

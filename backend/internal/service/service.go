@@ -9,12 +9,14 @@ import (
 	"go-sim-api/internal/data"
 	"go-sim-api/internal/model"
 	"go-sim-api/internal/storage"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
 type Service struct {
 	AML   *aml.AMLSystem
 	mu    sync.Mutex
@@ -312,6 +314,7 @@ func intFromAny(v any) int {
 		return 0
 	}
 }
+
 // Scheduler-global: settle for all companies.
 func (s *Service) SettleAllBonds() map[string]any {
 	result := map[string]any{"dailyBondIncome": 0.0, "dailyBondExpense": 0.0, "defaults": []map[string]any{}}
@@ -382,5 +385,22 @@ func (s *Service) inventorySub(company *model.Company, resID, quality, qty int) 
 	return true
 }
 func (s *Service) ResourcesWithMarket() []int {
-	return []int{8, 9, 10, 11, 12}
+	if s == nil || s.Data == nil {
+		return []int{}
+	}
+	ids := make([]int, 0, len(s.Data.Resources))
+	seen := map[int]bool{}
+	for _, r := range s.Data.Resources {
+		id := intFromAny(r["dbLetter"])
+		if id <= 0 || seen[id] {
+			continue
+		}
+		if tradable, ok := r["isExchangeTradable"].(bool); ok && !tradable {
+			continue
+		}
+		ids = append(ids, id)
+		seen[id] = true
+	}
+	sort.Ints(ids)
+	return ids
 }

@@ -35,6 +35,7 @@ export function BuildView() {
   const allBuildings = Array.isArray(placedData) ? placedData : []
   const placedBuildings = allBuildings.filter((b) => b.placed !== false)
   const unplacedBuildings = allBuildings.filter((b) => b.placed === false)
+  const shouldGuideBuy = placedBuildings.length === 0 && unplacedBuildings.length === 0
   const playerLevel = levelData?.level ?? companyData?.levelInfo?.level ?? 1
   const buildingSlots = levelData?.buildingSlots ?? 2
   const buildingsUsed = levelData?.buildingsUsed ?? allBuildings.length
@@ -66,7 +67,7 @@ export function BuildView() {
     <div className="text-xs text-amber-400 italic py-2">Loading available buildings...</div>
   ) : (
     <div className="space-y-2">
-      {marketItems.map((item) => (
+      {marketItems.map((item, index) => (
         (() => {
           const unlockLevel = item.unlockLevel ?? 1
           const unlocked = playerLevel >= unlockLevel
@@ -116,7 +117,7 @@ export function BuildView() {
             <button
               onClick={() => handleBuy(item.id)}
               disabled={buyBuilding.isPending || !unlocked || !hasSlot}
-              className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400 text-white text-xs font-bold rounded transition-colors"
+              className={`px-3 py-1.5 bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400 text-white text-xs font-bold rounded transition-colors ${shouldGuideBuy && index === 0 ? 'tutorial-buy-building' : ''}`}
             >
               {buyBuilding.isPending
                 ? '...'
@@ -196,7 +197,7 @@ export function BuildView() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => startBuildingPlacement(b.id)}
-                    className="w-full py-1.5 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded transition-colors"
+                    className="tutorial-place-building w-full py-1.5 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded transition-colors"
                   >
                     Place on Map
                   </button>

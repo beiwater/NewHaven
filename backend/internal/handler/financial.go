@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"math"
 	"net/http"
 	"time"
 )
@@ -36,7 +37,7 @@ func (h *Handler) handleRecentCashflow(w http.ResponseWriter, r *http.Request) {
 		if i >= 100 {
 			break
 		}
-		delta := e.Amount
+		delta := math.Abs(e.Amount)
 		if e.Direction == "out" {
 			delta = -delta
 		}

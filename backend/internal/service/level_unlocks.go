@@ -15,10 +15,18 @@ var featureUnlockLevels = map[string]int{
 }
 
 var buildingUnlockLevels = map[int]int{
-	1: 1, // Farm
-	2: 2, // Mill
-	3: 4, // Bakery
-	4: 6, // Restaurant
+	1:  1,  // Farm
+	2:  2,  // Barn
+	3:  2,  // Mill
+	4:  3,  // Kitchen
+	5:  4,  // Bakery
+	6:  5,  // Market Stall
+	7:  6,  // Cafe
+	8:  7,  // Food Truck
+	9:  8,  // Restaurant
+	10: 9,  // Trading Hub
+	11: 10, // Warehouse
+	12: 11, // Shop
 }
 
 func BuildingSlotsForLevel(level int) int {

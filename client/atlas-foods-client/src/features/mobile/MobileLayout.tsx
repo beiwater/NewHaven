@@ -21,6 +21,7 @@ import { ResearchPage } from '@/features/research/ResearchPage'
 import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { InspectPage } from '@/features/inspect/InspectPage'
+import { ProductionQueue } from '@/features/production/ProductionQueue'
 
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
 
@@ -30,8 +31,11 @@ function MobilePageContent() {
   switch (activeView) {
     case 'market':
       return <MarketPage />
+    case 'chain':
     case 'warehouse':
       return <InventoryBar />
+    case 'production':
+      return <ProductionQueue />
     case 'build':
       return <BuildView />
     case 'contracts':

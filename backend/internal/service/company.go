@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"go-sim-api/internal/formula"
+	"math"
 )
 
 func (s *Service) CompanyProfile(companyID int) map[string]any {
@@ -73,7 +74,7 @@ func (s *Service) FinancialStatements(companyID int) map[string]any {
 	financing := 0.0
 	for _, e := range s.State.Ledger {
 		kind := e.Kind
-		amt := e.Amount
+		amt := math.Abs(e.Amount)
 		dir := e.Direction
 		sign := 1.0
 		if dir == "out" {

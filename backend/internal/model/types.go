@@ -115,17 +115,20 @@ type Player struct {
 }
 
 type ProductionJob struct {
-	ID          string         `json:"id"`
-	BuildingID  string         `json:"buildingId"`
-	ResourceID  int            `json:"resourceId"`
-	Amount      int            `json:"amount"`
-	Quality     int            `json:"quality"`
-	Input       map[int]int    `json:"input"`
-	Output      map[int]int    `json:"output"`
-	StartedAt   string         `json:"startedAt"`
-	CompletesAt string         `json:"completesAt"`
-	Status      string         `json:"status"`
-	Meta        map[string]any `json:"meta,omitempty"`
+	ID              string         `json:"id"`
+	BuildingID      string         `json:"buildingId"`
+	ResourceID      int            `json:"resourceId"`
+	Amount          int            `json:"amount"`
+	Quality         int            `json:"quality"`
+	Input           map[int]int    `json:"input"`
+	Output          map[int]int    `json:"output"`
+	ClaimedAmount   int            `json:"claimedAmount"`
+	ClaimableAmount int            `json:"claimableAmount,omitempty"`
+	XPAwarded       int            `json:"xpAwarded,omitempty"`
+	StartedAt       string         `json:"startedAt"`
+	CompletesAt     string         `json:"completesAt"`
+	Status          string         `json:"status"`
+	Meta            map[string]any `json:"meta,omitempty"`
 }
 
 type Auction struct {

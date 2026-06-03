@@ -92,6 +92,146 @@ body {
   overflow: hidden;
 }
 
+.ticker-track {
+  animation: ticker-scroll 42s linear infinite;
+}
+
+.market-ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+
+  .ticker-window {
+    overflow-x: auto;
+  }
+}
+
+.farm-guide-arrow {
+  animation: farm-guide-bounce 1.05s ease-in-out infinite;
+}
+
+.farm-guide-arrow-left {
+  animation: farm-guide-bounce-left 1.05s ease-in-out infinite;
+}
+
+.farm-guide-arrow-right {
+  animation: farm-guide-bounce-right 1.05s ease-in-out infinite;
+}
+
+.farm-guide-pulse {
+  animation: farm-guide-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes farm-guide-bounce {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 10px;
+  }
+}
+
+@keyframes farm-guide-bounce-left {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: -10px 0;
+  }
+}
+
+@keyframes farm-guide-bounce-right {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 10px 0;
+  }
+}
+
+@keyframes farm-guide-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.035);
+  }
+}
+
+.farm-celebration-sparkle {
+  animation: farm-sparkle 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes farm-sparkle {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.15) rotate(15deg);
+    opacity: 1;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .farm-guide-arrow,
+  .farm-guide-arrow-left,
+  .farm-guide-arrow-right,
+  .farm-guide-pulse {
+    animation: none;
+  }
+}
+  .farm-celebration-sparkle {
+    animation: none;
+  }
+
+.tutorial-buy-building,
+.tutorial-place-building,
+.tutorial-production-amount,
+.tutorial-start-production,
+.tutorial-collect-production,
+.tutorial-market-product,
+.tutorial-market-quantity,
+.tutorial-market-price,
+.tutorial-market-order {
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.45),
+    0 0 18px rgba(245, 158, 11, 0.55);
+  animation: tutorial-target-pulse 1.15s ease-in-out infinite;
+}
+
+@keyframes tutorial-target-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.14);
+  }
+}
+
 /* Tighten sidebar items on small viewports */
 @media (max-width: 1200px) {
   .game-layout {

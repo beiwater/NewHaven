@@ -20,6 +20,8 @@ export interface ProductionJob {
   buildingId: string
   resourceId: number
   amount: number
+  claimedAmount?: number
+  claimableAmount?: number
   input: Record<string, number>
   output: Record<string, number>
   startedAt: string
