@@ -1,0 +1,92 @@
+[
+  {
+    "dbLetter": 1,
+    "id": 1,
+    "name": "Wheat",
+    "producedFrom": {},
+    "producedPerHourRaw": 500,
+    "producedAnHour": 500,
+    "unitsSoldAnHour": 150,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 2,
+    "id": 2,
+    "name": "Flour",
+    "producedFrom": {"1": 2},
+    "producedPerHourRaw": 320,
+    "producedAnHour": 320,
+    "unitsSoldAnHour": 80,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 3,
+    "id": 3,
+    "name": "Bread",
+    "producedFrom": {"2": 2},
+    "producedPerHourRaw": 220,
+    "producedAnHour": 220,
+    "unitsSoldAnHour": 40,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 4,
+    "id": 4,
+    "name": "Meal",
+    "producedFrom": {"3": 2},
+    "producedPerHourRaw": 90,
+    "producedAnHour": 90,
+    "unitsSoldAnHour": 20,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 8,
+    "id": 8,
+    "name": "Power",
+    "producedFrom": {},
+    "producedPerHourRaw": 300,
+    "producedAnHour": 300,
+    "unitsSoldAnHour": 100,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 9,
+    "id": 9,
+    "name": "Water",
+    "producedFrom": {},
+    "producedPerHourRaw": 250,
+    "producedAnHour": 250,
+    "unitsSoldAnHour": 120,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 10,
+    "id": 10,
+    "name": "Seeds",
+    "producedFrom": {},
+    "producedPerHourRaw": 400,
+    "producedAnHour": 400,
+    "unitsSoldAnHour": 90,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 11,
+    "id": 11,
+    "name": "Fertilizer",
+    "producedFrom": {},
+    "producedPerHourRaw": 180,
+    "producedAnHour": 180,
+    "unitsSoldAnHour": 70,
+    "hasEconomyModel": true
+  },
+  {
+    "dbLetter": 12,
+    "id": 12,
+    "name": "Tools",
+    "producedFrom": {},
+    "producedPerHourRaw": 150,
+    "producedAnHour": 150,
+    "unitsSoldAnHour": 50,
+    "hasEconomyModel": true
+  }
+]

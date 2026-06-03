@@ -1,0 +1,12 @@
+﻿Use case: game asset sprite
+Asset type: transparent-ready building sprite for a 2.5D idle tycoon map game
+Primary request: Create an isolated grain_plot level 1 idle building sprite. It should represent the first production node in a wheat to bread to meal industry chain, but not look like realistic farming; make it a compact business-game grain production plot with small crates, simple irrigation pipes, canvas awning, and a tiny hand-operated grain sorter.
+Scene/backdrop: Perfectly flat solid #ff00ff chroma-key background for background removal.
+Subject: One readable 2.5D isometric game building, building id grain_plot, level 1, idle state. Simple handmade facility, low-cost starter node, clear silhouette.
+Style/medium: Warm handcrafted 2.5D strategy game art, cozy industry-chain tycoon game, clear outline, readable at small size.
+Composition/framing: Centered single building, generous padding, three-quarter isometric top-down angle, no cropped edges.
+Lighting/mood: Warm afternoon light, friendly and productive.
+Color palette: Warm cream, tan grain, moss green accents, amber highlights, small teal mechanical details.
+Materials/textures: wood planks, canvas, small sacks, simple pipes, compact soil/plot base as part of the object.
+Constraints: Transparent-ready sprite source. Background must be one uniform #ff00ff with no shadows, gradients, floor plane, texture, or reflections. No text, no logo, no watermark.
+Avoid: photorealism, large realistic farm field, stock market UI, dark cyberpunk, cluttered environment.

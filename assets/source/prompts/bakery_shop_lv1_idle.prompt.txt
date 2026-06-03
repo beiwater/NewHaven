@@ -1,0 +1,12 @@
+﻿Use case: game asset sprite
+Asset type: transparent-ready building sprite for a 2.5D idle tycoon map game
+Primary request: Create an isolated bakery_shop level 1 idle building sprite. It is the second processing node in a wheat-to-bread-to-meal industry chain, turning flour into bread. It should feel like a starter business bakery workshop, not a restaurant and not a fantasy cottage.
+Scene/backdrop: Perfectly flat solid #00ff00 chroma-key background for background removal.
+Subject: One readable 2.5D isometric game building, building id bakery_shop, level 1, idle state. Small bakery workshop with a simple brick oven, flour sacks, bread baskets, a tiny delivery counter, warm chimney, and compact production details.
+Style/medium: Warm handcrafted 2.5D strategy game art, cozy industry-chain tycoon game, clear outline, readable at small size.
+Composition/framing: Centered single building, generous padding, three-quarter isometric top-down angle, no cropped edges.
+Lighting/mood: Warm afternoon light, cozy but productive.
+Color palette: Toast brown, warm cream, brick red, moss green accents, amber oven glow, teal metal details.
+Materials/textures: brick oven, wood counter, canvas flour sacks, bread baskets, compact tiled base.
+Constraints: Transparent-ready sprite source. Background must be one uniform #00ff00 with no shadows, gradients, floor plane, texture, or reflections. No text, no logo, no watermark.
+Avoid: photorealism, large restaurant, fantasy house, realistic farm scene, stock market UI, dark cyberpunk, cluttered environment.

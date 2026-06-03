@@ -1,0 +1,12 @@
+﻿Use case: game asset sprite
+Asset type: transparent-ready building sprite for a 2.5D idle tycoon map game
+Primary request: Create an isolated mill_house level 1 idle building sprite. It is the processing node in a wheat-to-bread-to-meal industry chain, turning grain into flour. Make it a compact starter mill workshop, not a large fantasy windmill.
+Scene/backdrop: Perfectly flat solid #00ff00 chroma-key background for background removal.
+Subject: One readable 2.5D isometric game building, building id mill_house, level 1, idle state. Small wooden milling workshop with a modest stone grinder, sacks of grain, a hand-cranked mechanism, short chute, small storage bins, and light workshop details.
+Style/medium: Warm handcrafted 2.5D strategy game art, cozy industry-chain tycoon game, clear outline, readable at small size.
+Composition/framing: Centered single building, generous padding, three-quarter isometric top-down angle, no cropped edges.
+Lighting/mood: Warm afternoon light, friendly and productive.
+Color palette: Warm wood, cream flour sacks, moss green accents, amber highlights, small teal metal details.
+Materials/textures: wood beams, stone grinder, canvas sacks, simple metal crank, compact workshop base.
+Constraints: Transparent-ready sprite source. Background must be one uniform #00ff00 with no shadows, gradients, floor plane, texture, or reflections. No text, no logo, no watermark.
+Avoid: photorealism, huge windmill, realistic farm scene, stock market UI, dark cyberpunk, cluttered environment.

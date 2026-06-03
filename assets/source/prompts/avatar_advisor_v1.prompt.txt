@@ -1,0 +1,11 @@
+﻿Use case: game character portrait
+Asset type: transparent-ready advisor avatar for a cozy industry-chain tycoon game
+Primary request: Create an isolated friendly operations advisor avatar. This character helps the player understand production, collecting, upgrades, and market prices.
+Scene/backdrop: Perfectly flat solid #00ff00 chroma-key background for background removal.
+Subject: Bust portrait of a warm, clever operations manager, mid-20s to mid-30s, confident expression, business-casual outfit with subtle bakery/production motif such as a small wheat pin, rolled sleeves, clipboard or tablet partially visible.
+Style/medium: Stylized 2D game portrait, clean silhouette, expressive face, warm and trustworthy, readable at small UI size.
+Composition/framing: Centered bust portrait, shoulders visible, generous padding, no cropped head or shoulders.
+Lighting/mood: Friendly soft studio lighting, optimistic management-game mood.
+Color palette: Cream, warm brown, moss green, teal accent, amber highlights.
+Constraints: Transparent-ready avatar source. Background must be one uniform #00ff00 with no shadows, gradients, texture, or reflections. No text, no logo, no watermark.
+Avoid: photorealistic corporate stock photo, anime school uniform, cyberpunk, fantasy armor, cluttered background.

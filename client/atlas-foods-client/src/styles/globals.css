@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --color-game-brown: #5c3d2e;
+  --color-game-tan: #f5e6c8;
+  --color-game-tan-light: #faf3e3;
+  --color-game-tan-dark: #e8d5b0;
+  --color-game-green: #4a7c59;
+  --color-game-green-light: #6b9e7a;
+  --color-game-blue: #3b82f6;
+  --color-game-blue-light: #60a5fa;
+  --color-game-gold: #d4a843;
+  --color-game-red: #dc2626;
+  --color-game-panel-bg: #fdf6ee;
+  --color-game-panel-border: #c4a882;
+  --color-game-map-bg: #e8dcc8;
+  --color-game-selection: #fbbf24;
+
+  --topbar-h: 66px;
+  --sidebar-w: 142px;
+  --rightpanel-w: 322px;
+  --ticker-h: 102px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: #2d1f14;
+  overflow: hidden;
+  user-select: none;
+  width: 100vw;
+  height: 100vh;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Responsive game layout grid */
+.game-layout {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: var(--topbar-h) 1fr var(--ticker-h);
+  grid-template-columns: var(--sidebar-w) 1fr var(--rightpanel-w);
+}
+
+.game-layout > .topbar {
+  grid-column: 1 / 4;
+  grid-row: 1;
+}
+
+.game-layout > .sidebar {
+  grid-column: 1;
+  grid-row: 2;
+  overflow-y: auto;
+}
+
+.game-layout > .map {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.game-layout > .right-panel {
+  grid-column: 3;
+  grid-row: 2;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.game-layout.page-mode > .map {
+  grid-column: 2 / 4;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(212, 168, 67, 0.22), transparent 32%),
+    linear-gradient(135deg, #fff7e6 0%, #f1dcb6 48%, #e2c08d 100%);
+}
+
+.game-layout.page-mode > .page-spacer {
+  display: none;
+}
+
+.game-layout > .market-ticker {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  overflow: hidden;
+}
+
+/* Tighten sidebar items on small viewports */
+@media (max-width: 1200px) {
+  .game-layout {
+    --sidebar-w: 100px;
+    --rightpanel-w: 280px;
+  }
+}
+
+@media (max-width: 900px) {
+  .game-layout {
+    --topbar-h: 58px;
+    --sidebar-w: 68px;
+    --rightpanel-w: 230px;
+    --ticker-h: 86px;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow: auto;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  .game-layout {
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--topbar-h) minmax(0, 1fr) auto var(--ticker-h) 64px;
+  }
+
+  .game-layout > .topbar,
+  .game-layout > .map,
+  .game-layout > .right-panel,
+  .game-layout > .market-ticker,
+  .game-layout > .sidebar {
+    grid-column: 1;
+  }
+
+  .game-layout > .topbar {
+    grid-row: 1;
+    overflow-x: auto;
+  }
+
+  .game-layout > .map {
+    grid-row: 2;
+    min-height: 56vh;
+  }
+
+  .game-layout > .right-panel {
+    grid-row: 3;
+    max-height: 42vh;
+    border-left: 0;
+    border-top: 2px solid rgba(180, 83, 9, 0.28);
+  }
+
+  .game-layout.page-mode > .map {
+    grid-column: 1;
+    min-height: calc(100vh - var(--topbar-h) - var(--ticker-h) - 64px);
+  }
+
+  .game-layout > .market-ticker {
+    grid-row: 4;
+  }
+
+  .game-layout > .sidebar {
+    grid-row: 5;
+    position: sticky;
+    bottom: 0;
+    z-index: 60;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4a882;
+  border-radius: 3px;
+}
+
+/* Collect button pulse animation */
+@keyframes collect-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+}
+
+.btn-collect-pulse {
+  animation: collect-pulse 2s ease-in-out infinite;
+}

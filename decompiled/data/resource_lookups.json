@@ -1,0 +1,8 @@
+{
+  "seasons": {
+    "spring": {"multiplier": 1.05},
+    "summer": {"multiplier": 1.10},
+    "autumn": {"multiplier": 1.08},
+    "winter": {"multiplier": 0.95}
+  }
+}

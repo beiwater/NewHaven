@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp/
+
+# Build outputs
+backend/simapi
+dev/simapi.exe
+dist/
+.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage/
+*.coverprofile
+
+# Temporary
+tmp/
+temp/

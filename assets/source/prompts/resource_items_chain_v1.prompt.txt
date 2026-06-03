@@ -1,0 +1,12 @@
+﻿Use case: game asset sprite
+Asset type: transparent-ready resource item icons for a 2.5D idle tycoon map game
+Primary request: Create a compact set of four isolated resource item icons for one industry chain: wheat bundle, flour sack, bread basket, simple meal tray. These are small UI/map bubble assets, not large buildings.
+Scene/backdrop: Perfectly flat solid #ff00ff chroma-key background for background removal.
+Subject: Four separate resource icons arranged in a clean 2x2 grid with generous spacing: 1) golden wheat bundle, 2) cream flour sack with a tiny scoop, 3) basket of bread loaves, 4) simple meal tray with bread-based meal. No text labels.
+Style/medium: Warm handcrafted 2.5D game item icons, matching cozy industry-chain tycoon buildings, clear silhouette, slight outline, readable at 64px.
+Composition/framing: 2x2 icon sheet, each item centered in its own quadrant, no overlap, simple compact shapes, no cropped edges.
+Lighting/mood: Warm soft light, clean readable item sprites.
+Color palette: golden wheat, cream flour, toast brown bread, moss green garnish, amber highlights, subtle teal accents only if needed.
+Materials/textures: stylized grain, cloth sack, wicker basket, ceramic tray.
+Constraints: Transparent-ready sprite source. Background must be one uniform #ff00ff with no shadows, gradients, floor plane, texture, or reflections. No text, no logo, no watermark. Keep icons small and simple, not big scene illustrations.
+Avoid: large buildings, realistic photo food, UI frames, labels, cluttered background, stock market visuals.

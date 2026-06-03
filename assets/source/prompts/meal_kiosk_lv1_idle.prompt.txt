@@ -1,0 +1,12 @@
+﻿Use case: game asset sprite
+Asset type: transparent-ready building sprite for a 2.5D idle tycoon map game
+Primary request: Create an isolated meal_kiosk level 1 idle building sprite. It is the sales/terminal node in a wheat-to-bread-to-meal industry chain, selling simple meals made from bread. It should look like a small starter food business node, not a full restaurant and not a stock market booth.
+Scene/backdrop: Perfectly flat solid #00ff00 chroma-key background for background removal.
+Subject: One readable 2.5D isometric game building, building id meal_kiosk, level 1, idle state. Small cozy meal kiosk with a serving window, compact prep counter, bread-based meals, small delivery crate, simple menu board with no readable text, warm lantern, and a tiny cash box.
+Style/medium: Warm handcrafted 2.5D strategy game art, cozy industry-chain tycoon game, clear outline, readable at small size.
+Composition/framing: Centered single building, generous padding, three-quarter isometric top-down angle, no cropped edges.
+Lighting/mood: Warm afternoon light, friendly commerce mood, starter business energy.
+Color palette: Warm cream, toast brown, moss green awning, amber lantern glow, teal accent details.
+Materials/textures: wood kiosk, canvas awning, bread trays, small counter, compact tiled base.
+Constraints: Transparent-ready sprite source. Background must be one uniform #00ff00 with no shadows, gradients, floor plane, texture, or reflections. No readable text, no logo, no watermark.
+Avoid: photorealism, full restaurant building, stock market UI, fast-food brand look, dark cyberpunk, cluttered environment.

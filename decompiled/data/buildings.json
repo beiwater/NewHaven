@@ -1,0 +1,34 @@
+{
+  "1": {
+    "id": 1,
+    "name": "Farm",
+    "kind": 1,
+    "baseCost": 10000,
+    "baseOutput": 500,
+    "produces": [1]
+  },
+  "2": {
+    "id": 2,
+    "name": "Mill",
+    "kind": 2,
+    "baseCost": 25000,
+    "baseOutput": 320,
+    "produces": [2]
+  },
+  "3": {
+    "id": 3,
+    "name": "Bakery",
+    "kind": 3,
+    "baseCost": 50000,
+    "baseOutput": 220,
+    "produces": [3]
+  },
+  "4": {
+    "id": 4,
+    "name": "Restaurant",
+    "kind": 4,
+    "baseCost": 100000,
+    "baseOutput": 90,
+    "produces": [4]
+  }
+}
