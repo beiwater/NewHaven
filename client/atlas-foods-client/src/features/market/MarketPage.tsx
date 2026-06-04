@@ -16,6 +16,7 @@ import {
   FALLBACK_MARKET_RESOURCES,
   MARKET_GROUPS,
   formatResourceName,
+  resourceName,
   resourceIcon,
 } from '@/game/resources'
 import { PriceCurve } from './PriceCurve'
@@ -150,7 +151,7 @@ export function MarketPage() {
                 >
                   <img src={resourceIcon(resource.resourceId)} alt="" className="h-8 w-8 object-contain" />
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-bold">{resource.name}</div>
+                    <div className="truncate text-sm font-bold">{resourceName(resource.resourceId)}</div>
                     <div className="text-[10px] text-amber-600">ID {resource.resourceId}</div>
                   </div>
                 </button>

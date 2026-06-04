@@ -149,6 +149,7 @@ function StoryGate({ children }: { children: ReactNode }) {
         onComplete={() => {
           const currentProgress = isRecord(storyProgress) ? storyProgress : {}
           setCompletedThisSession(true)
+          useUIStore.getState().setActiveView('map')
           savePreferences.mutate({
             storyProgress: {
               ...currentProgress,

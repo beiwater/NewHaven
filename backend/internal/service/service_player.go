@@ -70,6 +70,13 @@ func (s *Service) RegisterPlayer(username, password, name, gender, email string)
 		UnplacedBuildings: []map[string]any{},
 	}
 	s.State.Companies = append(s.State.Companies, company)
+	// Reset shared preferences so a fresh registration doesn't carry over
+	// storyProgress or other state from previous sessions.
+	s.State.PlayerPreferences = map[string]any{
+		"soundEnabled":               true,
+		"buildingAnimationsEnabled":  true,
+		"autoDisableAnimations":      false,
+	}
 	s.saveStateLocked()
 	return map[string]any{
 		"player":    player,

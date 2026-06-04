@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useMarketTicker } from '@/api/market.api'
-import { FALLBACK_MARKET_RESOURCES, resourceIcon } from '@/game/resources'
+import { FALLBACK_MARKET_RESOURCES, resourceIcon, resourceName } from '@/game/resources'
 
 const TRACKED_RESOURCES = FALLBACK_MARKET_RESOURCES
 
@@ -16,13 +16,13 @@ function PriceCard({ resource }: { resource: typeof TRACKED_RESOURCES[number] })
     <div className="flex min-w-[176px] items-center gap-3 border-r border-amber-200/60 px-4 py-2">
       <img
         src={resourceIcon(resource.resourceId)}
-        alt={resource.name}
+        alt={resourceName(resource.resourceId)}
         className="h-10 w-10 object-contain"
         loading="lazy"
       />
       <div>
         <div className="text-[10px] uppercase tracking-wider text-amber-700/60">
-          {resource.name}
+          {resourceName(resource.resourceId)}
         </div>
         <div className="text-sm font-bold tabular-nums text-amber-900">
           ${last.toFixed(2)}

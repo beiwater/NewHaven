@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "梅洛庄园",
+    "appName": "新港",
     "tagline": "农场与工厂大亨",
     "confirm": "确认",
     "cancel": "取消",
@@ -36,7 +36,7 @@
     "loadingMap": "加载地图中..."
   },
   "auth": {
-    "title": "梅洛庄园",
+    "title": "新港",
     "subtitle": "农场与工厂大亨",
     "usernamePlaceholder": "输入用户名",
     "passwordPlaceholder": "输入密码",
@@ -52,7 +52,8 @@
     "connecting": "连接中...",
     "switchToRegister": "没有账号？立即注册",
     "switchToLogin": "已有账号？立即登录",
-    "failed": "认证失败"
+    "failed": "认证失败",
+    "switchLanguage": "切换语言"
   },
   "nav": {
     "map": "地图",
@@ -109,7 +110,7 @@
     "help": "帮助",
     "tutorialTips": "新手提示",
     "tutorialTipsDesc": "显示游戏内提示和新功能指导",
-    "about": "Atlas Foods — 农场与工厂大亨",
+    "about": "新港 — 农场与工厂大亨",
     "version": "版本 1.0.0",
     "saved": "设置已保存 ✓",
     "autoSaveNote": "更改会自动保存",
@@ -380,8 +381,26 @@
       "young-richestSpeaker": "主角",
       "system-objective": "新手目标已开启：修复旧码头，重建第一座仓库。",
       "system-objectiveSpeaker": "系统提示",
-      "continue": "继续",
       "beginBuilding": "开始建设"
     }
+  },
+  "resource": {
+    "1": "谷物",
+    "2": "鲜奶",
+    "3": "面粉",
+    "4": "面团",
+    "5": "黄油",
+    "6": "糖",
+    "7": "奶酪",
+    "8": "牛排",
+    "9": "披萨",
+    "10": "蛋糕",
+    "11": "咖啡",
+    "12": "蔬菜"
+  },
+  "marketGroup": {
+    "raw": "原材料",
+    "processed": "加工品",
+    "finished": "成品"
   }
 }

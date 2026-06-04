@@ -312,8 +312,8 @@ body {
   position: absolute;
   right: clamp(18px, 6vw, 96px);
   bottom: clamp(148px, 18vh, 190px);
-  width: clamp(280px, 31vw, 430px);
-  height: min(70vh, 650px);
+  width: clamp(196px, 21.7vw, 301px);
+  height: min(49vh, 455px);
   overflow: hidden;
   pointer-events: none;
   filter: drop-shadow(0 24px 26px rgba(46, 29, 16, 0.34));
@@ -545,8 +545,8 @@ body {
   .story-portrait-wrap {
     right: 50%;
     bottom: 31vh;
-    width: min(78vw, 330px);
-    height: 48vh;
+    width: min(54.6vw, 231px);
+    height: 33.6vh;
     transform: translateX(50%);
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLogin, useRegister } from '@/api/company.api'
+import { SUPPORTED_LOCALES, LOCALE_LABELS, getStoredLocale, setStoredLocale } from '@/i18n'
 import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
@@ -13,6 +14,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [showCustomGender, setShowCustomGender] = useState(false)
   const [email, setEmail] = useState('')
   const login = useLogin()
+  const [locale, setLocaleState] = useState(getStoredLocale())
   const register = useRegister()
   const [authenticated, setAuthenticated] = useState(isAuthenticated())
 
@@ -160,6 +162,30 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           >
             {mode === 'login' ? t('auth.switchToRegister') : t('auth.switchToLogin')}
           </button>
+        </div>
+
+        {/* Language switcher */}
+        <div className="mt-5 pt-4 border-t border-amber-200/50">
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-[10px] text-amber-500 font-medium mr-1">{t('auth.switchLanguage')}:</span>
+            {SUPPORTED_LOCALES.map((loc) => (
+              <button
+                key={loc}
+                type="button"
+                onClick={() => {
+                  setLocaleState(loc)
+                  setStoredLocale(loc)
+                }}
+                className={`px-2 py-1 text-[11px] rounded-md font-medium transition-colors ${
+                  locale === loc
+                    ? 'bg-amber-700 text-white shadow-sm'
+                    : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                }`}
+              >
+                {LOCALE_LABELS[loc]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

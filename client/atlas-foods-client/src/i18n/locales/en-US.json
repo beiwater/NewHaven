@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Mellow Acres Co.",
+    "appName": "新港",
     "tagline": "Farm & Factory Tycoon",
     "confirm": "Confirm",
     "cancel": "Cancel",
@@ -36,7 +36,7 @@
     "loadingMap": "Loading map..."
   },
   "auth": {
-    "title": "Mellow Acres Co.",
+    "title": "新港",
     "subtitle": "Farm & Factory Tycoon",
     "usernamePlaceholder": "Enter your username",
     "passwordPlaceholder": "Enter your password",
@@ -52,7 +52,8 @@
     "connecting": "Connecting...",
     "switchToRegister": "Don't have an account? Register",
     "switchToLogin": "Already have an account? Sign In",
-    "failed": "Authentication failed"
+    "failed": "Authentication failed",
+    "switchLanguage": "Switch Language"
   },
   "nav": {
     "map": "Map",
@@ -109,7 +110,7 @@
     "help": "Help",
     "tutorialTips": "Tutorial Tips",
     "tutorialTipsDesc": "Show in-game tips and guidance for new features",
-    "about": "Atlas Foods — Farm & Factory Tycoon",
+    "about": "新港 — Farm & Factory Tycoon",
     "version": "Version 1.0.0",
     "saved": "Settings saved ✓",
     "autoSaveNote": "Changes are saved automatically",
@@ -381,5 +382,24 @@
       "continue": "Continue",
       "beginBuilding": "Begin Building"
     }
+  },
+  "resource": {
+    "1": "Grain",
+    "2": "Dairy Milk",
+    "3": "Flour",
+    "4": "Dough",
+    "5": "Butter",
+    "6": "Sugar",
+    "7": "Cheese",
+    "8": "Steak",
+    "9": "Pizza",
+    "10": "Cake",
+    "11": "Coffee",
+    "12": "Vegetables"
+  },
+  "marketGroup": {
+    "raw": "Raw Goods",
+    "processed": "Processed",
+    "finished": "Finished Food"
   }
 }

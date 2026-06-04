@@ -27,7 +27,7 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
 
   const level = companyData?.levelInfo?.level ?? levelData?.level ?? 1
   const cash = companyData?.authCompany?.money ?? 0
-  const companyName = companyData?.authCompany?.company ?? 'Atlas Foods Inc'
+  const companyName = companyData?.authCompany?.company ?? 'Atlas'
 
   const handleNav = (view: ActiveView) => {
     setActiveView(view)

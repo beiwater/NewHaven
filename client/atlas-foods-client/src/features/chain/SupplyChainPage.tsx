@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useResources } from '@/api/market.api'
 import { useWarehouse } from '@/api/inventory.api'
 import { useProductionJobs } from '@/api/production.api'
 import { useBuildings } from '@/api/buildings.api'
-import { FALLBACK_MARKET_RESOURCES, MARKET_GROUPS, formatResourceName, resourceIcon } from '@/game/resources'
+import { FALLBACK_MARKET_RESOURCES, MARKET_GROUPS, formatResourceName, resourceIcon, resourceName } from '@/game/resources'
 import { buildingIcon } from '@/game/icons'
 
 const GROUP_COPY: Record<string, string> = {
@@ -13,6 +14,7 @@ const GROUP_COPY: Record<string, string> = {
 }
 
 export function SupplyChainPage({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation()
   const { data: resourcesData } = useResources()
   const { data: warehouse } = useWarehouse()
   const { data: jobsData } = useProductionJobs()
@@ -60,7 +62,7 @@ export function SupplyChainPage({ embedded = false }: { embedded?: boolean }) {
           {MARKET_GROUPS.map((group) => (
             <section key={group.id} className="rounded-lg border border-amber-300/60 bg-white/65 p-3 shadow-sm">
               <div className="mb-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-amber-900">{group.label}</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider text-amber-900">{t(group.labelKey)}</h3>
                 <p className="mt-0.5 text-[10px] text-amber-600">{GROUP_COPY[group.id]}</p>
               </div>
               <div className="space-y-2">
@@ -76,7 +78,7 @@ export function SupplyChainPage({ embedded = false }: { embedded?: boolean }) {
                       <div className="flex items-center gap-2">
                         <img src={resourceIcon(id)} alt="" className="h-9 w-9 object-contain" />
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-black text-amber-950">{resource.name}</div>
+                          <div className="truncate text-sm font-black text-amber-950">{resourceName(resource.resourceId)}</div>
                           <div className="flex flex-wrap gap-1 pt-1">
                             {inventory > 0 && <StatusPill tone="stock" label={inventory.toLocaleString()} />}
                             {active > 0 && <StatusPill tone="active" label="growing" />}
