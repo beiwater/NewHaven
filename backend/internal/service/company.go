@@ -13,6 +13,13 @@ func (s *Service) CompanyProfile(companyID int) map[string]any {
 	if company == nil {
 		return map[string]any{"error": "company not found"}
 	}
+	preferences := cloneMapStringAny(s.State.PlayerPreferences)
+	if preferences == nil {
+		preferences = map[string]any{}
+	}
+	if _, ok := preferences["theme"]; !ok {
+		preferences["theme"] = "System"
+	}
 
 	return map[string]any{
 		"authCompany": map[string]any{
@@ -27,7 +34,7 @@ func (s *Service) CompanyProfile(companyID int) map[string]any {
 		"authUser":    map[string]any{"playerId": "dev-player", "isModerator": false, "supporter": false},
 		"levelInfo":   map[string]any{"level": company.Level, "xp": 12800, "inTutorial": false, "tutorialCompleted": company.TutorialCompleted},
 		"unlocks":     FeatureUnlockPayload(company.Level),
-		"preferences": map[string]any{"theme": "System"},
+		"preferences": preferences,
 	}
 }
 

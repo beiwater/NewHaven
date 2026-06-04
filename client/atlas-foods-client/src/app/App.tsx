@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { AuthGate } from '@/features/auth/AuthGate'
 import { TopBar } from '@/features/topbar/TopBar'
 import { LeftSidebar } from '@/features/sidebar/LeftSidebar'
@@ -23,6 +23,9 @@ import { FarmNotes } from '@/features/guidance/FarmNotes'
 import { ProductionQueue } from '@/features/production/ProductionQueue'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { MobileLayout } from '@/features/mobile'
+import { useCompany, useSavePreferences } from '@/api/company.api'
+import { StoryPlayer } from '@/features/story/StoryPlayer'
+import { chapter1ArrivalStory } from '@/features/story/chapter1Arrival.story'
 
 // Lazy-load PixiJS game canvas so it doesn't block React mount
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
@@ -116,12 +119,56 @@ function GameLayout() {
   )
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function StoryGate({ children }: { children: ReactNode }) {
+  const { data: companyData, isLoading } = useCompany()
+  const savePreferences = useSavePreferences()
+  const [completedThisSession, setCompletedThisSession] = useState(false)
+  const storyProgress = companyData?.preferences?.storyProgress
+  const chapterCompleted =
+    completedThisSession ||
+    (isRecord(storyProgress) && storyProgress.chapter1Arrival === 'completed')
+
+  if (isLoading && !companyData) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-amber-950 text-sm font-bold text-amber-100">
+        Loading story...
+      </div>
+    )
+  }
+
+  if (!chapterCompleted) {
+    return (
+      <StoryPlayer
+        story={chapter1ArrivalStory}
+        onComplete={() => {
+          const currentProgress = isRecord(storyProgress) ? storyProgress : {}
+          setCompletedThisSession(true)
+          savePreferences.mutate({
+            storyProgress: {
+              ...currentProgress,
+              chapter1Arrival: 'completed',
+            },
+          })
+        }}
+      />
+    )
+  }
+
+  return <>{children}</>
+}
+
 export function App() {
   const isMobile = useIsMobile()
   return (
     <ErrorBoundary>
       <AuthGate>
-        {isMobile ? <MobileLayout /> : <GameLayout />}
+        <StoryGate>
+          {isMobile ? <MobileLayout /> : <GameLayout />}
+        </StoryGate>
       </AuthGate>
     </ErrorBoundary>
   )
