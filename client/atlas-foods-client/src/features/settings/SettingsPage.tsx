@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCompany } from '@/api/company.api'
 import { useSavePreferences } from '@/api/company.api'
+import {
+  type SupportedLocale,
+  SUPPORTED_LOCALES,
+  LOCALE_LABELS,
+  getStoredLocale,
+  setStoredLocale,
+} from '@/i18n'
 
 interface GameSettings {
   soundEnabled: boolean
@@ -77,6 +85,8 @@ function ToggleRow({
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation()
+  const [locale, setLocaleLocal] = useState<SupportedLocale>(getStoredLocale)
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
   const [saved] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -135,14 +145,14 @@ export function SettingsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700/70">Preferences</p>
-            <h2 className="text-xl font-black text-amber-950">Settings</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700/70">{t('settings.preferences')}</p>
+            <h2 className="text-xl font-black text-amber-950">{t('settings.title')}</h2>
           </div>
         </div>
 
         {/* Avatar */}
         <section className="space-y-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">Avatar</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.avatar')}</h3>
           <div className="bg-white/60 rounded-xl border border-amber-200/40 p-4">
             <div className="flex items-center gap-4">
               {/* Preview */}
@@ -151,7 +161,7 @@ export function SettingsPage() {
                 style={{ background: displayAvatar ? undefined : displayBg }}
               >
                 {displayAvatar ? (
-                  <img src={displayAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={displayAvatar} alt={t('settings.avatar')} className="w-full h-full object-cover" />
                 ) : (
                   initial
                 )}
@@ -164,7 +174,7 @@ export function SettingsPage() {
                     disabled={savePrefs.isPending}
                     className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 disabled:opacity-50 text-amber-800 text-[10px] font-semibold rounded-lg transition-colors"
                   >
-                    {savePrefs.isPending ? 'Saving...' : 'Upload Photo'}
+                    {savePrefs.isPending ? t('settings.saving') : t('settings.uploadPhoto')}
                   </button>
                   {displayAvatar && (
                     <button
@@ -172,7 +182,7 @@ export function SettingsPage() {
                       disabled={savePrefs.isPending}
                       className="px-3 py-1.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-[10px] font-semibold rounded-lg transition-colors"
                     >
-                      Remove
+                      {t('settings.remove')}
                     </button>
                   )}
                   <input
@@ -186,7 +196,7 @@ export function SettingsPage() {
 
                 {/* Color picker */}
                 <div>
-                  <div className="text-[9px] text-amber-500 mb-1">Background color</div>
+                  <div className="text-[9px] text-amber-500 mb-1">{t('settings.bgColor')}</div>
                   <div className="flex gap-1.5">
                     {PRESET_COLORS.map((color) => (
                       <button
@@ -205,7 +215,7 @@ export function SettingsPage() {
                 </div>
                 {savePrefs.isError && (
                   <div className="text-[9px] text-red-500">
-                    {savePrefs.error instanceof Error ? savePrefs.error.message : 'Failed to save'}
+                    {savePrefs.error instanceof Error ? savePrefs.error.message : t('settings.failedToSave')}
                   </div>
                 )}
               </div>
@@ -215,16 +225,16 @@ export function SettingsPage() {
 
         {/* Gameplay */}
         <section className="space-y-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">Gameplay</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.gameplay')}</h3>
           <ToggleRow
-            label="Sound Effects"
-            description="Play sounds for building actions and notifications"
+            label={t('settings.sound')}
+            description={t('settings.soundDesc')}
             checked={settings.soundEnabled}
             onChange={(v) => update({ soundEnabled: v })}
           />
           <ToggleRow
-            label="Auto-Collect"
-            description="Automatically collect completed production when ready"
+            label={t('settings.autoCollect')}
+            description={t('settings.autoCollectDesc')}
             checked={settings.autoCollect}
             onChange={(v) => update({ autoCollect: v })}
           />
@@ -232,10 +242,10 @@ export function SettingsPage() {
 
         {/* Notifications */}
         <section className="space-y-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">Notifications</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.notifications')}</h3>
           <ToggleRow
-            label="Push Notifications"
-            description="Get notified when production completes or contracts are ready"
+            label={t('settings.pushNotifications')}
+            description={t('settings.pushNotificationsDesc')}
             checked={settings.notificationsEnabled}
             onChange={(v) => update({ notificationsEnabled: v })}
           />
@@ -243,27 +253,49 @@ export function SettingsPage() {
 
         {/* Help */}
         <section className="space-y-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">Help</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.help')}</h3>
           <ToggleRow
-            label="Tutorial Tips"
-            description="Show in-game tips and guidance for new features"
+            label={t('settings.tutorialTips')}
+            description={t('settings.tutorialTipsDesc')}
             checked={settings.showTutorialTips}
             onChange={(v) => update({ showTutorialTips: v })}
           />
         </section>
 
+        {/* Language */}
+        <section className="space-y-2">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.language')}</h3>
+          <div className="bg-white/60 rounded-xl border border-amber-200/40 p-3">
+            <select
+              value={locale}
+              onChange={(e) => {
+                const next = e.target.value as SupportedLocale
+                setLocaleLocal(next)
+                setStoredLocale(next)
+              }}
+              className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none cursor-pointer"
+            >
+              {SUPPORTED_LOCALES.map((loc) => (
+                <option key={loc} value={loc}>
+                  {LOCALE_LABELS[loc]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+
         {/* About */}
         <section className="rounded-xl border border-amber-200/40 bg-white/60 p-4 space-y-1">
-          <div className="text-[10px] text-amber-500">Atlas Foods — Farm & Factory Tycoon</div>
-          <div className="text-[9px] text-amber-400">Version 1.0.0</div>
+          <div className="text-[10px] text-amber-500">{t('settings.about')}</div>
+          <div className="text-[9px] text-amber-400">{t('settings.version')}</div>
         </section>
 
         {/* Save indicator */}
         <div className="text-center">
           {saved ? (
-            <span className="text-[10px] text-green-600 font-semibold">Settings saved ✓</span>
+            <span className="text-[10px] text-green-600 font-semibold">{t('settings.saved')}</span>
           ) : (
-            <span className="text-[9px] text-amber-400">Changes are saved automatically</span>
+            <span className="text-[9px] text-amber-400">{t('settings.autoSaveNote')}</span>
           )}
         </div>
       </div>

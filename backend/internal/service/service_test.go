@@ -178,7 +178,7 @@ func TestBuyBuildingRespectsBuildingSlots(t *testing.T) {
 func TestRegisterPlayerUsesPersistedNextPlayerID(t *testing.T) {
 	s := newCoreTestService()
 	s.State.NextPlayerID = 7
-	result, err := s.RegisterPlayer("alice", "password")
+	result, err := s.RegisterPlayer("alice", "password", "", "", "")
 	if err != nil {
 		t.Fatalf("RegisterPlayer() unexpected error: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestRegisterPlayerRecoversNextPlayerIDWhenMissing(t *testing.T) {
 	s.State.NextPlayerID = 0
 	s.State.Players = []model.Player{{ID: 4, Username: "existing", CompanyID: 1000004}}
 
-	result, err := s.RegisterPlayer("bob", "password")
+	result, err := s.RegisterPlayer("bob", "password", "", "", "")
 	if err != nil {
 		t.Fatalf("RegisterPlayer() unexpected error: %v", err)
 	}

@@ -1,9 +1,10 @@
+import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/store/ui.store'
 import { useBuildings } from '@/api/buildings.api'
 import { useProductionQueue, useClaimableJobs, useClaimAll } from '@/api/production.api'
 import { BuildingCard } from './BuildingCard'
-
 export function BuildingPanel() {
+  const { t } = useTranslation()
   const selectedBuildingId = useUIStore((s) => s.selectedBuildingId)
   const selectBuilding = useUIStore((s) => s.selectBuilding)
   const { data: buildingsData } = useBuildings()
@@ -31,9 +32,9 @@ export function BuildingPanel() {
       ) : (
         <>
           <div className="p-3 border-b border-amber-200/60">
-            <h2 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Buildings</h2>
+            <h2 className="text-xs font-bold text-amber-800 uppercase tracking-wider">{t('nav.buildings')}</h2>
             <p className="text-[10px] text-amber-600/70 mt-0.5">
-              {inUse} / {maxSlots} slots used
+              {inUse} / {maxSlots} {t('production.usedSlots').toLowerCase()}
             </p>
           </div>
 
@@ -42,14 +43,14 @@ export function BuildingPanel() {
               onClick={() => claimAll.mutate()}
               className="mx-3 mt-2 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md transition-colors"
             >
-              Collect All ({claimableCount})
+              {t('building.collect')} ({claimableCount})
             </button>
           )}
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {buildings.length === 0 && (
               <div className="text-xs text-amber-400 italic text-center py-4">
-                No buildings yet
+                {t('building.noBuildingsYet')}
               </div>
             )}
             {buildings.map((b) => (
@@ -64,10 +65,10 @@ export function BuildingPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold text-amber-900 truncate">
-                      {b.name ?? `Building ${b.kind}`}
+                      {b.name ?? `${t('building.building')} ${b.kind}`}
                     </div>
                     <div className="text-[10px] text-amber-600/70">
-                      Lv.{b.level} · {b.status ?? 'idle'}
+                      Lv.{b.level} · {b.status ?? t('building.idle')}
                     </div>
                   </div>
                 </div>

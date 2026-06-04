@@ -19,7 +19,7 @@ func TestRegisterPlayerWithPassword(t *testing.T) {
 	cfg.JWTSigningKey = "test-key-123"
 	svc := New(testData(), cfg, nil)
 
-	result, err := svc.RegisterPlayer("alice", "secret123")
+	result, err := svc.RegisterPlayer("alice", "secret123", "", "", "")
 	if err != nil {
 		t.Fatalf("RegisterPlayer failed: %v", err)
 	}
@@ -53,11 +53,11 @@ func TestRegisterDuplicateUsername(t *testing.T) {
 	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
-	_, err := svc.RegisterPlayer("bob", "pass1")
+	_, err := svc.RegisterPlayer("bob", "pass1", "", "", "")
 	if err != nil {
 		t.Fatalf("first register failed: %v", err)
 	}
-	_, err = svc.RegisterPlayer("bob", "pass2")
+	_, err = svc.RegisterPlayer("bob", "pass2", "", "", "")
 	if err == nil {
 		t.Fatal("expected error for duplicate username, got nil")
 	}
@@ -69,7 +69,7 @@ func TestLoginWithCorrectPassword(t *testing.T) {
 	cfg.JWTSigningKey = "login-test-key"
 	svc := New(testData(), cfg, nil)
 
-	_, err := svc.RegisterPlayer("carol", "my-password")
+	_, err := svc.RegisterPlayer("carol", "my-password", "", "", "")
 	if err != nil {
 		t.Fatalf("register failed: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestLoginWithWrongPassword(t *testing.T) {
 	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
-	svc.RegisterPlayer("dave", "correct-password")
+	svc.RegisterPlayer("dave", "correct-password", "", "", "")
 	_, err := svc.LoginPlayer("dave", "wrong-password")
 	if err == nil {
 		t.Fatal("expected error for wrong password, got nil")
@@ -120,7 +120,7 @@ func TestPasswordHashNotReturned(t *testing.T) {
 	cfg.JWTSigningKey = "test-key"
 	svc := New(testData(), cfg, nil)
 
-	result, err := svc.RegisterPlayer("eve", "safe-password")
+	result, err := svc.RegisterPlayer("eve", "safe-password", "", "", "")
 	if err != nil {
 		t.Fatalf("register failed: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestTokenNotBase64Username(t *testing.T) {
 	cfg.JWTSigningKey = "not-base64-test"
 	svc := New(testData(), cfg, nil)
 
-	result, _ := svc.RegisterPlayer("mallory", "password")
+	result, _ := svc.RegisterPlayer("mallory", "password", "", "", "")
 	p := result["player"].(model.Player)
 	tokenStr := p.Token
 
@@ -217,8 +217,8 @@ func TestMultiPlayerIsolation(t *testing.T) {
 	cfg.JWTSigningKey = "isolation-key"
 	svc := New(testData(), cfg, nil)
 
-	r1, _ := svc.RegisterPlayer("player1", "pass1")
-	r2, _ := svc.RegisterPlayer("player2", "pass2")
+	r1, _ := svc.RegisterPlayer("player1", "pass1", "", "", "")
+	r2, _ := svc.RegisterPlayer("player2", "pass2", "", "", "")
 
 	p1 := r1["player"].(model.Player)
 	p2 := r2["player"].(model.Player)
@@ -294,7 +294,7 @@ func TestValidateTokenFallback(t *testing.T) {
 	cfg.JWTSigningKey = "fallback-key"
 	svc := New(testData(), cfg, nil)
 
-	result, _ := svc.RegisterPlayer("fallback-user", "pw")
+	result, _ := svc.RegisterPlayer("fallback-user", "pw", "", "", "")
 	p := result["player"].(model.Player)
 
 	pid, cid, ok := svc.ValidateToken(p.Token)

@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Service) RegisterPlayer(username, password string) (map[string]any, error) {
+func (s *Service) RegisterPlayer(username, password, name, gender, email string) (map[string]any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -42,6 +42,9 @@ func (s *Service) RegisterPlayer(username, password string) (map[string]any, err
 	player := model.Player{
 		ID:           playerID,
 		Username:     username,
+		Name:         name,
+		Gender:       gender,
+		Email:        email,
 		PasswordHash: string(hash),
 		CompanyID:    companyID,
 		RegisteredAt: now,
@@ -56,8 +59,12 @@ func (s *Service) RegisterPlayer(username, password string) (map[string]any, err
 	s.State.Players = append(s.State.Players, player)
 
 	// Create a new company for this player
+	companyName := username
+	if name != "" {
+		companyName = name
+	}
 	company := model.Company{
-		ID: companyID, Name: username + "'s Company",
+		ID: companyID, Name: companyName + "'s Company",
 		Money: s.Cfg.Game.StartMoney, Level: 1,
 		Inventory:         map[int]int{1: 500},
 		UnplacedBuildings: []map[string]any{},

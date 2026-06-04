@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { StoryDefinition, StoryStep } from './story.types'
 
 const HARBOR_BG = '/assets/story/chapter-1/newhaven_harbor.png'
@@ -13,30 +14,35 @@ interface StoryPlayerProps {
 }
 
 export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
+  const { t } = useTranslation()
   const [currentStepId, setCurrentStepId] = useState(story.firstStepId)
 
   const stepMap = useMemo(() => {
     return new Map(story.steps.map((step) => [step.id, step]))
   }, [story.steps])
-
   const step = stepMap.get(currentStepId) ?? story.steps[0]
   const isBlack = step.screen === 'black'
   const showPortrait = step.portrait === 'shadow' || step.portrait === 'cecil'
   const showBoat = step.boat === 'arriving' || step.boat === 'docked'
   const showChoices = step.kind === 'choice' && step.choices?.length
 
+  const chapter = story.id === 'chapter1Arrival' ? 'chapter1' : story.id
+  const st = (key: string, fallback?: string) => t(`story.${chapter}.${key}`, fallback ?? '')
+
   const advance = () => {
-    if (showChoices) return
     if (step.next) {
       setCurrentStepId(step.next)
-      return
+    } else {
+      onComplete()
     }
-    onComplete()
   }
 
   const choose = (next: string) => {
     setCurrentStepId(next)
   }
+
+  const textDisplay = st(step.id, step.text)
+  const speakerDisplay = st(`${step.id}Speaker`, step.speaker)
 
   return (
     <section
@@ -64,34 +70,51 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
 
       {step.locationTitle && (
         <div key={`${step.id}-location`} className="story-location-title">
-          {step.locationTitle}
+          {st(step.id, step.locationTitle)}
         </div>
       )}
 
       {isBlack ? (
-        <BlackScreenStep step={step} />
+        <BlackScreenStep step={step} text={textDisplay} />
       ) : (
-        <DialoguePanel step={step} showChoices={!!showChoices} onChoose={choose} onAdvance={advance} />
+        <DialoguePanel
+          step={step}
+          showChoices={!!showChoices}
+          onChoose={choose}
+          onAdvance={advance}
+          text={textDisplay}
+          speaker={speakerDisplay}
+          t={st}
+        />
       )}
     </section>
   )
 }
 
 function CecilPortrait({ step }: { step: StoryStep }) {
+  const isShadow = step.portrait === 'shadow'
   return (
-    <div className={`story-portrait-wrap ${step.portrait === 'shadow' ? 'story-portrait-shadow' : ''}`}>
-      <img className="story-portrait" src={CECIL_FULL} alt="Cecil Ashwing" draggable={false} />
-    </div>
+    <img
+      className={`story-portrait ${isShadow ? 'story-portrait-shadow' : 'story-portrait-reveal'}`}
+      src={CECIL_FULL}
+      alt=""
+      draggable={false}
+    />
   )
 }
 
-function BlackScreenStep({ step }: { step: StoryStep }) {
-  const isTitle = step.kind === 'title'
+function BlackScreenStep({ step, text }: { step: StoryStep; text: string }) {
+  if (step.kind === 'title') {
+    return (
+      <div className="story-black-title">
+        <h1 className="story-black-title-text">{text}</h1>
+      </div>
+    )
+  }
   return (
-    <div key={step.id} className="story-black-content">
-      <p className={isTitle ? 'story-chapter-title' : 'story-intro-line'}>{step.text}</p>
-      <span className="story-continue-hint">Continue</span>
-    </div>
+    <p key={step.id} className="story-black-narration">
+      {text}
+    </p>
   )
 }
 
@@ -100,27 +123,33 @@ function DialoguePanel({
   showChoices,
   onChoose,
   onAdvance,
+  text,
+  speaker,
+  t: st,
 }: {
   step: StoryStep
   showChoices: boolean
   onChoose: (next: string) => void
   onAdvance: () => void
+  text: string
+  speaker: string
+  t: (key: string, fallback?: string) => string
 }) {
   return (
     <div className={`story-dialogue ${step.kind === 'system' ? 'story-dialogue-system' : ''}`} onClick={(event) => event.stopPropagation()}>
-      {step.speaker && <div className="story-speaker">{step.speaker}</div>}
-      <p key={step.id} className="story-dialogue-text">{step.text}</p>
+      {speaker && <div className="story-speaker">{speaker}</div>}
+      <p key={step.id} className="story-dialogue-text">{text}</p>
       {showChoices ? (
         <div className="story-choice-list">
-          {step.choices?.map((choice) => (
+          {step.choices?.map((choice, index) => (
             <button key={choice.label} type="button" className="story-choice" onClick={() => onChoose(choice.next)}>
-              {choice.label}
+              {st(`${step.id}${String.fromCharCode(65 + index)}`, choice.label)}
             </button>
           ))}
         </div>
       ) : (
         <button type="button" className="story-next-button" onClick={onAdvance}>
-          {step.actionLabel ?? 'Continue'}
+          {step.actionLabel ? st(step.id, step.actionLabel) : st('continue', 'Continue')}
         </button>
       )}
     </div>

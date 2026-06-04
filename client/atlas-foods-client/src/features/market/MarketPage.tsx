@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getCompanyId } from '@/api/client'
 import { useCompany } from '@/api/company.api'
 import { useWarehouse } from '@/api/inventory.api'
@@ -21,6 +22,7 @@ import { PriceCurve } from './PriceCurve'
 import { ParticipantList } from './ParticipantList'
 
 export function MarketPage() {
+  const { t } = useTranslation()
   const [selectedResource, setSelectedResource] = useState(1)
   const [selectedGroup, setSelectedGroup] = useState<(typeof MARKET_GROUPS)[number]['id']>('raw')
   const [orderKind, setOrderKind] = useState<'buy' | 'sell'>('buy')
@@ -73,9 +75,9 @@ export function MarketPage() {
   const numericPrice = Math.max(0.01, parseFloat(price) || 1)
   const orderValue = numericQuantity * numericPrice
   const localOrderError = orderKind === 'sell' && numericQuantity > selectedInventory
-    ? `Not enough ${selectedName}. You have ${selectedInventory.toLocaleString()} available.`
+    ? t('market.notEnoughItem', { name: selectedName, available: selectedInventory.toLocaleString() })
     : orderKind === 'buy' && orderValue > cash
-      ? `Not enough cash. Need $${orderValue.toLocaleString()}, have $${cash.toLocaleString()}.`
+      ? t('market.notEnoughCash', { need: orderValue.toLocaleString(), have: cash.toLocaleString() })
       : ''
   const mutationError = createOrder.error ?? takeOrder.error ?? cancelOrder.error
   const mutationMessage = mutationError instanceof Error ? mutationError.message : ''
@@ -105,13 +107,11 @@ export function MarketPage() {
       <div className="mx-auto max-w-6xl space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700/70">
-              Commodity Exchange
-            </p>
-            <h2 className="text-2xl font-black text-amber-950">Market</h2>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700/70">{t('market.subtitle')}</p>
+            <h2 className="text-2xl font-black text-amber-950">{t('market.title')}</h2>
           </div>
           <div className="rounded-full border border-amber-300/70 bg-white/60 px-3 py-1 text-xs font-semibold text-amber-800">
-            {resources.length} tradable resources
+            {t('market.tradableResources', { count: resources.length })}
           </div>
         </div>
 
@@ -129,16 +129,14 @@ export function MarketPage() {
                   : 'bg-white/60 text-amber-800 hover:bg-amber-100'
               }`}
             >
-              {group.label}
+              {t(`market.groupLabels.${group.id}`)}
             </button>
           ))}
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <aside className="rounded-2xl border border-amber-300/60 bg-white/55 p-3 shadow-sm">
-            <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Select Product
-            </div>
+            <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-amber-700">{t('market.selectProduct')}</div>
             <div className="grid gap-2">
               {visibleResources.map((resource, index) => resource && (
                 <button
@@ -167,29 +165,29 @@ export function MarketPage() {
                   <img src={resourceIcon(selectedResource)} alt="" className="h-12 w-12 object-contain" />
                   <div>
                     <h3 className="text-xl font-black text-amber-950">{selectedName}</h3>
-                    <p className="text-xs text-amber-700">Quality 0 spot market</p>
+                    <p className="text-xs text-amber-700">{t('market.qualitySpot')}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Metric label="Last" value={`$${lastPrice.toFixed(2)}`} />
-                  <Metric label="Change" value={`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`} tone={change >= 0 ? 'up' : 'down'} />
-                  <Metric label="Bid" value={bestBid ? `$${bestBid.toFixed(2)}` : '-'} />
-                  <Metric label="Ask" value={bestAsk ? `$${bestAsk.toFixed(2)}` : '-'} />
+                  <Metric label={t('market.last')} value={`$${lastPrice.toFixed(2)}`} />
+                  <Metric label={t('market.change')} value={`${change >= 0 ? '+' : ''}${change.toFixed(1)}%`} tone={change >= 0 ? 'up' : 'down'} />
+                  <Metric label={t('market.bid')} value={bestBid ? `$${bestBid.toFixed(2)}` : '-'} />
+                  <Metric label={t('market.ask')} value={bestAsk ? `$${bestAsk.toFixed(2)}` : '-'} />
                 </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-                  <Metric label="High" value={`$${high.toFixed(2)}`} subtle />
-                  <Metric label="Low" value={`$${low.toFixed(2)}`} subtle />
-                  <Metric label="Inventory" value={`${selectedInventory.toLocaleString()}`} subtle />
-                  <Metric label="Cash" value={`$${Math.floor(cash).toLocaleString()}`} subtle />
+                  <Metric label={t('market.high')} value={`$${high.toFixed(2)}`} subtle />
+                  <Metric label={t('market.low')} value={`$${low.toFixed(2)}`} subtle />
+                  <Metric label={t('common.inventory')} value={`${selectedInventory.toLocaleString()}`} subtle />
+                  <Metric label={t('market.cash')} value={`$${Math.floor(cash).toLocaleString()}`} subtle />
                 </div>
               <PriceCurve series={series} />
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
               <div className="grid gap-4 sm:grid-cols-2">
-                <OrderBookSide title="Buy Orders" tone="buy" rows={depth?.buys ?? []} />
-                <OrderBookSide title="Sell Orders" tone="sell" rows={depth?.sells ?? []} />
+                <OrderBookSide title={t('market.buyOrders')} tone="buy" rows={depth?.buys ?? []} />
+                <OrderBookSide title={t('market.sellOrders')} tone="sell" rows={depth?.sells ?? []} />
               </div>
 
               <div className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
@@ -198,17 +196,17 @@ export function MarketPage() {
                     onClick={() => setOrderKind('buy')}
                     className={`flex-1 rounded-lg px-3 py-2 text-xs font-black ${orderKind === 'buy' ? 'bg-green-700 text-white' : 'bg-amber-100 text-amber-800'}`}
                   >
-                    Limit Buy
+                    {t('market.limitBuy')}
                   </button>
                   <button
                     onClick={() => setOrderKind('sell')}
                     className={`flex-1 rounded-lg px-3 py-2 text-xs font-black ${orderKind === 'sell' ? 'bg-red-600 text-white' : 'bg-amber-100 text-amber-800'}`}
                   >
-                    Limit Sell
+                    {t('market.limitSell')}
                   </button>
                 </div>
                 <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                  Quantity
+                  {t('market.quantity')}
                 </label>
                 <input
                   type="number"
@@ -218,7 +216,7 @@ export function MarketPage() {
                   className="tutorial-market-quantity mb-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-amber-950"
                 />
                 <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                  Limit Price
+                  {t('market.limitPrice')}
                 </label>
                 <input
                   type="number"
@@ -233,7 +231,7 @@ export function MarketPage() {
                   disabled={createOrder.isPending || !!localOrderError}
                   className="tutorial-market-order w-full rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-black text-white hover:bg-amber-900 disabled:bg-amber-400"
                 >
-                  {createOrder.isPending ? 'Submitting...' : `Place ${orderKind === 'buy' ? 'Buy' : 'Sell'} Order`}
+                  {createOrder.isPending ? t('market.submitting') : t('market.placeOrder', { kind: orderKind === 'buy' ? t('market.buyKind') : t('market.sellKind') })}
                 </button>
                 {(localOrderError || mutationMessage) && (
                   <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
@@ -245,21 +243,21 @@ export function MarketPage() {
                   disabled={takeOrder.isPending || !bestAsk}
                   className="mt-2 w-full rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-800 disabled:bg-blue-300"
                 >
-                  {takeOrder.isPending ? 'Buying...' : bestAsk ? `Buy Best Ask up to $${bestAsk.toFixed(2)}` : 'No Sell Orders'}
+                  {takeOrder.isPending ? t('market.buying') : bestAsk ? t('market.buyBestAsk', { price: bestAsk.toFixed(2) }) : t('market.noSellOrders')}
                 </button>
               </div>
             </section>
 
             <section className="grid gap-4 xl:grid-cols-2">
               <ParticipantList
-                title="Who is selling"
-                emptyText={`No sellers are offering ${selectedName} right now.`}
+                title={t('market.whoIsSelling')}
+                emptyText={t('market.noSellers', { name: selectedName })}
                 orders={sellOrders}
                 currentCompanyId={currentCompanyId}
               />
               <ParticipantList
-                title="Who is buying"
-                emptyText={`No buyers are bidding for ${selectedName} right now.`}
+                title={t('market.whoIsBuying')}
+                emptyText={t('market.noBuyers', { name: selectedName })}
                 orders={buyOrders}
                 currentCompanyId={currentCompanyId}
               />
@@ -267,18 +265,18 @@ export function MarketPage() {
 
             <section className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
               <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-amber-800">
-                My Open Orders ({myOrders.length})
+                {t('market.myOpenOrders', { count: myOrders.length })}
               </h3>
               <div className="space-y-2">
                 {myOrders.length === 0 && (
                   <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">
-                    You have no open orders for {selectedName}.
+                    {t('market.noOpenOrders', { name: selectedName })}
                   </div>
                 )}
                 {myOrders.map((order, index) => (
                   <div key={`${order.id}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-amber-200/70 bg-white/70 px-3 py-2 text-xs">
                     <span className={order.kind === 1 ? 'font-black text-green-700' : 'font-black text-red-600'}>
-                      {order.kind === 1 ? 'BUY' : 'SELL'}
+                      {order.kind === 1 ? t('market.buyKind').toUpperCase() : t('market.sellKind').toUpperCase()}
                     </span>
                     <span className="text-amber-900">${order.price.toFixed(2)} x {order.remaining}</span>
                     <button
@@ -286,7 +284,7 @@ export function MarketPage() {
                       disabled={cancelOrder.isPending}
                       className="rounded bg-red-50 px-2 py-1 font-bold text-red-600 hover:bg-red-100 disabled:text-red-300"
                     >
-                      Cancel
+                      {t('market.cancel')}
                     </button>
                   </div>
                 ))}
@@ -329,6 +327,7 @@ function OrderBookSide({
   tone: 'buy' | 'sell'
   rows: Array<{ price: number; quantity?: number; qty?: number }>
 }) {
+  const { t } = useTranslation()
   return (
     <div className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
       <h3 className={`mb-2 text-xs font-black uppercase tracking-wider ${tone === 'buy' ? 'text-green-700' : 'text-red-600'}`}>
@@ -336,7 +335,7 @@ function OrderBookSide({
       </h3>
       <div className="space-y-1">
         {rows.length === 0 && (
-          <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">No orders yet</div>
+          <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">{t('market.noOrders')}</div>
         )}
         {rows.slice(0, 8).map((row, index) => (
           <div key={`${row.price}-${index}`} className="grid grid-cols-2 rounded-lg bg-white/65 px-3 py-2 text-xs">

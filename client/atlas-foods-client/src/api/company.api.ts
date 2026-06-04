@@ -101,8 +101,8 @@ export function useLogin() {
 
 export function useRegister() {
   return useMutation({
-    mutationFn: ({ username, password }: { username: string; password: string }) =>
-      api.post<RegisterResponse>('/api/register', { username, password }),
+    mutationFn: ({ username, password, name, gender, email }: { username: string; password: string; name?: string; gender?: string; email?: string }) =>
+      api.post<RegisterResponse>('/api/register', { username, password, name, gender, email }),
     onSuccess: (data) => {
       const token = data.player?.token ?? data.token
       const companyId = data.companyID ?? data.player?.companyId ?? data.companyId ?? data.company?.id

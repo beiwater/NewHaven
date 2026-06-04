@@ -1,21 +1,23 @@
 import { useUIStore, type ActiveView } from '@/store/ui.store'
+import { useTranslation } from 'react-i18next'
 import { systemIcon } from '@/game/icons'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
 
 const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature: string }> = [
-  { id: 'map', label: 'Map', sysIcon: 'inventory', feature: 'map' },
-  { id: 'build', label: 'Build', sysIcon: 'market', feature: 'build' },
-  { id: 'warehouse', label: 'Warehouse', sysIcon: 'inventory', feature: 'warehouse' },
-  { id: 'market', label: 'Market', sysIcon: 'market', feature: 'market' },
-  { id: 'contracts', label: 'Contracts', sysIcon: 'quest', feature: 'contracts' },
-  { id: 'research', label: 'Research', sysIcon: 'research', feature: 'research' },
-  { id: 'executives', label: 'Executives', sysIcon: 'executive', feature: 'executives' },
-  { id: 'finance', label: 'Finance', sysIcon: 'financial', feature: 'finance' },
-  { id: 'leaderboard', label: 'Leaderboard', sysIcon: 'leaderboard', feature: 'leaderboard' },
-  { id: 'inspect', label: 'Inspect', sysIcon: 'achievement', feature: 'map' },
-  { id: 'settings', label: 'Settings', sysIcon: 'settings', feature: 'map' },
+  { id: 'map', label: 'map', sysIcon: 'inventory', feature: 'map' },
+  { id: 'build', label: 'build', sysIcon: 'market', feature: 'build' },
+  { id: 'warehouse', label: 'warehouse', sysIcon: 'inventory', feature: 'warehouse' },
+  { id: 'market', label: 'market', sysIcon: 'market', feature: 'market' },
+  { id: 'contracts', label: 'contracts', sysIcon: 'quest', feature: 'contracts' },
+  { id: 'research', label: 'research', sysIcon: 'research', feature: 'research' },
+  { id: 'executives', label: 'executives', sysIcon: 'executive', feature: 'executives' },
+  { id: 'finance', label: 'finance', sysIcon: 'financial', feature: 'finance' },
+  { id: 'leaderboard', label: 'leaderboard', sysIcon: 'leaderboard', feature: 'leaderboard' },
+  { id: 'inspect', label: 'inspect', sysIcon: 'achievement', feature: 'map' },
+  { id: 'settings', label: 'settings', sysIcon: 'settings', feature: 'map' },
 ]
 export function LeftSidebar() {
+  const { t } = useTranslation()
   const activeView = useUIStore((s) => s.activeView)
   const setActiveView = useUIStore((s) => s.setActiveView)
   const { data: companyData } = useCompany()
@@ -38,7 +40,7 @@ export function LeftSidebar() {
                 if (isUnlocked) setActiveView(item.id)
               }}
               disabled={!isUnlocked}
-              title={isUnlocked ? item.label : `Unlocks at level ${unlockLevel}`}
+              title={isUnlocked ? t(`nav.${item.label}`) : t('nav.locked', { level: unlockLevel })}
               className={`
             flex flex-col items-center justify-center gap-1 py-4 px-2
             border-b border-amber-700/10 transition-all duration-150
@@ -53,11 +55,11 @@ export function LeftSidebar() {
             >
               <img
                 src={systemIcon(item.sysIcon)}
-                alt={item.label}
+                alt={t(`nav.${item.label}`)}
                 className="w-9 h-9 object-contain"
                 loading="lazy"
               />
-              <span className="text-[11px] uppercase tracking-wider">{item.label}</span>
+              <span className="text-[11px] uppercase tracking-wider">{t(`nav.${item.label}`)}</span>
               {!isUnlocked && <span className="text-[9px] font-bold">Lv.{unlockLevel}</span>}
             </button>
           )
@@ -67,7 +69,7 @@ export function LeftSidebar() {
       {/* Company Status */}
       <div className="mt-auto p-3 mx-2 mb-3 bg-amber-900/10 rounded-lg border border-amber-700/20">
         <div className="text-[9px] uppercase tracking-widest text-amber-700/60 text-center mb-1">
-          Company Status
+          {t('nav.companyStatus')}
         </div>
         <div className="flex items-center justify-center gap-1">
           <svg className="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">

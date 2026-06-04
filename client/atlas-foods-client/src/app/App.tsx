@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthGate } from '@/features/auth/AuthGate'
 import { TopBar } from '@/features/topbar/TopBar'
 import { LeftSidebar } from '@/features/sidebar/LeftSidebar'
@@ -64,18 +65,19 @@ function PageContent() {
 }
 
 function MapSlot() {
+  const { t } = useTranslation()
   return (
     <ErrorBoundary fallback={
       <div className="map flex items-center justify-center bg-amber-100">
         <div className="text-center p-8">
-          <p className="text-amber-700 font-semibold">Map loading failed</p>
-          <p className="text-amber-500 text-xs mt-1">WebGL may not be supported</p>
+          <p className="text-amber-700 font-semibold">{t('common.mapLoadingFailed')}</p>
+          <p className="text-amber-500 text-xs mt-1">{t('common.webglNotSupported')}</p>
         </div>
       </div>
     }>
       <Suspense fallback={
         <div className="map flex items-center justify-center bg-amber-100">
-          <div className="text-amber-600 text-sm animate-pulse">Loading map...</div>
+          <div className="text-amber-600 text-sm animate-pulse">{t('common.loadingMap')}</div>
         </div>
       }>
         <GameCanvas />

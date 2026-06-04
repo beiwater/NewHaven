@@ -5,6 +5,7 @@ import {
   type CashflowEntry,
 } from '@/api/financial.api'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // --- helpers ---
 
@@ -124,13 +125,14 @@ function ValidationItem({ label, ok }: { label: string; ok: boolean }) {
 // --- Transaction row ---
 
 function TransactionRow({ entry }: { entry: CashflowEntry }) {
+  const { t } = useTranslation()
   const isIncome = entry.moneyDelta >= 0
   return (
     <tr className="border-b border-amber-200/40 text-xs hover:bg-amber-50/50">
       <td className="py-2 pr-3 text-amber-500 whitespace-nowrap">{fmtTime(entry.at)}</td>
       <td className="py-2 pr-3">
         <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase ${isIncome ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {isIncome ? 'Income' : 'Expense'}
+          {isIncome ? t('financial.income') : t('financial.expense')}
         </span>
       </td>
       <td className="py-2 pr-3 text-amber-800">{kindLabel(entry.kind)}</td>
@@ -145,6 +147,7 @@ function TransactionRow({ entry }: { entry: CashflowEntry }) {
 
 export function FinancialPage() {
   const { data: company } = useCompany()
+  const { t } = useTranslation()
   const {
     income,
     balance,
@@ -184,7 +187,7 @@ export function FinancialPage() {
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-amber-600 text-sm italic">Loading financial data...</p>
+        <p className="text-amber-600 text-sm italic">{t('financial.loading')}</p>
       </div>
     )
   }
@@ -192,7 +195,7 @@ export function FinancialPage() {
   if (error) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-red-500 text-sm">Failed to load financial data.</p>
+        <p className="text-red-500 text-sm">{t('financial.failedToLoad')}</p>
       </div>
     )
   }
@@ -204,20 +207,20 @@ export function FinancialPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700/70">
-              Accounting & Finance
+              {t('financial.subtitle')}
             </p>
-            <h2 className="text-2xl font-black text-amber-950">Financial Overview</h2>
+            <h2 className="text-2xl font-black text-amber-950">{t('financial.title')}</h2>
           </div>
         </div>
 
         {/* ===== Summary cards row (6) ===== */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <SummaryCard label="Cash" value={`$${fmt(cash)}`} color="green" icon={<CashIcon />} />
-          <SummaryCard label="Today Revenue" value={`$${fmt(revenue)}`} color="green" icon={<RevenueIcon />} />
-          <SummaryCard label="Today Expenses" value={`$${fmt(expenses)}`} color="red" icon={<ExpensesIcon />} />
-          <SummaryCard label="Net Profit" value={`$${fmt(netIncome)}`} color="green" icon={<ProfitIcon />} />
-          <SummaryCard label="Net Worth" value={`$${fmt(netWorth)}`} color="blue" icon={<NetWorthIcon />} />
-          <SummaryCard label="Profit Margin" value={`${profitMargin.toFixed(1)}%`} color="amber" icon={<MarginIcon />} />
+          <SummaryCard label={t('financial.cash')} value={`$${fmt(cash)}`} color="green" icon={<CashIcon />} />
+          <SummaryCard label={t('financial.todayRevenue')} value={`$${fmt(revenue)}`} color="green" icon={<RevenueIcon />} />
+          <SummaryCard label={t('financial.todayExpenses')} value={`$${fmt(expenses)}`} color="red" icon={<ExpensesIcon />} />
+          <SummaryCard label={t('financial.netProfit')} value={`$${fmt(netIncome)}`} color="green" icon={<ProfitIcon />} />
+          <SummaryCard label={t('financial.netWorth')} value={`$${fmt(netWorth)}`} color="blue" icon={<NetWorthIcon />} />
+          <SummaryCard label={t('financial.profitMargin')} value={`${profitMargin.toFixed(1)}%`} color="amber" icon={<MarginIcon />} />
         </div>
 
         {/* ===== Three-column detail ===== */}
@@ -225,15 +228,15 @@ export function FinancialPage() {
           {/* Revenue */}
           <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-4">
             <h3 className="text-sm font-bold text-green-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <RevenueIcon /> Revenue
+              <RevenueIcon /> {t('financial.revenue')}
             </h3>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between py-1">
-                <span className="text-amber-700">Total Revenue</span>
+                <span className="text-amber-700">{t('financial.totalRevenue')}</span>
                 <span className="font-semibold text-green-600">${fmt(revenue)}</span>
               </div>
               <div className="border-t border-amber-200/40 pt-2 flex justify-between font-bold text-sm">
-                <span className="text-amber-800">Total Revenue</span>
+                <span className="text-amber-800">{t('financial.totalRevenue')}</span>
                 <span className="text-green-700">${fmt(revenue)}</span>
               </div>
             </div>
@@ -242,15 +245,15 @@ export function FinancialPage() {
           {/* Expenses */}
           <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-4">
             <h3 className="text-sm font-bold text-red-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <ExpensesIcon /> Expenses
+              <ExpensesIcon /> {t('financial.expenses')}
             </h3>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between py-1">
-                <span className="text-amber-700">Total Expenses</span>
+                <span className="text-amber-700">{t('financial.totalExpenses')}</span>
                 <span className="font-semibold text-red-600">${fmt(expenses)}</span>
               </div>
               <div className="border-t border-amber-200/40 pt-2 flex justify-between font-bold text-sm">
-                <span className="text-amber-800">Total Expenses</span>
+                <span className="text-amber-800">{t('financial.totalExpenses')}</span>
                 <span className="text-red-700">${fmt(expenses)}</span>
               </div>
             </div>
@@ -259,19 +262,19 @@ export function FinancialPage() {
           {/* Assets & Net Worth */}
           <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-4">
             <h3 className="text-sm font-bold text-blue-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <NetWorthIcon /> Assets & Net Worth
+              <NetWorthIcon /> {t('financial.assetsNetWorth')}
             </h3>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between py-1">
-                <span className="text-amber-700">Assets</span>
+                <span className="text-amber-700">{t('financial.assets')}</span>
                 <span className="font-semibold text-blue-600">${fmt(assets)}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-amber-700">Liabilities</span>
+                <span className="text-amber-700">{t('financial.liabilities')}</span>
                 <span className="font-semibold text-red-500">${fmt(liabilities)}</span>
               </div>
               <div className="border-t border-amber-200/40 pt-2 flex justify-between font-bold text-sm">
-                <span className="text-amber-800">Net Worth (Equity)</span>
+                <span className="text-amber-800">{t('financial.netWorthEquity')}</span>
                 <span className="text-blue-700">${fmt(netWorth)}</span>
               </div>
             </div>
@@ -281,18 +284,18 @@ export function FinancialPage() {
         {/* ===== Cashflow Statement row ===== */}
         {cashflow && (
           <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-4">
-            <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-3">Cashflow Statement</h3>
+            <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-3">{t('financial.cashflowStatement')}</h3>
             <div className="grid gap-3 sm:grid-cols-3 text-xs">
               <div className="flex justify-between px-3 py-2 rounded bg-green-50/80">
-                <span className="text-green-700 font-semibold">Operating</span>
+                <span className="text-green-700 font-semibold">{t('financial.operating')}</span>
                 <span className="font-mono font-bold text-green-600">${fmt(cashflow.operating)}</span>
               </div>
               <div className="flex justify-between px-3 py-2 rounded bg-blue-50/80">
-                <span className="text-blue-700 font-semibold">Investing</span>
+                <span className="text-blue-700 font-semibold">{t('financial.investing')}</span>
                 <span className="font-mono font-bold text-blue-600">${fmt(cashflow.investing)}</span>
               </div>
               <div className="flex justify-between px-3 py-2 rounded bg-purple-50/80">
-                <span className="text-purple-700 font-semibold">Financing</span>
+                <span className="text-purple-700 font-semibold">{t('financial.financing')}</span>
                 <span className="font-mono font-bold text-purple-600">${fmt(cashflow.financing)}</span>
               </div>
             </div>
@@ -301,20 +304,20 @@ export function FinancialPage() {
 
         {/* ===== Recent Transactions ===== */}
         <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-4">
-          <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-3">Recent Transactions</h3>
+          <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-3">{t('financial.recentTransactions', 'Recent Transactions')}</h3>
 
           {transactions.length === 0 ? (
-            <p className="text-xs text-amber-500 italic">No recent transactions found.</p>
+            <p className="text-xs text-amber-500 italic">{t('financial.noRecentTransactions', 'No recent transactions found.')}</p>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-amber-600 border-b border-amber-300/40">
-                      <th className="text-left py-2 pr-3 font-semibold">Time</th>
-                      <th className="text-left py-2 pr-3 font-semibold">Type</th>
-                      <th className="text-left py-2 pr-3 font-semibold">Category</th>
-                      <th className="text-right py-2 pr-3 font-semibold">Amount</th>
+                      <th className="text-left py-2 pr-3 font-semibold">{t('financial.time', 'Time')}</th>
+                      <th className="text-left py-2 pr-3 font-semibold">{t('financial.type', 'Type')}</th>
+                      <th className="text-left py-2 pr-3 font-semibold">{t('financial.category', 'Category')}</th>
+                      <th className="text-right py-2 pr-3 font-semibold">{t('financial.amount', 'Amount')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -329,7 +332,7 @@ export function FinancialPage() {
               {totalTxPages > 1 && (
                 <div className="flex items-center justify-between mt-3 text-xs">
                   <span className="text-amber-500">
-                    Showing {safePage * TX_PER_PAGE + 1}–{Math.min((safePage + 1) * TX_PER_PAGE, transactions.length)} of {transactions.length} transactions
+                    {t('financial.showingTransactions', 'Showing {{from}}–{{to}} of {{total}} transactions', { from: safePage * TX_PER_PAGE + 1, to: Math.min((safePage + 1) * TX_PER_PAGE, transactions.length), total: transactions.length })}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
@@ -368,17 +371,17 @@ export function FinancialPage() {
 
         {/* ===== Past Net Profit Trend ===== */}
         <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-4">
-          <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-3">Net Profit History</h3>
+          <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider mb-3">{t('financial.netProfitHistory', 'Net Profit History')}</h3>
           {history.length === 0 ? (
-            <p className="text-xs text-amber-500 italic">No historical data yet.</p>
+            <p className="text-xs text-amber-500 italic">{t('financial.noHistoricalData', 'No historical data yet.')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-[10px] uppercase tracking-wider text-amber-600 border-b border-amber-300/40">
-                    <th className="text-left py-2 pr-4 font-semibold">Date</th>
-                    <th className="text-right py-2 pr-4 font-semibold">Net Profit</th>
-                    <th className="text-right py-2 pr-4 font-semibold">Change</th>
+                    <th className="text-left py-2 pr-4 font-semibold">{t('financial.date', 'Date')}</th>
+                    <th className="text-right py-2 pr-4 font-semibold">{t('financial.netProfit', 'Net Profit')}</th>
+                    <th className="text-right py-2 pr-4 font-semibold">{t('financial.change', 'Change')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -409,19 +412,19 @@ export function FinancialPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
-            Validation
+            {t('financial.validation', 'Validation')}
           </h3>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mb-3">
-            <ValidationItem label="Finance page loads successfully" ok={pageLoaded} />
-            <ValidationItem label="5 data sections are visible" ok={sectionsVisible} />
-            <ValidationItem label="Recent transactions limited to 10 entries" ok={txLimited} />
-            <ValidationItem label="Expenses include all ledger outflows" ok={expenses >= 0} />
-            <ValidationItem label="Net worth calculated correctly" ok={netWorthCorrect} />
+            <ValidationItem label={t('financial.pageLoads', 'Finance page loads successfully')} ok={pageLoaded} />
+            <ValidationItem label={t('financial.sectionsVisible', '5 data sections are visible')} ok={sectionsVisible} />
+            <ValidationItem label={t('financial.txLimited', 'Recent transactions limited to 10 entries')} ok={txLimited} />
+            <ValidationItem label={t('financial.expensesAllLedger', 'Expenses include all ledger outflows')} ok={expenses >= 0} />
+            <ValidationItem label={t('financial.netWorthCalc', 'Net worth calculated correctly')} ok={netWorthCorrect} />
           </div>
           {pageLoaded && sectionsVisible && txLimited && netWorthCorrect && (
             <div className="flex items-center gap-2 text-xs text-green-700 font-semibold">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs">✓</span>
-              All validations passed!
+              {t('financial.allValidationsPassed', 'All validations passed!')}
             </div>
           )}
         </div>

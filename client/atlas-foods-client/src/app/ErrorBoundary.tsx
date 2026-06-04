@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
+import i18n from '@/i18n'
 
 interface Props {
   children: ReactNode
@@ -30,9 +31,9 @@ export class ErrorBoundary extends Component<Props, State> {
         this.props.fallback ?? (
           <div className="w-screen h-screen bg-amber-900 flex items-center justify-center text-white">
             <div className="text-center max-w-md">
-              <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
+              <h1 className="text-2xl font-bold mb-2">{i18n.t('error.somethingWrong')}</h1>
               <p className="text-amber-200 text-sm mb-4">
-                {this.state.error?.message ?? 'Unknown error'}
+                {this.state.error?.message ?? i18n.t('error.unknown')}
               </p>
               <button
                 onClick={() => {
@@ -41,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 }}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-semibold transition-colors"
               >
-                Reload
+                {i18n.t('error.reload')}
               </button>
             </div>
           </div>

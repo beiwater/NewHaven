@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import '@/i18n'
 import { ApiError } from '@/api/client'
 
 const queryClient = new QueryClient({

@@ -8,6 +8,9 @@ import (
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Name     string `json:"name,omitempty"`
+	Gender   string `json:"gender,omitempty"`
+	Email    string `json:"email,omitempty"`
 }
 
 type LoginRequest struct {
@@ -30,7 +33,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "username and password required")
 		return
 	}
-	player, err := h.svc.RegisterPlayer(req.Username, req.Password)
+	player, err := h.svc.RegisterPlayer(req.Username, req.Password, req.Name, req.Gender, req.Email)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return

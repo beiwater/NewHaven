@@ -1,11 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLogin, useRegister } from '@/api/company.api'
 import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
-
 export function AuthGate({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [gender, setGender] = useState('')
+  const [customGender, setCustomGender] = useState('')
+  const [showCustomGender, setShowCustomGender] = useState(false)
+  const [email, setEmail] = useState('')
   const login = useLogin()
   const register = useRegister()
   const [authenticated, setAuthenticated] = useState(isAuthenticated())
@@ -33,7 +39,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     if (mode === 'login') {
       login.mutate({ username: username.trim(), password })
     } else {
-      register.mutate({ username: username.trim(), password })
+      const finalGender = showCustomGender && customGender.trim() ? customGender.trim() : gender
+      register.mutate({
+        username: username.trim(),
+        password,
+        name: name.trim() || undefined,
+        gender: finalGender || undefined,
+        email: email.trim() || undefined,
+      })
     }
   }
 
@@ -52,10 +65,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         </div>
 
         <h1 className="text-xl font-bold text-amber-900 text-center mb-1">
-          Mellow Acres Co.
+          {t('auth.title')}
         </h1>
         <p className="text-xs text-amber-600 text-center mb-6">
-          Farm & Factory Tycoon
+          {t('auth.subtitle')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -63,7 +76,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your username"
+            placeholder={t('auth.usernamePlaceholder')}
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
             autoFocus
           />
@@ -71,13 +84,63 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
+            placeholder={t('auth.passwordPlaceholder')}
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
+          {mode === 'register' && (
+            <>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t('auth.displayNamePlaceholder')}
+                className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <div className="flex gap-1">
+                <select
+                  value={gender}
+                  onChange={(e) => { setGender(e.target.value); if (e.target.value) setShowCustomGender(false) }}
+                  className="flex-1 px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 appearance-none"
+                >
+                  <option value="">{t('auth.genderPlaceholder')}</option>
+                  <option value="Male">{t('auth.genderMale')}</option>
+                  <option value="Female">{t('auth.genderFemale')}</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => { setShowCustomGender(!showCustomGender); if (!showCustomGender) setGender('') }}
+                  className={`px-2.5 py-2.5 border border-amber-300 rounded-lg text-sm text-amber-600 hover:bg-amber-100 transition-colors ${showCustomGender ? 'bg-amber-200' : 'bg-white'}`}
+                  title={t('auth.customGender')}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              {showCustomGender && (
+                <input
+                  type="text"
+                  value={customGender}
+                  onChange={(e) => setCustomGender(e.target.value)}
+                  placeholder={t('auth.customGenderPlaceholder')}
+                  className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  autoFocus
+                />
+              )}
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('auth.emailPlaceholder')}
+                className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </>
+          )}
+
           {error && (
             <div className="text-xs text-red-500 bg-red-50 px-2 py-1.5 rounded">
-              {error instanceof Error ? error.message : 'Authentication failed'}
+              {error instanceof Error ? error.message : t('auth.failed')}
             </div>
           )}
 
@@ -86,7 +149,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             disabled={isPending || !username.trim()}
             className="w-full py-2.5 bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400 text-white text-sm font-bold rounded-lg transition-colors"
           >
-            {isPending ? 'Connecting...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {isPending ? t('auth.connecting') : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
           </button>
         </form>
 
@@ -95,7 +158,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
             className="text-xs text-amber-600 hover:text-amber-800 underline"
           >
-            {mode === 'login' ? "Don't have an account? Register" : 'Already have an account? Sign In'}
+            {mode === 'login' ? t('auth.switchToRegister') : t('auth.switchToLogin')}
           </button>
         </div>
       </div>

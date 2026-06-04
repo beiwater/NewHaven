@@ -5,6 +5,7 @@ import { useProductionJobs } from '@/api/production.api'
 import { useCompany, useCompleteTutorial } from '@/api/company.api'
 import { resourceIcon } from '@/game/resources'
 import { useUIStore } from '@/store/ui.store'
+import { useTranslation } from 'react-i18next'
 
 type GuideArrow = 'left' | 'right' | 'down'
 type GuideCardPosition = 'leftNav' | 'centerTop' | 'rightPanel' | 'marketLeft'
@@ -21,6 +22,7 @@ interface GuideNote {
 // are kept in git history but currently not rendered after tutorial completion.
 
 export function FarmNotes() {
+  const { t } = useTranslation()
   const { data: buildingsData } = useBuildings()
   const { data: warehouse } = useWarehouse()
   const { data: jobsData } = useProductionJobs()
@@ -90,8 +92,8 @@ export function FarmNotes() {
     if (activeView === 'build') {
       if (unplaced.length > 0) {
         return {
-          title: 'Scroll Down',
-          body: 'Find Unplaced Buildings, then press Place on Map.',
+          title: t('tutorial.scrollDown'),
+          body: t('tutorial.scrollDownBody'),
           resourceId: 12,
           arrow: 'down',
           card: 'centerTop',
@@ -99,16 +101,16 @@ export function FarmNotes() {
       }
       if (placed.length > 0) {
         return {
-          title: 'Return To Map',
-          body: 'Go back to the main map and click your building.',
+          title: t('tutorial.returnToMap'),
+          body: t('tutorial.returnToMapBody'),
           resourceId: 1,
           arrow: 'left',
           card: 'leftNav',
         }
       }
       return {
-        title: 'Buy A Building',
-        body: 'Pick the first farm building and buy it.',
+          title: t('tutorial.buyBuilding'),
+          body: t('tutorial.buyBuildingBody'),
         resourceId: 1,
         arrow: 'right',
         card: 'marketLeft',
@@ -117,8 +119,8 @@ export function FarmNotes() {
 
     if (activeView === 'market') {
       return {
-        title: 'Market Tutorial',
-        body: 'Pick a product, look at bids and asks, then try a small order. Prices are for you to discover.',
+          title: t('tutorial.marketTutorial'),
+          body: t('tutorial.marketTutorialBody'),
         resourceId: 1,
         arrow: 'right',
         card: 'marketLeft',
@@ -131,8 +133,8 @@ export function FarmNotes() {
 
     if (placed.length === 0 && unplaced.length === 0) {
       return {
-        title: 'Start Here',
-        body: 'Open Build first. Your farm needs one building before anything can grow.',
+          title: t('tutorial.startHere'),
+          body: t('tutorial.startHereBody'),
         resourceId: 1,
         arrow: 'left',
         card: 'leftNav',
@@ -141,16 +143,16 @@ export function FarmNotes() {
     if (unplaced.length > 0) {
       if (placementBuildingId) {
         return {
-          title: 'Place It Here',
-          body: 'Click an open spot on the map to drop the building.',
+          title: t('tutorial.placeItHere'),
+          body: t('tutorial.placeItHereBody'),
           resourceId: 12,
           arrow: 'down',
           card: 'centerTop',
         }
       }
       return {
-        title: 'Back To Build',
-        body: 'Open Build and press Place on Map for the building you bought.',
+          title: t('tutorial.backToBuild'),
+          body: t('tutorial.backToBuildBody'),
         resourceId: 12,
         arrow: 'left',
         card: 'leftNav',
@@ -160,8 +162,8 @@ export function FarmNotes() {
     if (selectedBuildingId) {
       if (selectedCollectable > 0) {
         return {
-          title: 'Collect It',
-          body: 'Click the green Collect button. After the first collect, the farm loop is yours.',
+          title: t('tutorial.collectIt'),
+          body: t('tutorial.collectItBody'),
           resourceId: 1,
           arrow: 'right',
           card: 'rightPanel',
@@ -169,8 +171,8 @@ export function FarmNotes() {
       }
       if (selectedActiveJobs.length > 0) {
         return {
-          title: 'Wait For Yield',
-          body: 'Production is running. When a collect amount appears, take the partial harvest.',
+          title: t('tutorial.waitForYield'),
+          body: t('tutorial.waitForYieldBody'),
           resourceId: selectedActiveJobs[0]?.resourceId ?? 1,
           arrow: 'right',
           card: 'rightPanel',
@@ -180,8 +182,8 @@ export function FarmNotes() {
         return null
       }
       return {
-        title: 'Set Production',
-        body: 'Enter a quantity, then click Start.',
+          title: t('tutorial.setProduction'),
+          body: t('tutorial.setProductionBody'),
         resourceId: 1,
         arrow: 'right',
         card: 'rightPanel',
@@ -194,8 +196,8 @@ export function FarmNotes() {
 
     if (placed.length > 0) {
       return {
-        title: 'Open Building',
-        body: 'Click your building on the map to start production.',
+          title: t('tutorial.openBuilding'),
+          body: t('tutorial.openBuildingBody'),
         resourceId: 1,
         arrow: 'down',
         card: 'centerTop',
@@ -204,23 +206,23 @@ export function FarmNotes() {
 
     if (collectable > 0) {
       return {
-        title: 'Collect Now',
-        body: `${collectable.toLocaleString()} goods are ready. Collect them while production keeps going.`,
+          title: t('tutorial.collectNow'),
+          body: t('tutorial.collectNowBody', { count: collectable.toLocaleString() }),
         resourceId: 1,
         arrow: 'down',
       }
     }
     if (jobs.length > 0) {
       return {
-        title: 'Watch Production',
-        body: 'Buildings produce over time. When the badge appears, collect the partial harvest.',
+          title: t('tutorial.watchProduction'),
+          body: t('tutorial.watchProductionBody'),
         resourceId: jobs[0]?.resourceId ?? 1,
         arrow: 'down',
       }
     }
 
     return null
-  }, [activeJobs.length, activeView, collectable, collectedOnce, jobs, level, placed.length, placementBuildingId, rawGoods, selectedActiveJobs, selectedBuildingId, selectedCollectable, unplaced.length])
+  }, [activeJobs.length, activeView, collectable, collectedOnce, jobs, level, placed.length, placementBuildingId, rawGoods, selectedActiveJobs, selectedBuildingId, selectedCollectable, t, unplaced.length])
 
   if (!showTips) return null
 
@@ -234,8 +236,8 @@ export function FarmNotes() {
             <svg className="w-10 h-10 text-amber-500 farm-celebration-sparkle" viewBox="0 0 24 24" fill="none">
               <path d="M12 2l1.5 6.5L20 9l-5 4.5 1.5 7L12 16l-5.5 4.5L8 14.5 3 10l6.5-.5L12 2z" fill="currentColor" />
             </svg>
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Tutorial Complete</div>
-            <div className="text-lg font-black leading-tight text-amber-950">Your Farm Is Ready</div>
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">{t('tutorial.congratulations')}</div>
+            <div className="text-lg font-black leading-tight text-amber-950">{t('tutorial.congratulationsBody')}</div>
             <p className="text-xs font-semibold leading-snug text-amber-800">
               You know the basics. Explore the market, expand your chains, and discover what works.
             </p>

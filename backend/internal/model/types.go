@@ -109,6 +109,9 @@ type Company struct {
 type Player struct {
 	ID           int    `json:"id"`
 	Username     string `json:"username"`
+	Name         string `json:"name,omitempty"`
+	Gender       string `json:"gender,omitempty"`
+	Email        string `json:"email,omitempty"`
 	PasswordHash string `json:"-"`
 	Token        string `json:"token,omitempty"`
 	CompanyID    int    `json:"companyId"`
