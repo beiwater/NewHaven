@@ -2,12 +2,17 @@ package service
 
 import (
 	"fmt"
+	"go-sim-api/internal/model"
 	"strconv"
 )
 
-func (s *Service) RecipeList() []map[string]any {
+func (s *Service) RecipeList(companyID int) []map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	company := s.getCompanyLocked(companyID)
+	if company == nil {
+		return []map[string]any{}
+	}
 	out := make([]map[string]any, 0)
 	for _, r := range s.Data.Resources {
 		rid := intFromAny(r["dbLetter"])
@@ -24,8 +29,8 @@ func (s *Service) RecipeList() []map[string]any {
 			recipe = append(recipe, map[string]any{"resourceId": kid, "quantity": q})
 		}
 		unlocked := true
-		if s.State.UnlockedRecipes != nil && rid > 100 {
-			_, unlocked = s.State.UnlockedRecipes[rid]
+		if company.UnlockedRecipes != nil && rid > 100 {
+			_, unlocked = company.UnlockedRecipes[rid]
 		}
 		out = append(out, map[string]any{
 			"resourceId": rid,
@@ -55,7 +60,7 @@ func (s *Service) ProductionOptions(companyID int, buildingID string) []map[stri
 	ids := s.productionIDsForKind(kind)
 	out := make([]map[string]any, 0, len(ids))
 	for _, id := range ids {
-		detail := s.recipeDetailLocked(id)
+		detail := s.recipeDetailLocked(company, id)
 		if _, ok := detail["error"]; ok {
 			continue
 		}
@@ -64,18 +69,26 @@ func (s *Service) ProductionOptions(companyID int, buildingID string) []map[stri
 	return out
 }
 
-func (s *Service) RecipeDetail(resourceID int) map[string]any {
+func (s *Service) RecipeDetail(companyID int, resourceID int) map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.recipeDetailLocked(resourceID)
+	return s.recipeDetailLocked(s.getCompanyLocked(companyID), resourceID)
 }
 
-func (s *Service) recipeDetailLocked(resourceID int) map[string]any {
+func (s *Service) recipeDetailLocked(company *model.Company, resourceID int) map[string]any {
+	if company == nil {
+		return map[string]any{"error": "company not found"}
+	}
 	for _, r := range s.Data.Resources {
 		if intFromAny(r["dbLetter"]) != resourceID {
 			continue
 		}
 		info := map[string]any{"resourceId": resourceID, "name": r["name"]}
+		if resourceID > 100 {
+			_, info["unlocked"] = company.UnlockedRecipes[resourceID]
+		} else {
+			info["unlocked"] = true
+		}
 		if pf, ok := r["producedFrom"].(map[string]any); ok {
 			recipe := make([]map[string]any, 0, 10)
 			for k, q := range pf {

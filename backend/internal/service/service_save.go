@@ -56,6 +56,11 @@ func (s *Service) saveCompanyLocked(company *model.Company) {
 		s.setSaveError(err)
 		return
 	}
+	if err := s.Store.SaveState(ctx, &s.State); err != nil {
+		log.Printf("ERROR save state after company save: %v", err)
+		s.setSaveError(err)
+		return
+	}
 	s.setSaveError(nil)
 }
 

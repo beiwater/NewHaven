@@ -36,8 +36,8 @@ func (h *Handler) handleCSRF(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, map[string]any{"csrfToken": h.svc.Snapshot().CSRFToken})
 }
 
-func (h *Handler) handlePlayersMeCompanies(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, 200, h.svc.CompaniesByPlayer("dev-player"))
+func (h *Handler) handlePlayersMeCompanies(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, h.svc.CompaniesByPlayer(h.playerID(r)))
 }
 
 func (h *Handler) handlePlayersByID(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,12 @@ func (h *Handler) handlePlayersByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.Contains(r.URL.Path, "/companies/") {
-		writeJSON(w, 200, h.svc.CompaniesByPlayer("external-player"))
+		playerID, err := playerIDFromPath(r.URL.Path)
+		if err != nil {
+			writeErr(w, 400, "invalid player id")
+			return
+		}
+		writeJSON(w, 200, h.svc.CompaniesByPlayer(playerID))
 		return
 	}
 	writeErr(w, 404, "not found")
@@ -62,7 +67,17 @@ func (h *Handler) handleSavePreferences(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, "invalid json")
 		return
 	}
-	writeJSON(w, 200, h.svc.UpdatePreferences(body))
+	writeJSON(w, 200, h.svc.UpdatePreferences(h.companyID(r), body))
+}
+
+func playerIDFromPath(path string) (int, error) {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	for i, part := range parts {
+		if part == "players" && i+1 < len(parts) {
+			return strconv.Atoi(parts[i+1])
+		}
+	}
+	return 0, strconv.ErrSyntax
 }
 
 func (h *Handler) handleCompaniesMeBuildings(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +264,6 @@ func (h *Handler) handleWarehouse(w http.ResponseWriter, r *http.Request) {
 		"inventory": inv, "capacity": h.svc.WarehouseCapacity(c.WarehouseLevel), "used": used,
 	})
 }
-
 
 func (h *Handler) handleCompleteTutorial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

@@ -101,11 +101,17 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 		// Dev mode: create a demo company and dev player so login works immediately
 		mainCompany := model.Company{
 			ID: cfg.Game.CompanyID, Name: cfg.Game.CompanyName, Money: cfg.Game.StartMoney, Level: cfg.Game.StartLevel,
+			XP:                0,
+			XpToNextLevel:     100,
 			Inventory:         map[int]int{1: 2000, 2: 800, 3: 1000},
 			PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 1, "level": 3, "name": "Farm", "busy": false, "baseCost": 10000, "mapId": "harbor", "slotId": "harbor-plot-01", "x": 1, "y": 1, "placedAt": now, "produces": []int{1}}},
 			UnplacedBuildings: []map[string]any{},
 			WarehouseLevel:    0,
 			TutorialCompleted: true,
+			Preferences:       defaultCompanyPreferences(true),
+			ResearchProjects:  defaultResearchProjects(now),
+			UnlockedRecipes:   map[int]bool{},
+			ResearchedQuality: map[int]int{},
 		}
 		companies = append(companies, mainCompany)
 		// Create a dev player record so /api/login works
@@ -225,6 +231,47 @@ func (s *Service) ensureRuntimeState() {
 		if c.QualityInventory == nil {
 			c.QualityInventory = map[string]int{}
 		}
+		if c.XpToNextLevel <= 0 {
+			if i == 0 && s.State.XpToNextLevel > 0 {
+				c.XpToNextLevel = s.State.XpToNextLevel
+			} else {
+				c.XpToNextLevel = max(100, c.Level*100)
+			}
+		}
+		if c.XP == 0 && i == 0 && s.State.XP > 0 {
+			c.XP = s.State.XP
+		}
+		if c.Preferences == nil {
+			c.Preferences = defaultCompanyPreferences(false)
+			if i == 0 && s.State.PlayerPreferences != nil {
+				for k, v := range s.State.PlayerPreferences {
+					c.Preferences[k] = v
+				}
+			}
+		}
+		if c.UnlockedRecipes == nil {
+			c.UnlockedRecipes = map[int]bool{}
+			if i == 0 && s.State.UnlockedRecipes != nil {
+				for k, v := range s.State.UnlockedRecipes {
+					c.UnlockedRecipes[k] = v
+				}
+			}
+		}
+		if c.ResearchedQuality == nil {
+			c.ResearchedQuality = map[int]int{}
+			if i == 0 && s.State.ResearchedQuality != nil {
+				for k, v := range s.State.ResearchedQuality {
+					c.ResearchedQuality[k] = v
+				}
+			}
+		}
+		if c.ResearchProjects == nil {
+			if i == 0 && len(s.State.ResearchProjects) > 0 {
+				c.ResearchProjects = cloneResearchProjects(s.State.ResearchProjects)
+			} else {
+				c.ResearchProjects = defaultResearchProjects(s.now().UTC().Format(time.RFC3339))
+			}
+		}
 		occupiedSlots := map[string]bool{}
 		for j := range c.PlacedBuildings {
 			building := c.PlacedBuildings[j]
@@ -285,14 +332,69 @@ func (s *Service) ensureRuntimeState() {
 }
 
 func (s *Service) addXP(company *model.Company, amount int) {
-	s.State.XP += amount
-	for s.State.XP >= s.State.XpToNextLevel {
-		s.State.XP -= s.State.XpToNextLevel
+	if company == nil {
+		return
+	}
+	if company.XpToNextLevel <= 0 {
+		company.XpToNextLevel = max(100, company.Level*100)
+	}
+	company.XP += amount
+	for company.XP >= company.XpToNextLevel {
+		company.XP -= company.XpToNextLevel
 		if company != nil {
 			company.Level++
-			s.State.XpToNextLevel = company.Level * 100
+			company.XpToNextLevel = company.Level * 100
 		}
-		s.addLedger("level_up", 0, "in", map[string]any{"newLevel": s.State.XpToNextLevel})
+		s.addLedger("level_up", 0, "in", map[string]any{"newLevel": company.Level})
+	}
+}
+
+func defaultCompanyPreferences(storyCompleted bool) map[string]any {
+	prefs := map[string]any{
+		"soundEnabled":              true,
+		"buildingAnimationsEnabled": true,
+		"autoDisableAnimations":     false,
+	}
+	if storyCompleted {
+		prefs["storyProgress"] = map[string]any{"chapter1Arrival": "completed"}
+	}
+	return prefs
+}
+
+func cloneResearchProjects(in []model.ResearchProject) []model.ResearchProject {
+	return append([]model.ResearchProject(nil), in...)
+}
+
+func defaultResearchProjects(now string) []model.ResearchProject {
+	return []model.ResearchProject{
+		{
+			ID: "research-project-29", Name: "Wheat Quality Research",
+			Building:     "Farm",
+			ResourceCost: map[int]int{1: 200},
+			CashCost:     50000, DurationHours: 6,
+			QualityResourceID: 1, Status: "available", Progress: 0,
+		},
+		{
+			ID: "research-project-30", Name: "Flour Quality Research",
+			Building:     "Mill",
+			ResourceCost: map[int]int{1: 300, 2: 150},
+			CashCost:     80000, DurationHours: 8,
+			QualityResourceID: 2, Status: "available", Progress: 0,
+		},
+		{
+			ID: "research-project-31", Name: "Bread Quality Research",
+			Building:     "Bakery",
+			ResourceCost: map[int]int{2: 300, 3: 120},
+			CashCost:     100000, DurationHours: 10,
+			QualityResourceID: 3, Status: "available", Progress: 0,
+		},
+		{
+			ID: "research-project-32", Name: "Meal Quality Research",
+			Building:     "Restaurant",
+			ResourceCost: map[int]int{3: 250, 4: 100},
+			CashCost:     120000, DurationHours: 12,
+			QualityResourceID: 4, Status: "available", Progress: 0,
+		},
 	}
 }
 

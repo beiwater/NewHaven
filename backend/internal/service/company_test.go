@@ -8,7 +8,7 @@ import (
 
 func TestCompaniesByPlayer(t *testing.T) {
 	s := newCoreTestService()
-	result := s.CompaniesByPlayer("dev-player")
+	result := s.CompaniesByPlayer(0)
 	if len(result) == 0 {
 		t.Fatal("expected companies")
 	}

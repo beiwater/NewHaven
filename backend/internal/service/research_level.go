@@ -9,15 +9,22 @@ func (s *Service) CurrentLevelInfo(companyID int) map[string]any {
 	}
 	return map[string]any{
 		"level":         company.Level,
-		"currentXp":     s.State.XP,
-		"xpToNextLevel": s.State.XpToNextLevel,
+		"currentXp":     company.XP,
+		"xpToNextLevel": company.XpToNextLevel,
 	}
 }
 
-func (s *Service) AddXP(amount int) map[string]any {
-	s.addXP(nil, amount)
+func (s *Service) AddXP(companyID, amount int) map[string]any {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	company := s.getCompanyLocked(companyID)
+	if company == nil {
+		return map[string]any{"error": "company not found"}
+	}
+	s.addXP(company, amount)
+	s.saveCompanyLocked(company)
 	return map[string]any{
-		"ok": true, "xpAdded": amount,
+		"ok": true, "xpAdded": amount, "level": company.Level, "currentXp": company.XP, "xpToNextLevel": company.XpToNextLevel,
 	}
 }
 

@@ -19,8 +19,8 @@ func (h *Handler) handleRecipes(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 400, "invalid resource id")
 			return
 		}
-		writeJSON(w, 200, h.svc.RecipeDetail(id))
+		writeJSON(w, 200, h.svc.RecipeDetail(h.companyID(r), id))
 		return
 	}
-	writeJSON(w, 200, h.svc.RecipeList())
+	writeJSON(w, 200, h.svc.RecipeList(h.companyID(r)))
 }

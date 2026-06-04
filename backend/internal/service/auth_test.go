@@ -238,6 +238,96 @@ func TestMultiPlayerIsolation(t *testing.T) {
 	}
 }
 
+func TestPlayerCompanyListsAreIsolated(t *testing.T) {
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "company-list-isolation-key"
+	svc := New(testData(), cfg, nil)
+
+	r1, _ := svc.RegisterPlayer("list-player-1", "pass1", "", "", "")
+	r2, _ := svc.RegisterPlayer("list-player-2", "pass2", "", "", "")
+
+	p1 := r1["player"].(model.Player)
+	p2 := r2["player"].(model.Player)
+
+	companies1 := svc.CompaniesByPlayer(p1.ID)
+	companies2 := svc.CompaniesByPlayer(p2.ID)
+	if len(companies1) != 1 || len(companies2) != 1 {
+		t.Fatalf("expected one company per player, got %d and %d", len(companies1), len(companies2))
+	}
+	if companies1[0]["companyId"] == companies2[0]["companyId"] {
+		t.Fatalf("players should not see the same company: %+v %+v", companies1[0], companies2[0])
+	}
+	if companies1[0]["companyId"] != p1.CompanyID {
+		t.Fatalf("player1 company list = %+v, want company %d", companies1[0], p1.CompanyID)
+	}
+	if companies2[0]["companyId"] != p2.CompanyID {
+		t.Fatalf("player2 company list = %+v, want company %d", companies2[0], p2.CompanyID)
+	}
+}
+
+func TestCompanyPreferencesAreIsolated(t *testing.T) {
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "prefs-isolation-key"
+	svc := New(testData(), cfg, nil)
+
+	r1, _ := svc.RegisterPlayer("prefs-player-1", "pass1", "", "", "")
+	r2, _ := svc.RegisterPlayer("prefs-player-2", "pass2", "", "", "")
+
+	p1 := r1["player"].(model.Player)
+	p2 := r2["player"].(model.Player)
+
+	svc.UpdatePreferences(p1.CompanyID, map[string]any{
+		"storyProgress": map[string]any{"chapter1Arrival": "completed"},
+	})
+
+	profile1 := svc.CompanyProfile(p1.CompanyID)
+	profile2 := svc.CompanyProfile(p2.CompanyID)
+	prefs1 := profile1["preferences"].(map[string]any)
+	prefs2 := profile2["preferences"].(map[string]any)
+
+	if _, ok := prefs1["storyProgress"]; !ok {
+		t.Fatal("player1 should keep saved story progress")
+	}
+	if _, ok := prefs2["storyProgress"]; ok {
+		t.Fatal("player2 should not inherit player1 story progress")
+	}
+}
+
+func TestCompanyResearchIsIsolated(t *testing.T) {
+	cfg := config.DefaultTestConfig()
+	cfg.DevMode = false
+	cfg.JWTSigningKey = "research-isolation-key"
+	svc := New(testData(), cfg, nil)
+
+	r1, _ := svc.RegisterPlayer("research-player-1", "pass1", "", "", "")
+	r2, _ := svc.RegisterPlayer("research-player-2", "pass2", "", "", "")
+
+	p1 := r1["player"].(model.Player)
+	p2 := r2["player"].(model.Player)
+
+	c1 := svc.State.GetCompany(p1.CompanyID)
+	if c1 == nil {
+		t.Fatal("player1 company missing")
+	}
+	c1.Inventory[1] = 1000
+	c1.Money = 1_000_000
+
+	if _, err := svc.StartResearch(p1.CompanyID, "research-project-29"); err != nil {
+		t.Fatalf("start research for player1: %v", err)
+	}
+
+	projects1 := svc.ResearchProjects(p1.CompanyID)
+	projects2 := svc.ResearchProjects(p2.CompanyID)
+	if projects1[0]["status"] != "in_progress" {
+		t.Fatalf("player1 project status = %v, want in_progress", projects1[0]["status"])
+	}
+	if projects2[0]["status"] != "available" {
+		t.Fatalf("player2 project status = %v, want available", projects2[0]["status"])
+	}
+}
+
 func TestDevModeCreatesDevPlayer(t *testing.T) {
 	cfg := config.DefaultTestConfig()
 	cfg.JWTSigningKey = "dev-key"

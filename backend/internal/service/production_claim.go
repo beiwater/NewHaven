@@ -56,8 +56,8 @@ func (s *Service) ClaimProduction(companyID int, jobID string) (map[string]any, 
 		marketUnlocked := false
 		if company.Level < 2 {
 			company.Level = 2
-			if s.State.XpToNextLevel < company.Level*100 {
-				s.State.XpToNextLevel = company.Level * 100
+			if company.XpToNextLevel < company.Level*100 {
+				company.XpToNextLevel = company.Level * 100
 			}
 			marketUnlocked = true
 			s.addLedger("level_up", 0, "in", map[string]any{"newLevel": company.Level, "reason": "first_harvest"})

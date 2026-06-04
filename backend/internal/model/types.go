@@ -93,17 +93,23 @@ type Trade struct {
 }
 
 type Company struct {
-	ID                int              `json:"id"`
-	Name              string           `json:"name"`
-	Money             float64          `json:"money"`
-	Level             int              `json:"level"`
-	ProductionSlots   int              `json:"productionSlots"`
-	Inventory         map[int]int      `json:"inventory"`
-	QualityInventory  map[string]int   `json:"qualityInventory,omitempty"`
-	PlacedBuildings   []map[string]any `json:"placedBuildings"`
-	UnplacedBuildings []map[string]any `json:"unplacedBuildings"`
-	WarehouseLevel    int `json:"warehouseLevel"`
-	TutorialCompleted bool `json:"tutorialCompleted"`
+	ID                int               `json:"id"`
+	Name              string            `json:"name"`
+	Money             float64           `json:"money"`
+	Level             int               `json:"level"`
+	XP                int               `json:"xp"`
+	XpToNextLevel     int               `json:"xpToNextLevel"`
+	ProductionSlots   int               `json:"productionSlots"`
+	Inventory         map[int]int       `json:"inventory"`
+	QualityInventory  map[string]int    `json:"qualityInventory,omitempty"`
+	PlacedBuildings   []map[string]any  `json:"placedBuildings"`
+	UnplacedBuildings []map[string]any  `json:"unplacedBuildings"`
+	WarehouseLevel    int               `json:"warehouseLevel"`
+	TutorialCompleted bool              `json:"tutorialCompleted"`
+	Preferences       map[string]any    `json:"preferences,omitempty"`
+	ResearchProjects  []ResearchProject `json:"researchProjects,omitempty"`
+	UnlockedRecipes   map[int]bool      `json:"unlockedRecipes,omitempty"`
+	ResearchedQuality map[int]int       `json:"researchedQuality,omitempty"`
 }
 
 type Player struct {

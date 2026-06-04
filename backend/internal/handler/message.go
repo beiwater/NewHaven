@@ -71,10 +71,10 @@ func (h *Handler) handleChatroom(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, h.svc.Snapshot().Messages)
 }
 
-func (h *Handler) handleContacts(w http.ResponseWriter, _ *http.Request) {
+func (h *Handler) handleContacts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"chatrooms":                 []any{},
-		"contacts":                  h.svc.CompaniesByPlayer("network"),
+		"contacts":                  h.svc.CompaniesByPlayer(h.playerID(r)),
 		"unreadMessagesOtherRealms": 0,
 		"invisible":                 false,
 		"ignoringCompanies":         map[string]any{},

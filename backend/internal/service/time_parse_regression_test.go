@@ -10,7 +10,8 @@ import (
 
 func TestResearchProgressSkipsInvalidTimestamps(t *testing.T) {
 	s := newCoreTestService()
-	s.State.ResearchProjects = []model.ResearchProject{
+	companyID := s.State.Companies[0].ID
+	s.State.Companies[0].ResearchProjects = []model.ResearchProject{
 		{
 			ID:          "bad-research",
 			Name:        "Broken Research",
@@ -21,7 +22,7 @@ func TestResearchProgressSkipsInvalidTimestamps(t *testing.T) {
 		},
 	}
 
-	result := s.ResearchProgress()
+	result := s.ResearchProgress(companyID)
 	projects := result["projects"].([]model.ResearchProject)
 	got := projects[0]
 	if got.Status != "in_progress" {

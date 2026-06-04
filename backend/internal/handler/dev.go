@@ -34,8 +34,8 @@ func (h *Handler) handleDevLedger(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) handleDevFormulasProduction(w http.ResponseWriter, _ *http.Request) {
-	baseOutput := 500.0                          // Farm Lv1 base output
-	speedBonus := 10.0                            // +10% speed
+	baseOutput := 500.0 // Farm Lv1 base output
+	speedBonus := 10.0  // +10% speed
 	level := 3
 	ph := formula.OutputPerHour(baseOutput, speedBonus, level)
 	dur := formula.ProductionDurationSeconds(100, 3600/baseOutput, level, 1.0)
@@ -120,8 +120,8 @@ func (h *Handler) handleWarehouseContractsSummary(w http.ResponseWriter, _ *http
 	writeJSON(w, 200, map[string]any{"incoming": 0, "outgoing": 0})
 }
 
-func (h *Handler) handleResearch(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, 200, map[string]any{"projects": h.svc.ResearchProjects()})
+func (h *Handler) handleResearch(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, map[string]any{"projects": h.svc.ResearchProjects(h.companyID(r))})
 }
 
 func (h *Handler) handleStartResearch(w http.ResponseWriter, r *http.Request) {
@@ -146,8 +146,8 @@ func (h *Handler) handleStartResearch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, resp)
 }
 
-func (h *Handler) handleResearchProgress(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, 200, h.svc.ResearchProgress())
+func (h *Handler) handleResearchProgress(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, h.svc.ResearchProgress(h.companyID(r)))
 }
 
 func (h *Handler) handleCompleteResearch(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +161,7 @@ func (h *Handler) handleCompleteResearch(w http.ResponseWriter, r *http.Request)
 		writeErr(w, 400, "missing project id")
 		return
 	}
-	resp, err := h.svc.CompleteResearch(id)
+	resp, err := h.svc.CompleteResearch(h.companyID(r), id)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return

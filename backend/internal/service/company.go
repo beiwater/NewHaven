@@ -13,12 +13,20 @@ func (s *Service) CompanyProfile(companyID int) map[string]any {
 	if company == nil {
 		return map[string]any{"error": "company not found"}
 	}
-	preferences := cloneMapStringAny(s.State.PlayerPreferences)
+	preferences := cloneMapStringAny(company.Preferences)
 	if preferences == nil {
-		preferences = map[string]any{}
+		preferences = defaultCompanyPreferences(false)
+		company.Preferences = cloneMapStringAny(preferences)
 	}
 	if _, ok := preferences["theme"]; !ok {
 		preferences["theme"] = "System"
+	}
+	playerID := "dev-player"
+	for _, player := range s.State.Players {
+		if player.CompanyID == company.ID {
+			playerID = fmt.Sprint(player.ID)
+			break
+		}
 	}
 
 	return map[string]any{
@@ -31,8 +39,8 @@ func (s *Service) CompanyProfile(companyID int) map[string]any {
 			"maxTags":          5,
 			"displayCaseSlots": 3,
 		},
-		"authUser":    map[string]any{"playerId": "dev-player", "isModerator": false, "supporter": false},
-		"levelInfo":   map[string]any{"level": company.Level, "xp": 12800, "inTutorial": false, "tutorialCompleted": company.TutorialCompleted},
+		"authUser":    map[string]any{"playerId": playerID, "isModerator": false, "supporter": false},
+		"levelInfo":   map[string]any{"level": company.Level, "xp": company.XP, "inTutorial": false, "tutorialCompleted": company.TutorialCompleted},
 		"unlocks":     FeatureUnlockPayload(company.Level),
 		"preferences": preferences,
 	}
@@ -44,16 +52,23 @@ func (s *Service) CompleteTutorial(companyID int) {
 	company := s.getCompanyLocked(companyID)
 	if company != nil {
 		company.TutorialCompleted = true
+		s.saveCompanyLocked(company)
 	}
 }
 
-func (s *Service) CompaniesByPlayer(playerID string) []map[string]any {
+func (s *Service) CompaniesByPlayer(playerID int) []map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	out := make([]map[string]any, 0, len(s.State.Companies))
-	for _, c := range s.State.Companies {
-		out = append(out, map[string]any{"companyId": c.ID, "company": c.Name, "playerId": playerID, "level": c.Level})
+	out := make([]map[string]any, 0, 1)
+	for _, p := range s.State.Players {
+		if p.ID != playerID {
+			continue
+		}
+		if c := s.getCompanyLocked(p.CompanyID); c != nil {
+			out = append(out, map[string]any{"companyId": c.ID, "company": c.Name, "playerId": playerID, "level": c.Level})
+		}
+		break
 	}
 	return out
 }

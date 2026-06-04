@@ -31,7 +31,7 @@ func (s *Service) StartBuildingProduction(companyID int, buildingID string, body
 		reqQuality = s.Cfg.Game.MaxQuality
 	}
 
-	if err := s.checkResearchUnlock(resourceID); err != nil {
+	if err := s.checkResearchUnlock(company, resourceID); err != nil {
 		return map[string]any{"error": err.Error()}
 	}
 	if err := s.checkBuildingSlot(companyID, buildingID); err != nil {
@@ -86,9 +86,12 @@ func (s *Service) StartBuildingProduction(companyID int, buildingID string, body
 	}
 }
 
-func (s *Service) checkResearchUnlock(resourceID int) error {
-	if s.State.UnlockedRecipes != nil {
-		if _, needsUnlock := s.State.UnlockedRecipes[resourceID]; needsUnlock {
+func (s *Service) checkResearchUnlock(company *model.Company, resourceID int) error {
+	if company == nil {
+		return fmt.Errorf("company not found")
+	}
+	if company.UnlockedRecipes != nil {
+		if _, needsUnlock := company.UnlockedRecipes[resourceID]; needsUnlock {
 			return nil
 		} else if resourceID > 100 {
 			return fmt.Errorf("recipe not unlocked")

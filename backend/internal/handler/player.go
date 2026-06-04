@@ -80,7 +80,7 @@ func (h *Handler) handleLevel(w http.ResponseWriter, r *http.Request) {
 	st := h.svc.Snapshot()
 	c := st.GetCompany(h.companyID(r))
 	writeJSON(w, 200, map[string]any{
-		"level": c.Level, "currentXp": st.XP, "xpToNextLevel": st.XpToNextLevel,
+		"level": c.Level, "currentXp": c.XP, "xpToNextLevel": c.XpToNextLevel,
 		"buildingSlots": service.BuildingSlotsForLevel(c.Level), "buildingsUsed": len(c.PlacedBuildings) + len(c.UnplacedBuildings),
 		"unlocks": service.FeatureUnlockPayload(c.Level),
 	})
@@ -100,7 +100,7 @@ func (h *Handler) handlePlayerAddXP(w http.ResponseWriter, r *http.Request) {
 	if amount <= 0 {
 		amount = 100
 	}
-	writeJSON(w, 200, h.svc.AddXP(amount))
+	writeJSON(w, 200, h.svc.AddXP(h.companyID(r), amount))
 }
 
 func (h *Handler) handlePlayerLevelRewards(w http.ResponseWriter, r *http.Request) {

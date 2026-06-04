@@ -7,12 +7,16 @@ import (
 	"go-sim-api/internal/model"
 )
 
-func (s *Service) ResearchProjects() []map[string]any {
+func (s *Service) ResearchProjects(companyID int) []map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	company := s.getCompanyLocked(companyID)
+	if company == nil {
+		return []map[string]any{}
+	}
 
-	projects := make([]map[string]any, 0, len(s.State.ResearchProjects))
-	for _, p := range s.State.ResearchProjects {
+	projects := make([]map[string]any, 0, len(company.ResearchProjects))
+	for _, p := range company.ResearchProjects {
 		projects = append(projects, map[string]any{
 			"id":                p.ID,
 			"name":              p.Name,
@@ -39,8 +43,11 @@ func (s *Service) StartResearch(companyID int, projectID string) (map[string]any
 	if company == nil {
 		return nil, fmt.Errorf("company not found")
 	}
-	for i := range s.State.ResearchProjects {
-		p := &s.State.ResearchProjects[i]
+	if company.ResearchProjects == nil {
+		company.ResearchProjects = defaultResearchProjects(s.now().UTC().Format(time.RFC3339))
+	}
+	for i := range company.ResearchProjects {
+		p := &company.ResearchProjects[i]
 		if p.ID != projectID {
 			continue
 		}
@@ -64,17 +71,25 @@ func (s *Service) StartResearch(companyID int, projectID string) (map[string]any
 		p.CompletesAt = now.Add(time.Duration(p.DurationHours) * time.Hour).Format(time.RFC3339)
 		p.Progress = 0
 		s.addLedger("research_start", p.CashCost, "out", map[string]any{"project": p.ID})
+		s.saveCompanyLocked(company)
 		return map[string]any{"project": p, "status": "started"}, nil
 	}
 	return nil, fmt.Errorf("project not found")
 }
 
-func (s *Service) ResearchProgress() map[string]any {
+func (s *Service) ResearchProgress(companyID int) map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	company := s.getCompanyLocked(companyID)
+	if company == nil {
+		return map[string]any{"projects": []model.ResearchProject{}}
+	}
+	if company.ResearchProjects == nil {
+		company.ResearchProjects = defaultResearchProjects(s.now().UTC().Format(time.RFC3339))
+	}
 	now := s.now().UTC()
-	for i := range s.State.ResearchProjects {
-		p := &s.State.ResearchProjects[i]
+	for i := range company.ResearchProjects {
+		p := &company.ResearchProjects[i]
 		if p.Status != "in_progress" {
 			continue
 		}
@@ -97,34 +112,42 @@ func (s *Service) ResearchProgress() map[string]any {
 		if p.Progress >= 100 {
 			p.Status = "completed"
 			if p.UnlockRecipeID > 0 {
-				if s.State.UnlockedRecipes == nil {
-					s.State.UnlockedRecipes = map[int]bool{}
+				if company.UnlockedRecipes == nil {
+					company.UnlockedRecipes = map[int]bool{}
 				}
-				s.State.UnlockedRecipes[p.UnlockRecipeID] = true
+				company.UnlockedRecipes[p.UnlockRecipeID] = true
 			}
 			if p.QualityResourceID > 0 {
-				if s.State.ResearchedQuality == nil {
-					s.State.ResearchedQuality = map[int]int{}
+				if company.ResearchedQuality == nil {
+					company.ResearchedQuality = map[int]int{}
 				}
-				s.State.ResearchedQuality[p.QualityResourceID]++
+				company.ResearchedQuality[p.QualityResourceID]++
 			}
-			s.addXP(nil, 100)
+			s.addXP(company, 100)
 			s.addLedger("research_complete", 0, "in", map[string]any{"project": p.ID, "unlockRecipe": p.UnlockRecipeID})
 		}
 	}
-	return map[string]any{"projects": s.State.ResearchProjects}
+	s.saveCompanyLocked(company)
+	return map[string]any{"projects": company.ResearchProjects}
 }
 
 func (s *Service) StartResearchProjects() []model.ResearchProject {
 	return append([]model.ResearchProject{}, s.State.ResearchProjects...)
 }
 
-func (s *Service) CompleteResearch(projectID string) (map[string]any, error) {
+func (s *Service) CompleteResearch(companyID int, projectID string) (map[string]any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	company := s.getCompanyLocked(companyID)
+	if company == nil {
+		return nil, fmt.Errorf("company not found")
+	}
+	if company.ResearchProjects == nil {
+		company.ResearchProjects = defaultResearchProjects(s.now().UTC().Format(time.RFC3339))
+	}
 
-	for i := range s.State.ResearchProjects {
-		p := &s.State.ResearchProjects[i]
+	for i := range company.ResearchProjects {
+		p := &company.ResearchProjects[i]
 		if p.ID != projectID {
 			continue
 		}
@@ -142,22 +165,23 @@ func (s *Service) CompleteResearch(projectID string) (map[string]any, error) {
 		p.Status = "completed"
 		p.Progress = 100
 		if p.UnlockRecipeID > 0 {
-			if s.State.UnlockedRecipes == nil {
-				s.State.UnlockedRecipes = map[int]bool{}
+			if company.UnlockedRecipes == nil {
+				company.UnlockedRecipes = map[int]bool{}
 			}
-			s.State.UnlockedRecipes[p.UnlockRecipeID] = true
+			company.UnlockedRecipes[p.UnlockRecipeID] = true
 		}
 
 		qualityImprove := 0
 		if p.QualityResourceID > 0 {
-			if s.State.ResearchedQuality == nil {
-				s.State.ResearchedQuality = map[int]int{}
+			if company.ResearchedQuality == nil {
+				company.ResearchedQuality = map[int]int{}
 			}
-			s.State.ResearchedQuality[p.QualityResourceID]++
+			company.ResearchedQuality[p.QualityResourceID]++
 			qualityImprove = 1
 		}
 
-		s.addXP(nil, 100)
+		s.addXP(company, 100)
+		s.saveCompanyLocked(company)
 		return map[string]any{
 			"ok": true, "projectId": projectID,
 			"patentsGained":   1,

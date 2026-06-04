@@ -8,17 +8,21 @@ func (s *Service) Snapshot() model.GameState {
 	return cloneState(s.State)
 }
 
-func (s *Service) UpdatePreferences(prefs map[string]any) map[string]any {
+func (s *Service) UpdatePreferences(companyID int, prefs map[string]any) map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.State.PlayerPreferences == nil {
-		s.State.PlayerPreferences = map[string]any{}
+	company := s.getCompanyLocked(companyID)
+	if company == nil {
+		return map[string]any{"error": "company not found"}
+	}
+	if company.Preferences == nil {
+		company.Preferences = defaultCompanyPreferences(false)
 	}
 	for k, v := range prefs {
-		s.State.PlayerPreferences[k] = v
+		company.Preferences[k] = v
 	}
-	out := cloneMapStringAny(s.State.PlayerPreferences)
-	s.saveStateLocked()
+	out := cloneMapStringAny(company.Preferences)
+	s.saveCompanyLocked(company)
 	return out
 }
 
@@ -58,6 +62,10 @@ func cloneCompany(in model.Company) model.Company {
 	out.QualityInventory = cloneMapStringInt(in.QualityInventory)
 	out.PlacedBuildings = cloneSliceMapStringAny(in.PlacedBuildings)
 	out.UnplacedBuildings = cloneSliceMapStringAny(in.UnplacedBuildings)
+	out.Preferences = cloneMapStringAny(in.Preferences)
+	out.ResearchProjects = append([]model.ResearchProject(nil), in.ResearchProjects...)
+	out.UnlockedRecipes = cloneMapIntBool(in.UnlockedRecipes)
+	out.ResearchedQuality = cloneMapIntInt(in.ResearchedQuality)
 	return out
 }
 
@@ -74,6 +82,17 @@ func cloneMapIntInt(in map[int]int) map[int]int {
 		return nil
 	}
 	out := make(map[int]int, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func cloneMapIntBool(in map[int]bool) map[int]bool {
+	if in == nil {
+		return nil
+	}
+	out := make(map[int]bool, len(in))
 	for k, v := range in {
 		out[k] = v
 	}

@@ -57,16 +57,16 @@ func TestNewService(t *testing.T) {
 func TestAddXP(t *testing.T) {
 	s := newCoreTestService()
 	s.mu.Lock()
-	s.State.XpToNextLevel = 100
-	s.State.XP = 0
+	s.State.Companies[0].XpToNextLevel = 100
+	s.State.Companies[0].XP = 0
 	s.State.Companies[0].Level = 1
 	s.addXP(&s.State.Companies[0], 150)
 	s.mu.Unlock()
 	if s.State.Companies[0].Level != 2 {
 		t.Errorf("expected level 2, got %d", s.State.Companies[0].Level)
 	}
-	if s.State.XP != 50 {
-		t.Errorf("expected 50 XP remaining, got %d", s.State.XP)
+	if s.State.Companies[0].XP != 50 {
+		t.Errorf("expected 50 XP remaining, got %d", s.State.Companies[0].XP)
 	}
 }
 

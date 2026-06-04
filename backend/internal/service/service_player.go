@@ -65,18 +65,15 @@ func (s *Service) RegisterPlayer(username, password, name, gender, email string)
 	}
 	company := model.Company{
 		ID: companyID, Name: companyName + "'s Company",
-		Money: s.Cfg.Game.StartMoney, Level: 1,
+		Money: s.Cfg.Game.StartMoney, Level: 1, XP: 0, XpToNextLevel: 100,
 		Inventory:         map[int]int{1: 500},
 		UnplacedBuildings: []map[string]any{},
+		Preferences:       defaultCompanyPreferences(false),
+		ResearchProjects:  defaultResearchProjects(now),
+		UnlockedRecipes:   map[int]bool{},
+		ResearchedQuality: map[int]int{},
 	}
 	s.State.Companies = append(s.State.Companies, company)
-	// Reset shared preferences so a fresh registration doesn't carry over
-	// storyProgress or other state from previous sessions.
-	s.State.PlayerPreferences = map[string]any{
-		"soundEnabled":               true,
-		"buildingAnimationsEnabled":  true,
-		"autoDisableAnimations":      false,
-	}
 	s.saveStateLocked()
 	return map[string]any{
 		"player":    player,
