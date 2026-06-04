@@ -29,6 +29,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // Play BGM on login/register screen
+  useEffect(() => {
+    if (!authenticated) {
+      audio.init()
+      audio.playMusic('bgm_main_menu')
+    }
+  }, [authenticated])
+
   if (authenticated) {
     return <>{children}</>
   }
@@ -160,7 +168,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
         <div className="mt-4 text-center">
           <button
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            onClick={() => { audio.playSfx('ui_tab_switch', { volume: 0.4 }); setMode(mode === 'login' ? 'register' : 'login') }}
             className="text-xs text-amber-600 hover:text-amber-800 underline"
           >
             {mode === 'login' ? t('auth.switchToRegister') : t('auth.switchToLogin')}
@@ -176,6 +184,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 key={loc}
                 type="button"
                 onClick={() => {
+                  audio.playSfx('ui_tab_switch', { volume: 0.4 })
                   setLocaleState(loc)
                   setStoredLocale(loc)
                 }}

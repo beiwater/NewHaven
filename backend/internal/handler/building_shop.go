@@ -44,6 +44,8 @@ func (h *Handler) handleBuyBuilding(w http.ResponseWriter, r *http.Request) {
 
 type PlaceBuildingReq struct {
 	BuildingID string `json:"buildingId"`
+	MapID      string `json:"mapId"`
+	SlotID     string `json:"slotId"`
 	X          int    `json:"x"`
 	Y          int    `json:"y"`
 }
@@ -54,7 +56,7 @@ func (h *Handler) handlePlaceBuilding(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "invalid request")
 		return
 	}
-	resp, err := h.svc.PlaceBuilding(h.companyID(r), req.BuildingID, req.X, req.Y)
+	resp, err := h.svc.PlaceBuilding(h.companyID(r), req.BuildingID, req.MapID, req.SlotID, req.X, req.Y)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return
@@ -64,6 +66,8 @@ func (h *Handler) handlePlaceBuilding(w http.ResponseWriter, r *http.Request) {
 
 type MoveBuildingReq struct {
 	BuildingID string `json:"buildingId"`
+	MapID      string `json:"mapId"`
+	SlotID     string `json:"slotId"`
 	X          int    `json:"x"`
 	Y          int    `json:"y"`
 }
@@ -74,7 +78,7 @@ func (h *Handler) handleMoveBuilding(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "invalid request")
 		return
 	}
-	resp, err := h.svc.MoveBuilding(h.companyID(r), req.BuildingID, req.X, req.Y)
+	resp, err := h.svc.MoveBuilding(h.companyID(r), req.BuildingID, req.MapID, req.SlotID, req.X, req.Y)
 	if err != nil {
 		writeErr(w, 400, err.Error())
 		return

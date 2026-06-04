@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -125,8 +127,70 @@ func (s *Service) BuyBuilding(companyID int, buildingID string) (map[string]any,
 	s.saveCompanyLocked(company)
 	return map[string]any{"building": b, "cost": cost}, nil
 }
+// ── Map / slot config (extensible: add new entries to add new maps) ──
 
-func (s *Service) PlaceBuilding(companyID int, buildingID string, x, y int) (map[string]any, error) {
+type mapSlotDef struct {
+	mapID          string
+	slotID         string
+	unlockOrder    int
+	mapUnlockLevel int
+}
+
+// knownMapIDs returns all valid map IDs.
+func knownMapIDs() []string {
+	seen := map[string]bool{}
+	ids := make([]string, 0, 4)
+	for _, s := range mapSlotDefs {
+		if seen[s.mapID] {
+			continue
+		}
+		seen[s.mapID] = true
+		ids = append(ids, s.mapID)
+	}
+	return ids
+}
+
+func isValidMapID(mapID string) bool {
+	for _, id := range knownMapIDs() {
+		if id == mapID {
+			return true
+		}
+	}
+	return false
+}
+
+// mapUnlockLevel returns the level required to place buildings on this map.
+func mapUnlockLevel(mapID string) int {
+	for _, s := range mapSlotDefs {
+		if s.mapID == mapID {
+			return s.mapUnlockLevel
+		}
+	}
+	return 1
+}
+
+var mapSlotDefs = []mapSlotDef{
+	{mapID: "harbor", slotID: "harbor-plot-01", unlockOrder: 1, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-02", unlockOrder: 2, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-03", unlockOrder: 3, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-04", unlockOrder: 4, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-05", unlockOrder: 5, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-06", unlockOrder: 6, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-07", unlockOrder: 7, mapUnlockLevel: 1},
+	{mapID: "harbor", slotID: "harbor-plot-08", unlockOrder: 8, mapUnlockLevel: 1},
+	{mapID: "inland", slotID: "inland-plot-01", unlockOrder: 1, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-02", unlockOrder: 2, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-03", unlockOrder: 3, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-04", unlockOrder: 4, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-05", unlockOrder: 5, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-06", unlockOrder: 6, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-07", unlockOrder: 7, mapUnlockLevel: 5},
+	{mapID: "inland", slotID: "inland-plot-08", unlockOrder: 8, mapUnlockLevel: 5},
+	{mapID: "desert", slotID: "desert-plot-01", unlockOrder: 1, mapUnlockLevel: 10},
+	{mapID: "desert", slotID: "desert-plot-02", unlockOrder: 2, mapUnlockLevel: 10},
+	{mapID: "desert", slotID: "desert-plot-03", unlockOrder: 3, mapUnlockLevel: 10},
+}
+func (s *Service) PlaceBuilding(companyID int, buildingID string, mapID, slotID string, x, y int) (map[string]any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	company := s.getCompanyLocked(companyID)
@@ -136,13 +200,16 @@ func (s *Service) PlaceBuilding(companyID int, buildingID string, x, y int) (map
 	if companyBuildingCount(company) > BuildingSlotsForLevel(company.Level) {
 		return nil, fmt.Errorf("building limit reached: %d/%d slots used", companyBuildingCount(company), BuildingSlotsForLevel(company.Level))
 	}
-	if err := validateMapPlacement(company.PlacedBuildings, "", x, y); err != nil {
+	mapID, slotID, x, y, err := validateMapPlacement(company.PlacedBuildings, "", company.Level, mapID, slotID, x, y)
+	if err != nil {
 		return nil, err
 	}
 	for i, b := range company.UnplacedBuildings {
 		if b["id"] != buildingID {
 			continue
 		}
+		b["mapId"] = mapID
+		b["slotId"] = slotID
 		b["x"] = x
 		b["y"] = y
 		b["placedAt"] = s.now().UTC().Format(time.RFC3339)
@@ -154,18 +221,21 @@ func (s *Service) PlaceBuilding(companyID int, buildingID string, x, y int) (map
 	return nil, fmt.Errorf("unplaced building not found")
 }
 
-func (s *Service) MoveBuilding(companyID int, buildingID string, x, y int) (map[string]any, error) {
+func (s *Service) MoveBuilding(companyID int, buildingID string, mapID, slotID string, x, y int) (map[string]any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	company := s.getCompanyLocked(companyID)
 	if company == nil {
 		return nil, fmt.Errorf("company not found")
 	}
-	if err := validateMapPlacement(company.PlacedBuildings, buildingID, x, y); err != nil {
+	mapID, slotID, x, y, err := validateMapPlacement(company.PlacedBuildings, buildingID, company.Level, mapID, slotID, x, y)
+	if err != nil {
 		return nil, err
 	}
 	for _, b := range company.PlacedBuildings {
 		if b["id"] == buildingID {
+			b["mapId"] = mapID
+			b["slotId"] = slotID
 			b["x"] = x
 			b["y"] = y
 			s.saveCompanyLocked(company)
@@ -175,19 +245,112 @@ func (s *Service) MoveBuilding(companyID int, buildingID string, x, y int) (map[
 	return nil, fmt.Errorf("building not found")
 }
 
-func validateMapPlacement(buildings []map[string]any, movingID string, x, y int) error {
-	if x < 1 || x > 12 || y < 1 || y > 10 {
-		return fmt.Errorf("map position out of bounds")
+func validateMapPlacement(buildings []map[string]any, movingID string, level int, mapID, slotID string, x, y int) (string, string, int, int, error) {
+	slot, err := normalizeMapSlot(mapID, slotID, x, y)
+	if err != nil {
+		return "", "", 0, 0, err
 	}
+	if err := validateSlotUnlocked(slot, level); err != nil {
+		return "", "", 0, 0, err
+	}
+	legacyX, legacyY := legacyCoordsForOrder(slot.unlockOrder)
 	for _, b := range buildings {
 		if movingID != "" && fmt.Sprint(b["id"]) == movingID {
 			continue
 		}
-		if intFromAny(b["x"]) == x && intFromAny(b["y"]) == y {
-			return fmt.Errorf("map position already occupied")
+		buildingMapID, buildingSlotID := buildingMapSlot(b)
+		if buildingMapID == slot.mapID && buildingSlotID == slot.slotID {
+			return "", "", 0, 0, fmt.Errorf("map position already occupied")
 		}
 	}
+	return slot.mapID, slot.slotID, legacyX, legacyY, nil
+}
+
+func normalizeMapSlot(mapID, slotID string, x, y int) (mapSlotDef, error) {
+	if !isValidMapID(mapID) {
+		mapID = knownMapIDs()[0] // fallback to first known map (harbor)
+	}
+	if slotID == "" {
+		slotID = legacySlotID(mapID, x, y)
+	}
+	for _, slot := range mapSlotDefs {
+		if slot.mapID == mapID && slot.slotID == slotID {
+			return slot, nil
+		}
+	}
+	return mapSlotDef{}, fmt.Errorf("map position out of bounds")
+}
+
+func validateSlotUnlocked(slot mapSlotDef, level int) error {
+	requiredLevel := slot.mapUnlockLevel
+	if slot.unlockOrder > 3 {
+		requiredLevel += (slot.unlockOrder - 3) * 2
+	}
+	if level < requiredLevel {
+		if requiredLevel == slot.mapUnlockLevel && slot.mapUnlockLevel > 1 {
+			return fmt.Errorf("%s map unlocks at level %d", slot.mapID, slot.mapUnlockLevel)
+		}
+		return fmt.Errorf("map plot unlocks at level %d", requiredLevel)
+	}
 	return nil
+}
+
+func buildingMapSlot(building map[string]any) (string, string) {
+	mapID := fmt.Sprint(building["mapId"])
+	if !isValidMapID(mapID) {
+		mapID = knownMapIDs()[0]
+	}
+	slotID := fmt.Sprint(building["slotId"])
+	if slotID == "" || slotID == "<nil>" {
+		slotID = legacySlotID(mapID, intFromAny(building["x"]), intFromAny(building["y"]))
+	}
+	return mapID, slotID
+}
+
+func legacySlotID(mapID string, x, y int) string {
+	if x < 1 {
+		x = 1
+	}
+	if y < 1 {
+		y = 1
+	}
+	order := (y-1)*3 + x
+	if order < 1 {
+		order = 1
+	}
+	if order > 8 {
+		order = 8
+	}
+	return fmt.Sprintf("%s-plot-%02d", mapID, order)
+}
+
+func legacyCoordsForOrder(order int) (int, int) {
+	return ((order - 1) % 3) + 1, ((order - 1) / 3) + 1
+}
+
+func slotOrderFromID(slotID string) int {
+	parts := strings.Split(slotID, "-plot-")
+	if len(parts) != 2 {
+		return 1
+	}
+	order, err := strconv.Atoi(parts[1])
+	if err == nil && order > 0 {
+		return order
+	}
+	return 1
+}
+
+func firstOpenSlotID(mapID string, occupied map[string]bool) string {
+	for _, slot := range mapSlotDefs {
+		if slot.mapID != mapID {
+			continue
+		}
+		key := slot.mapID + ":" + slot.slotID
+		if !occupied[key] {
+			return slot.slotID
+		}
+	}
+	return legacySlotID(mapID, 1, 1)
 }
 
 func intSliceFromAny(v any) []int {

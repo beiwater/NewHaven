@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { lazy, Suspense } from 'react'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuthGate } from '@/features/auth/AuthGate'
@@ -25,11 +25,8 @@ import { FarmNotes } from '@/features/guidance/FarmNotes'
 import { ProductionQueue } from '@/features/production/ProductionQueue'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { MobileLayout } from '@/features/mobile'
-import { useCompany, useSavePreferences } from '@/api/company.api'
-import { StoryPlayer } from '@/features/story/StoryPlayer'
-import { chapter1ArrivalStory } from '@/features/story/chapter1Arrival.story'
+import { StoryGate } from '@/features/story/StoryGate'
 import { useAudio } from '@/audio/useAudio'
-import { SoundTestPanel } from '@/audio/SoundTestPanel'
 
 // Lazy-load PixiJS game canvas so it doesn't block React mount
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
@@ -94,7 +91,7 @@ function GameLayout() {
   const setChatOpen = useUIStore((s) => s.setChatOpen)
   const chatOpen = useUIStore((s) => s.chatOpen)
   const isMapView = activeView === 'map'
-  const { playMusic, playAmbience, unlockAudio } = useAudio()
+  const { playMusic, unlockAudio } = useAudio()
   const unlocked = useRef(false)
 
   useMarketWebSocket()
@@ -113,43 +110,35 @@ function GameLayout() {
     switch (activeView) {
       case 'market':
         playMusic('bgm_market')
-        playAmbience('amb_market')
         break
       case 'build':
       case 'map':
         playMusic('bgm_harbor_town')
-        playAmbience('amb_harbor_day')
         break
       case 'warehouse':
       case 'chain':
         playMusic('bgm_harbor_town')
-        playAmbience('amb_warehouse')
         break
       case 'production':
         playMusic('bgm_harbor_town')
-        playAmbience('amb_kitchen')
         break
       case 'contracts':
         playMusic('bgm_harbor_town')
-        playAmbience('amb_market')
         break
       case 'research':
       case 'executives':
         playMusic('bgm_harbor_town')
-        playAmbience('amb_harbor_day')
         break
       case 'finance':
       case 'leaderboard':
       case 'settings':
       case 'inspect':
         playMusic('bgm_harbor_town')
-        playAmbience('amb_harbor_day')
         break
       default:
         playMusic('bgm_harbor_town')
-        playAmbience('amb_harbor_day')
     }
-  }, [activeView, playMusic, playAmbience])
+  }, [activeView, playMusic])
 
   return (
     <div
@@ -181,53 +170,10 @@ function GameLayout() {
       )}
       <ChatPanel />
       <PowerPanel />
-      <SoundTestPanel />
     </div>
   )
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function StoryGate({ children }: { children: ReactNode }) {
-  const { data: companyData, isLoading } = useCompany()
-  const savePreferences = useSavePreferences()
-  const [completedThisSession, setCompletedThisSession] = useState(false)
-  const storyProgress = companyData?.preferences?.storyProgress
-  const chapterCompleted =
-    completedThisSession ||
-    (isRecord(storyProgress) && storyProgress.chapter1Arrival === 'completed')
-
-  if (isLoading && !companyData) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-amber-950 text-sm font-bold text-amber-100">
-        Loading story...
-      </div>
-    )
-  }
-
-  if (!chapterCompleted) {
-    return (
-      <StoryPlayer
-        story={chapter1ArrivalStory}
-        onComplete={() => {
-          const currentProgress = isRecord(storyProgress) ? storyProgress : {}
-          setCompletedThisSession(true)
-          useUIStore.getState().setActiveView('map')
-          savePreferences.mutate({
-            storyProgress: {
-              ...currentProgress,
-              chapter1Arrival: 'completed',
-            },
-          })
-        }}
-      />
-    )
-  }
-
-  return <>{children}</>
-}
 
 export function App() {
   const isMobile = useIsMobile()

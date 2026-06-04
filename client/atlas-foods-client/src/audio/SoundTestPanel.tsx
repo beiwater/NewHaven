@@ -1,7 +1,7 @@
 // Dev-only sound test panel. Renders nothing in production builds.
 // Use from Settings page or open programmatically via __openSoundTest.
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState } from 'react'
 import { audio } from './AudioManager'
 import {
   ALL_SFX_KEYS,

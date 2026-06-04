@@ -5,7 +5,9 @@ import { useTranslation } from 'react-i18next'
 import type { StoryDefinition, StoryStep } from './story.types'
 
 const HARBOR_BG = '/assets/story/chapter-1/newhaven_harbor.png'
-const CECIL_FULL = '/assets/story/characters/cecil_full.png'
+const CECIL_SHY = '/assets/story/characters/cecil_shy.png'
+const CECIL_FORMAL = '/assets/story/characters/cecil_formal.png'
+const CECIL_SMILE = '/assets/story/characters/cecil_smile.png'
 const BOAT = '/assets/story/props/arrival_boat.png'
 const CLOUD_1 = '/assets/story/effects/cloud_soft_1.png'
 const CLOUD_2 = '/assets/story/effects/cloud_soft_2.png'
@@ -24,7 +26,11 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
   }, [story.steps])
   const step = stepMap.get(currentStepId) ?? story.steps[0]
   const isBlack = step.screen === 'black'
-  const showPortrait = step.portrait === 'shadow' || step.portrait === 'cecil'
+  const showPortrait =
+    step.portrait === 'shadow' ||
+    step.portrait === 'cecilShy' ||
+    step.portrait === 'cecilFormal' ||
+    step.portrait === 'cecilSmile'
   const showBoat = step.boat === 'arriving' || step.boat === 'docked'
   const showChoices = step.kind === 'choice' && step.choices?.length
 
@@ -38,6 +44,7 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
   }, [])
   const advance = () => {
     audio.playSfx('ui_confirm', { volume: 0.4 })
+    if (showChoices) return
     if (step.next) {
       setCurrentStepId(step.next)
     } else {
@@ -102,14 +109,23 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
 
 function CecilPortrait({ step }: { step: StoryStep }) {
   const isShadow = step.portrait === 'shadow'
+  const src = getCecilPortraitSrc(step.portrait)
   return (
-    <img
-      className={`story-portrait ${isShadow ? 'story-portrait-shadow' : 'story-portrait-reveal'}`}
-      src={CECIL_FULL}
-      alt=""
-      draggable={false}
-    />
+    <div className={`story-portrait-wrap ${isShadow ? 'story-portrait-shadow' : ''}`}>
+      <img
+        className={`story-portrait story-portrait-${step.portrait ?? 'none'}`}
+        src={src}
+        alt=""
+        draggable={false}
+      />
+    </div>
   )
+}
+
+function getCecilPortraitSrc(portrait: StoryStep['portrait']) {
+  if (portrait === 'cecilShy') return CECIL_SHY
+  if (portrait === 'cecilSmile') return CECIL_SMILE
+  return CECIL_FORMAL
 }
 
 function BlackScreenStep({ step, text }: { step: StoryStep; text: string }) {

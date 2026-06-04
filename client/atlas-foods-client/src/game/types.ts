@@ -1,10 +1,14 @@
 /** Building on the map */
+import type { MapId } from './map.config'
+
 export interface Building {
   id: string
   kind: number
   name?: string
   x?: number
   y?: number
+  mapId?: MapId
+  slotId?: string
   level: number
   baseCost?: number
   placed?: boolean

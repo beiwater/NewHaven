@@ -1,29 +1,35 @@
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/store/ui.store'
 import { useBuildings } from '@/api/buildings.api'
-import { useProductionQueue, useClaimableJobs, useClaimAll } from '@/api/production.api'
+import { useClaimableJobs, useClaimAll } from '@/api/production.api'
+import { useCompany } from '@/api/company.api'
+import { isMapUnlocked, MAPS, placeableSlots, type MapId } from '@/game/map.config'
 import { BuildingCard } from './BuildingCard'
 export function BuildingPanel() {
   const { t } = useTranslation()
   const selectedBuildingId = useUIStore((s) => s.selectedBuildingId)
   const selectBuilding = useUIStore((s) => s.selectBuilding)
+  const currentMapIdRaw = useUIStore((s) => s.currentMapId)
   const { data: buildingsData } = useBuildings()
-  const { data: queueData } = useProductionQueue()
   const { data: claimableData } = useClaimableJobs()
+  const { data: companyData } = useCompany()
   const claimAll = useClaimAll()
+  const level = companyData?.levelInfo?.level ?? 1
+  const currentMapId: MapId = isMapUnlocked(currentMapIdRaw, level) ? currentMapIdRaw : 'harbor'
 
   // buildings: null when empty, [] when fetched with no buildings
-  const buildings = Array.isArray(buildingsData)
+  const allPlacedBuildings = Array.isArray(buildingsData)
     ? buildingsData.filter((b) => b.placed !== false)
     : []
+  const buildings = allPlacedBuildings.filter((building) => {
+    const id = building.mapId ?? ''
+    return (MAPS[id] ? id : 'harbor') === currentMapId
+  })
   const selected = buildings.find((b) => b.id === selectedBuildingId) ?? null
 
   // claimableData: ProductionJob[] directly from API
   const claimableCount = Array.isArray(claimableData) ? claimableData.length : 0
-
-  // queueData: { byBuilding, inUse, maxSlots }
-  const inUse = queueData?.inUse ?? 0
-  const maxSlots = queueData?.maxSlots ?? 0
+  const openMapPlots = placeableSlots(currentMapId, level).length
 
   return (
     <div className="right-panel flex flex-col bg-amber-50 border-l-2 border-amber-700/30 overflow-y-auto">
@@ -31,11 +37,16 @@ export function BuildingPanel() {
         <BuildingCard building={selected} onClose={() => selectBuilding(null)} />
       ) : (
         <>
-          <div className="p-3 border-b border-amber-200/60">
-            <h2 className="text-xs font-bold text-amber-800 uppercase tracking-wider">{t('nav.buildings')}</h2>
-            <p className="text-[10px] text-amber-600/70 mt-0.5">
-              {inUse} / {maxSlots} {t('production.usedSlots').toLowerCase()}
-            </p>
+          <div className="p-3 border-b border-amber-200/60 flex items-center justify-between">
+            <div>
+              <h2 className="text-xs font-bold text-amber-800 uppercase tracking-wider">{t('nav.buildings')}</h2>
+              <p className="text-[10px] text-amber-600/70 mt-0.5">
+                地块 {buildings.length}/{openMapPlots}
+              </p>
+            </div>
+            <span className="text-[10px] font-medium text-amber-600 bg-amber-100/70 px-2 py-1 rounded-full">
+              {MAPS[currentMapId].name}
+            </span>
           </div>
 
           {claimableCount > 0 && (

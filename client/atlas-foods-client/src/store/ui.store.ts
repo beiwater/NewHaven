@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { MAPS, type MapId } from '@/game/map.config'
 
 export type ActiveView = 'map' | 'build' | 'warehouse' | 'chain' | 'production' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect'
 
@@ -11,6 +12,7 @@ interface UIState {
   marketPanelOpen: boolean
   chatOpen: boolean
   powerupOpen: boolean
+  currentMapId: MapId
 
   setActiveView: (view: ActiveView) => void
   selectBuilding: (id: string | null) => void
@@ -22,6 +24,13 @@ interface UIState {
   setMarketPanelOpen: (open: boolean) => void
   setChatOpen: (open: boolean) => void
   setPowerupOpen: (open: boolean) => void
+  setCurrentMapId: (mapId: MapId) => void
+}
+
+function initialMapId(): MapId {
+  const stored = localStorage.getItem('newhaven_current_map')
+  if (stored && MAPS[stored]) return stored
+  return 'harbor'
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -33,6 +42,7 @@ export const useUIStore = create<UIState>((set) => ({
   marketPanelOpen: false,
   chatOpen: false,
   powerupOpen: false,
+  currentMapId: initialMapId(),
 
   setActiveView: (view) => set({ activeView: view, selectedBuildingId: null }),
   selectBuilding: (id) => set({ selectedBuildingId: id, placementBuildingId: null, movingBuildingId: null }),
@@ -44,4 +54,8 @@ export const useUIStore = create<UIState>((set) => ({
   setMarketPanelOpen: (open) => set({ marketPanelOpen: open }),
   setChatOpen: (open) => set({ chatOpen: open }),
   setPowerupOpen: (open) => set({ powerupOpen: open }),
+  setCurrentMapId: (mapId) => {
+    localStorage.setItem('newhaven_current_map', mapId)
+    set({ currentMapId: mapId, selectedBuildingId: null })
+  },
 }))

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useCompany } from '@/api/company.api'
 import { useSavePreferences } from '@/api/company.api'
 import { useAudio } from '@/audio/useAudio'
-import { audio } from '@/audio/AudioManager'
 import { SoundTestPanel } from '@/audio/SoundTestPanel'
 import {
   type SupportedLocale,

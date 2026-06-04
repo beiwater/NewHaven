@@ -1,5 +1,5 @@
 export type StoryScreen = 'black' | 'harbor'
-export type StoryPortrait = 'none' | 'shadow' | 'cecil'
+export type StoryPortrait = 'none' | 'shadow' | 'cecilShy' | 'cecilFormal' | 'cecilSmile'
 export type StoryBoat = 'none' | 'arriving' | 'docked'
 export type StoryStepKind = 'title' | 'narration' | 'dialogue' | 'choice' | 'system'
 

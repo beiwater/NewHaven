@@ -102,9 +102,10 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 		mainCompany := model.Company{
 			ID: cfg.Game.CompanyID, Name: cfg.Game.CompanyName, Money: cfg.Game.StartMoney, Level: cfg.Game.StartLevel,
 			Inventory:         map[int]int{1: 2000, 2: 800, 3: 1000},
-			PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 1, "level": 3, "name": "Farm", "busy": false, "baseCost": 10000, "x": 2, "y": 1, "placedAt": now, "produces": []int{1}}},
+			PlacedBuildings:   []map[string]any{{"id": "b-1", "kind": 1, "level": 3, "name": "Farm", "busy": false, "baseCost": 10000, "mapId": "harbor", "slotId": "harbor-plot-01", "x": 1, "y": 1, "placedAt": now, "produces": []int{1}}},
 			UnplacedBuildings: []map[string]any{},
 			WarehouseLevel:    0,
+			TutorialCompleted: true,
 		}
 		companies = append(companies, mainCompany)
 		// Create a dev player record so /api/login works
@@ -118,7 +119,7 @@ func New(d *data.StaticData, cfg *config.Config, st storage.Storage) *Service {
 			{ID: "bond-1", Amount: 5000, Interest: 0.012, PurchasedAt: now, MissedPayments: 0, InterestCollected: 2.4, RatingWhenPurchased: "A", IssuerCompanyID: cfg.Game.Bot1ID, OwnerCompanyID: cfg.Game.CompanyID, RestructurePct: 0.0},
 		}
 		ledger = []model.LedgerEntry{{ID: "l-0", At: now, Kind: "opening_balance", Amount: cfg.Game.StartMoney, Direction: "in"}}
-		preferences = map[string]any{"soundEnabled": true, "buildingAnimationsEnabled": true, "autoDisableAnimations": false}
+		preferences = map[string]any{"soundEnabled": true, "buildingAnimationsEnabled": true, "autoDisableAnimations": false, "storyProgress": map[string]any{"chapter1Arrival": "completed"}}
 		achievements = []map[string]any{
 			{"id": "a-1", "code": "first_trade", "progress": 1, "goal": 1, "completed": true},
 			{"id": "a-2", "code": "production_novice", "progress": 12, "goal": 100, "completed": false},
@@ -223,6 +224,22 @@ func (s *Service) ensureRuntimeState() {
 		}
 		if c.QualityInventory == nil {
 			c.QualityInventory = map[string]int{}
+		}
+		occupiedSlots := map[string]bool{}
+		for j := range c.PlacedBuildings {
+			building := c.PlacedBuildings[j]
+			mapID, slotID := buildingMapSlot(building)
+			key := mapID + ":" + slotID
+			if occupiedSlots[key] {
+				slotID = firstOpenSlotID(mapID, occupiedSlots)
+				key = mapID + ":" + slotID
+			}
+			occupiedSlots[key] = true
+			building["mapId"] = mapID
+			building["slotId"] = slotID
+			x, y := legacyCoordsForOrder(slotOrderFromID(slotID))
+			building["x"] = x
+			building["y"] = y
 		}
 	}
 	if s.State.Trades == nil {

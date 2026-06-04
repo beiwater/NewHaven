@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { Building } from '@/game/types'
+import type { MapId } from '@/game/map.config'
 
 export function useBuildings() {
   return useQuery({
@@ -40,7 +41,7 @@ export function useBuyBuilding() {
 export function usePlaceBuilding() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { buildingId: string; x: number; y: number }) =>
+    mutationFn: (params: { buildingId: string; x?: number; y?: number; mapId?: MapId; slotId?: string }) =>
       api.post<{ building: Building; money: number }>('/api/v2/buildings/place/', params),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['buildings'] })
@@ -52,7 +53,7 @@ export function usePlaceBuilding() {
 export function useMoveBuilding() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { buildingId: string; x: number; y: number }) =>
+    mutationFn: (params: { buildingId: string; x?: number; y?: number; mapId?: MapId; slotId?: string }) =>
       api.post<{ building: Building }>('/api/v2/buildings/move/', params),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['buildings'] })
@@ -97,4 +98,3 @@ export function useDemolishBuilding() {
     },
   })
 }
-

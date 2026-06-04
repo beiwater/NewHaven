@@ -1,27 +1,35 @@
 import { useUIStore } from '@/store/ui.store'
 import { useBuildings } from '@/api/buildings.api'
-import { useProductionQueue, useClaimableJobs, useClaimAll } from '@/api/production.api'
+import { useClaimableJobs, useClaimAll } from '@/api/production.api'
+import { useCompany } from '@/api/company.api'
+import { MAPS, isMapUnlocked, placeableSlots, type MapId } from '@/game/map.config'
 
 export function MobileBuildingSummary() {
   const selectBuilding = useUIStore((s) => s.selectBuilding)
+  const currentMapIdRaw = useUIStore((s) => s.currentMapId)
   const { data: buildingsData } = useBuildings()
-  const { data: queueData } = useProductionQueue()
   const { data: claimableData } = useClaimableJobs()
+  const { data: companyData } = useCompany()
   const claimAll = useClaimAll()
+  const level = companyData?.levelInfo?.level ?? 1
+  const currentMapId: MapId = isMapUnlocked(currentMapIdRaw, level) ? currentMapIdRaw : 'harbor'
 
   const buildings = Array.isArray(buildingsData)
-    ? buildingsData.filter((b) => b.placed !== false)
+    ? buildingsData.filter((b) => {
+      if (b.placed === false) return false
+      const id = b.mapId ?? ''
+      return (MAPS[id] ? id : 'harbor') === currentMapId
+    })
     : []
   const claimableCount = Array.isArray(claimableData) ? claimableData.length : 0
-  const inUse = queueData?.inUse ?? 0
-  const maxSlots = queueData?.maxSlots ?? 0
+  const openMapPlots = placeableSlots(currentMapId, level).length
 
   return (
     <div className="bg-white/60 rounded-xl border border-amber-300/50 p-3 min-w-[200px] shrink-0">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider">Buildings</h3>
         <span className="text-[10px] text-amber-600 tabular-nums">
-          {inUse}/{maxSlots} slots
+          {buildings.length}/{openMapPlots} plots
         </span>
       </div>
 
