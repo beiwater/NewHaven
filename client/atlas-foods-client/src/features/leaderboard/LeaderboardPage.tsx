@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useBuildings } from '@/api/buildings.api'
+import { useCompanyBuildings } from '@/api/buildings.api'
 import { buildingIcon } from '@/game/icons'
 import { useUIStore } from '@/store/ui.store'
 import type { Building } from '@/game/types'
@@ -297,8 +298,13 @@ function CompanyDetailCard({
   const isMe = isCurrentCompany(entry)
   const setActiveView = useUIStore((s) => s.setActiveView)
   const { data: buildingsData } = useBuildings()
-  const buildings = isMe && Array.isArray(buildingsData)
+  const { data: otherBuildingsData } = useCompanyBuildings(isMe ? null : entry.companyId)
+
+  const buildings = Array.isArray(buildingsData)
     ? buildingsData.filter((building) => building.placed !== false)
+    : []
+  const otherBuildings = Array.isArray(otherBuildingsData)
+    ? otherBuildingsData.filter((building) => building.placed !== false)
     : []
 
   const handleOpenMap = () => {
@@ -373,12 +379,16 @@ function CompanyDetailCard({
           <CompanyMapPreview buildings={buildings} />
         </button>
       ) : (
-        <div className="rounded-xl border-2 border-dashed border-amber-300/40 bg-amber-50/50 p-6 text-center">
-          <svg className="w-8 h-8 text-amber-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-          </svg>
-          <p className="text-xs text-amber-600 font-semibold">{entry.companyName}'s Map</p>
-          <p className="text-[10px] text-amber-400 mt-1">Map viewing for other companies is coming soon</p>
+        <div className="w-full rounded-xl border-2 border-amber-300/40 bg-amber-50/70 p-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-amber-800">{entry.companyName}'s Map</p>
+              <p className="text-[10px] font-semibold text-amber-500">
+                {otherBuildings.length > 0 ? `${otherBuildings.length} buildings placed` : 'No buildings placed yet'}
+              </p>
+            </div>
+          </div>
+          <CompanyMapPreview buildings={otherBuildings} />
         </div>
       )}
     </div>

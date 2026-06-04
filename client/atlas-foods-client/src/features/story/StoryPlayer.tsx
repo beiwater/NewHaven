@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { useEffect } from 'react'
+import { audio } from '@/audio/AudioManager'
 import { useTranslation } from 'react-i18next'
 import type { StoryDefinition, StoryStep } from './story.types'
 
@@ -29,7 +31,13 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
   const chapter = story.id === 'chapter1Arrival' ? 'chapter1' : story.id
   const st = (key: string, fallback?: string) => t(`story.${chapter}.${key}`, fallback ?? '')
 
+  // Play BGM while story is shown
+  useEffect(() => {
+    audio.playMusic('bgm_main_menu')
+    audio.playAmbience('amb_harbor_day')
+  }, [])
   const advance = () => {
+    audio.playSfx('ui_confirm', { volume: 0.4 })
     if (step.next) {
       setCurrentStepId(step.next)
     } else {
@@ -38,6 +46,7 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
   }
 
   const choose = (next: string) => {
+    audio.playSfx('ui_confirm', { volume: 0.4 })
     setCurrentStepId(next)
   }
 

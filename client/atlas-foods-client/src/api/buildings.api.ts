@@ -9,6 +9,15 @@ export function useBuildings() {
   })
 }
 
+export function useCompanyBuildings(companyId: number | null) {
+  return useQuery({
+    queryKey: ['company-buildings', companyId],
+    queryFn: () => api.get<Building[]>(`/api/v2/companies/${companyId}/buildings/`),
+    enabled: companyId !== null,
+    staleTime: 30_000,
+  })
+}
+
 export function useBuyBuilding() {
   const qc = useQueryClient()
   return useMutation({

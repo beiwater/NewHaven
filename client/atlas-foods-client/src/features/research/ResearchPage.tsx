@@ -7,6 +7,7 @@ import {
 } from '@/api/research.api'
 import type { ResearchProject } from '@/api/research.api'
 import { FlaskIcon, GearIcon, PriceTagIcon, TruckIcon, CutleryIcon, BankIcon, CheckIcon, LockIcon, ClockIcon } from './icons'
+import { audio } from '@/audio/AudioManager'
 
 // =========== Helpers ===========
 
@@ -392,6 +393,7 @@ export function ResearchPage() {
 
   // Handlers
   const handleStart = async (projectId: string) => {
+    audio.playSfx('research_start')
     try {
       await startResearch.mutateAsync({ projectId })
       refetchProgress()
@@ -401,6 +403,7 @@ export function ResearchPage() {
   }
 
   const handleComplete = async (projectId: string) => {
+    audio.playSfx('tech_unlock')
     try {
       await completeResearch.mutateAsync(projectId)
       refetchProgress()

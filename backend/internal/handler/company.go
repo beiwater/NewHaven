@@ -119,6 +119,8 @@ func (h *Handler) handleV2Companies(w http.ResponseWriter, r *http.Request) {
 		h.handleCompanyRoyalties(w, r)
 	case strings.Contains(path, "/egg-collection/"):
 		h.handleCompanyEggCollection(w, r)
+	case strings.Contains(path, "/buildings/"):
+		h.handleCompanyBuildings(w, r)
 	case strings.Contains(path, "/tags/"):
 		h.handleCompanyTags(w, r)
 	default:
@@ -128,6 +130,34 @@ func (h *Handler) handleV2Companies(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleCompanyCollectibles(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, []map[string]any{{"id": 1, "name": "Golden Spatula"}})
+}
+
+func (h *Handler) handleCompanyBuildings(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api/v2/companies/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 2 || parts[0] == "me" {
+		writeErr(w, 400, "company id required")
+		return
+	}
+	companyID, err := strconv.Atoi(parts[0])
+	if err != nil {
+		writeErr(w, 400, "invalid company id")
+		return
+	}
+	snap := h.svc.Snapshot()
+	company := snap.GetCompany(companyID)
+	if company == nil {
+		writeErr(w, 404, "company not found")
+		return
+	}
+	// Only return placed buildings (with position data)
+	buildings := make([]map[string]any, 0, len(company.PlacedBuildings))
+	for _, b := range company.PlacedBuildings {
+		copy := cloneMap(b)
+		copy["placed"] = true
+		buildings = append(buildings, copy)
+	}
+	writeJSON(w, 200, buildings)
 }
 
 func (h *Handler) handleCompanyNotifications(w http.ResponseWriter, _ *http.Request) {

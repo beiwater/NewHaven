@@ -4,6 +4,7 @@ import { ExecutiveMarket } from './ExecutiveMarket'
 import { MyExecutives } from './MyExecutives'
 import { TrainingQueue } from './TrainingQueue'
 import { ExecutiveDetail } from './ExecutiveDetail'
+import { audio } from '@/audio/AudioManager'
 
 export function ExecutivePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -17,6 +18,7 @@ export function ExecutivePage() {
 
   const handleTrain = useCallback(async (id: string) => {
     try {
+      audio.playSfx('executive_level_up')
       await trainExec.mutateAsync(id)
       refetchMy()
     } catch {
@@ -27,6 +29,7 @@ export function ExecutivePage() {
   const handleCompleteNow = useCallback(async (id: string) => {
     setCompleteNowId(id)
     try {
+      audio.playSfx('executive_level_up')
       await trainExec.mutateAsync(id)
       refetchMy()
     } finally {

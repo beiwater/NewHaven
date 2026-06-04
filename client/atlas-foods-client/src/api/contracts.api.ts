@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { DailyOrder, GovContract } from '@/game/types'
+import { audio } from '@/audio/AudioManager'
 
 export function useDailyOrders() {
   return useQuery({
@@ -53,6 +54,8 @@ export function useBidContract() {
     mutationFn: (params: { contractId: string; unitPrice: number }) =>
       api.post('/api/v3/government-orders/bid/', params),
     onSuccess: () => {
+      audio.playSfx('contract_signed')
+      audio.playSfx('money_coin_gain')
       qc.invalidateQueries({ queryKey: ['govContracts'] })
     },
   })

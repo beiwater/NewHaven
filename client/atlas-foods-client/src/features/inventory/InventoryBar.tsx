@@ -3,6 +3,7 @@ import { useWarehouse } from '@/api/inventory.api'
 import { resourceIcon } from '@/game/icons'
 import { SupplyChainPage } from '@/features/chain/SupplyChainPage'
 import { useUIStore, type ActiveView } from '@/store/ui.store'
+import { audio } from '@/audio/AudioManager'
 
 export function InventoryBar() {
   const { t } = useTranslation()
@@ -49,7 +50,8 @@ export function InventoryBar() {
         {inventory.slice(0, 12).map((item) => (
           <div
             key={item.resourceId}
-            className="flex flex-col items-center gap-1 rounded-lg bg-white/60 p-2 border border-amber-200/40"
+            className="flex flex-col items-center gap-1 rounded-lg bg-white/60 p-2 border border-amber-200/40 cursor-pointer"
+            onClick={() => audio.playSfx('inventory_open')}
             title={`#${item.resourceId}: ${item.quantity}`}
           >
             <img src={resourceIcon(item.resourceId)} alt="" className="h-7 w-7 object-contain" />
@@ -80,7 +82,7 @@ function InventorySubnav({
   return (
     <div className="mb-3 flex gap-2 rounded-lg border border-amber-300/50 bg-white/50 p-1">
       <button
-        onClick={() => onChange('warehouse')}
+        onClick={() => { onChange('warehouse'); audio.playSfx('inventory_sort') }}
         className={`flex-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
           active === 'warehouse'
             ? 'bg-amber-800 text-white'
@@ -90,7 +92,7 @@ function InventorySubnav({
         {t('inventory.warehouse')}
       </button>
       <button
-        onClick={() => onChange('chain')}
+        onClick={() => { onChange('chain'); audio.playSfx('inventory_sort') }}
         className={`flex-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
           active === 'chain'
             ? 'bg-amber-800 text-white'

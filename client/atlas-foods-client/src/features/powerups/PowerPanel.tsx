@@ -1,4 +1,5 @@
 import { useUIStore } from '@/store/ui.store'
+import { audio } from '@/audio/AudioManager'
 import { usePowerupTypes, useActivePowerup, useActivatePowerup, type PowerupType, type ActivePowerup } from '@/api/powerup.api'
 
 /** Format seconds into a human-readable duration string */
@@ -109,6 +110,7 @@ export function PowerPanel() {
                 } ${disabled ? 'opacity-75' : 'cursor-pointer transition-colors'}`}
                 onClick={() => {
                   if (disabled) return
+                  audio.playSfx('buff_activate')
                   activate.mutate(boost.id)
                 }}
               >

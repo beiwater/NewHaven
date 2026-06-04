@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react'
 import { useUIStore } from '@/store/ui.store'
 import { useMessages, useSendMessage, useMarkRead, useContacts } from '@/api/chat.api'
+import { audio } from '@/audio/AudioManager'
 
 function formatTime(at: string): string {
   try {
@@ -46,6 +47,7 @@ export function ChatPanel() {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
+    audio.playSfx('chat_receive')
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight
     }
@@ -107,6 +109,7 @@ export function ChatPanel() {
     const text = input.trim()
     if (!text) return
     setInput('')
+    audio.playSfx('chat_send')
     sendMessage.mutate(
       { chatroom: selectedContact ? `C:${selectedContact.companyId}` : 'N', body: text },
       { onError: () => setInput(text) },

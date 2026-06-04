@@ -1,5 +1,6 @@
 import { useDailyOrders, useCompleteDailyOrder, useClaimDailyOrder, useGovContracts, useBidContract } from '@/api/contracts.api'
 import { useState } from 'react'
+import { audio } from '@/audio/AudioManager'
 
 export function ContractList() {
   const { data: daily } = useDailyOrders()
@@ -12,6 +13,7 @@ export function ContractList() {
   const handleBid = (contractId: string) => {
     const price = parseFloat(bidPrices[contractId] ?? '0')
     if (price <= 0) return
+    audio.playSfx('contract_signed')
     bidContract.mutate({ contractId, unitPrice: price })
   }
 
@@ -63,7 +65,7 @@ export function ContractList() {
                 </button>
               ) : (
                 <button
-                  onClick={() => completeDaily.mutate(order.id)}
+                  onClick={() => { audio.playSfx('delivery_complete'); completeDaily.mutate(order.id) }}
                   disabled={completeDaily.isPending}
                   className="px-3 py-1 bg-amber-700 hover:bg-amber-800 disabled:bg-amber-300 text-white text-xs font-semibold rounded transition-colors"
                 >

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AuthGate } from '@/features/auth/AuthGate'
 import { TopBar } from '@/features/topbar/TopBar'
@@ -27,6 +28,8 @@ import { MobileLayout } from '@/features/mobile'
 import { useCompany, useSavePreferences } from '@/api/company.api'
 import { StoryPlayer } from '@/features/story/StoryPlayer'
 import { chapter1ArrivalStory } from '@/features/story/chapter1Arrival.story'
+import { useAudio } from '@/audio/useAudio'
+import { SoundTestPanel } from '@/audio/SoundTestPanel'
 
 // Lazy-load PixiJS game canvas so it doesn't block React mount
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
@@ -91,12 +94,70 @@ function GameLayout() {
   const setChatOpen = useUIStore((s) => s.setChatOpen)
   const chatOpen = useUIStore((s) => s.chatOpen)
   const isMapView = activeView === 'map'
+  const { playMusic, playAmbience, unlockAudio } = useAudio()
+  const unlocked = useRef(false)
 
   useMarketWebSocket()
   useProductionWebSocket()
 
+  // Unlock audio context on first user interaction
+  const handleFirstInteraction = () => {
+    if (!unlocked.current) {
+      unlocked.current = true
+      unlockAudio()
+    }
+  }
+
+  // BGM scene switching
+  useEffect(() => {
+    switch (activeView) {
+      case 'market':
+        playMusic('bgm_market')
+        playAmbience('amb_market')
+        break
+      case 'build':
+      case 'map':
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_harbor_day')
+        break
+      case 'warehouse':
+      case 'chain':
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_warehouse')
+        break
+      case 'production':
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_kitchen')
+        break
+      case 'contracts':
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_market')
+        break
+      case 'research':
+      case 'executives':
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_harbor_day')
+        break
+      case 'finance':
+      case 'leaderboard':
+      case 'settings':
+      case 'inspect':
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_harbor_day')
+        break
+      default:
+        playMusic('bgm_harbor_town')
+        playAmbience('amb_harbor_day')
+    }
+  }, [activeView, playMusic, playAmbience])
+
   return (
-    <div className={`game-layout ${isMapView ? 'map-mode' : 'page-mode'}`}>
+    <div
+      className={`game-layout ${isMapView ? 'map-mode' : 'page-mode'}`}
+      onClick={handleFirstInteraction}
+      onTouchStart={handleFirstInteraction}
+      onKeyDown={handleFirstInteraction}
+    >
       <TopBar />
       <LeftSidebar />
       <div className="map">
@@ -107,7 +168,10 @@ function GameLayout() {
       <MarketTicker />
       {!chatOpen && (
         <button
-          onClick={() => setChatOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setChatOpen(true)
+          }}
           className="fixed bottom-[110px] right-4 z-50 w-10 h-10 bg-amber-800 hover:bg-amber-900 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,6 +181,7 @@ function GameLayout() {
       )}
       <ChatPanel />
       <PowerPanel />
+      <SoundTestPanel />
     </div>
   )
 }

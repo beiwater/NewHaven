@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { audio } from '@/audio/AudioManager'
 import { api, setAuth, getCompanyId } from './client'
 
 interface LoginResponse {
@@ -128,6 +129,7 @@ export function useSavePreferences() {
       )
     },
     onSuccess: () => {
+      audio.playSfx('save_success')
       qc.invalidateQueries({ queryKey: ['company', companyId] })
     },
   })

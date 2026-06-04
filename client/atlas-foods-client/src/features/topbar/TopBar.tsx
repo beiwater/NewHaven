@@ -4,6 +4,7 @@ import { clearAuth } from '@/api/client'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
 import { useActivePowerup } from '@/api/powerup.api'
 import { useUIStore } from '@/store/ui.store'
+import { audio } from '@/audio/AudioManager'
 import { Icon } from '@/features/ui/Icon'
 
 export function TopBar() {
@@ -39,7 +40,7 @@ export function TopBar() {
     <header className="topbar flex items-center bg-gradient-to-r from-amber-900 via-amber-800 to-amber-900 text-white border-b-2 border-amber-700 shadow-md z-50">
       {/* Company Logo & Name */}
       <button
-        onClick={() => setActiveView('map')}
+        onClick={() => { audio.playSfx('ui_button_click', { volume: 0.4 }); setActiveView('map') }}
         className="flex items-center gap-3 px-4 min-w-[260px] h-full border-r border-amber-700/50 hover:bg-amber-700/30 transition-colors text-left"
         title={t('topbar.backToMap')}
       >
@@ -110,19 +111,19 @@ export function TopBar() {
 
       {/* Top icons */}
       <div className="flex items-center gap-1 px-3 ml-auto">
-        <button className="p-2 rounded-lg hover:bg-amber-700/50 transition-colors" title={t('topbar.notifications')}>
+        <button onClick={() => { audio.playSfx('ui_button_click', { volume: 0.4 }) }} className="p-2 rounded-lg hover:bg-amber-700/50 transition-colors" title={t('topbar.notifications')}>
           <svg className="w-5 h-5 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
         </button>
-        <button onClick={() => setActiveView('settings')} className="p-2 rounded-lg hover:bg-amber-700/50 transition-colors" title={t('topbar.settings')}>
+        <button onClick={() => { audio.playSfx('ui_button_click', { volume: 0.4 }); setActiveView('settings') }} className="p-2 rounded-lg hover:bg-amber-700/50 transition-colors" title={t('topbar.settings')}>
           <svg className="w-5 h-5 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
         <div className="w-px h-6 bg-amber-700/40 mx-1" />
-        <button type="button" onClick={handleLogout} className="flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-800/50 hover:text-white" title={t('topbar.signOutTitle')}>
+        <button type="button" onClick={() => { audio.playSfx('ui_button_click', { volume: 0.4 }); handleLogout() }} className="flex items-center gap-1.5 rounded-lg border border-red-400/40 bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-800/50 hover:text-white" title={t('topbar.signOutTitle')}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>

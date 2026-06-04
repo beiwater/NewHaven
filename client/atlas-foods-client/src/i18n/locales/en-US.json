@@ -104,6 +104,13 @@
     "soundDesc": "Play sounds for building actions and notifications",
     "autoCollect": "Auto-Collect",
     "autoCollectDesc": "Automatically collect completed production when ready",
+    "audio": "Audio",
+    "masterVolume": "Master Volume",
+    "sfxVolume": "SFX Volume",
+    "musicVolume": "Music Volume",
+    "testSound": "Test Sound",
+    "mute": "Mute",
+    "unmute": "Unmute",
     "notifications": "Notifications",
     "pushNotifications": "Push Notifications",
     "pushNotificationsDesc": "Get notified when production completes or contracts are ready",
@@ -117,6 +124,7 @@
     "language": "Language"
   },
   "market": {
+    "all": "All",
     "title": "Market",
     "subtitle": "Commodity Exchange",
     "tradableResources": "{{count}} tradable resources",

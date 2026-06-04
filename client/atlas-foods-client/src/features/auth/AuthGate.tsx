@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useLogin, useRegister } from '@/api/company.api'
 import { SUPPORTED_LOCALES, LOCALE_LABELS, getStoredLocale, setStoredLocale } from '@/i18n'
 import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
+import { audio } from '@/audio/AudioManager'
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -38,6 +39,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password.trim()) return
+    audio.unlockAudio()
+    audio.playSfx('ui_confirm')
     if (mode === 'login') {
       login.mutate({ username: username.trim(), password })
     } else {

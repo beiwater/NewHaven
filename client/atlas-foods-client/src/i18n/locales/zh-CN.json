@@ -104,6 +104,13 @@
     "soundDesc": "建筑操作和通知时播放音效",
     "autoCollect": "自动领取",
     "autoCollectDesc": "生产完成后自动领取",
+    "audio": "音频",
+    "masterVolume": "总音量",
+    "sfxVolume": "音效音量",
+    "musicVolume": "音乐音量",
+    "testSound": "测试音效",
+    "mute": "静音",
+    "unmute": "取消静音",
     "notifications": "通知",
     "pushNotifications": "推送通知",
     "pushNotificationsDesc": "生产完成或合同就绪时收到通知",
@@ -117,6 +124,7 @@
     "language": "语言"
   },
   "market": {
+    "all": "全部",
     "title": "市场",
     "subtitle": "商品交易所",
     "tradableResources": "{{count}} 种可交易资源",

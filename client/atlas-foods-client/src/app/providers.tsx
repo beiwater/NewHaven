@@ -1,8 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useEffect, type ReactNode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '@/i18n'
 import { ApiError } from '@/api/client'
+import { AudioProvider } from '@/audio/useAudio'
+import { audio } from '@/audio/AudioManager'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,10 +26,14 @@ const queryClient = new QueryClient({
 })
 
 export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    audio.init()
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        {children}
+        <AudioProvider>{children}</AudioProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )

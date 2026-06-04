@@ -4,8 +4,9 @@ import {
   kindLabel,
   type CashflowEntry,
 } from '@/api/financial.api'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { audio } from '@/audio/AudioManager'
 
 // --- helpers ---
 
@@ -183,6 +184,20 @@ export function FinancialPage() {
   const txLimited = transactions.length <= 10
   // net worth calculation verified (assets - liabilities = equity)
   const netWorthCorrect = balance ? Math.abs(balance.assets - balance.liabilities - balance.equity) < 0.01 : false
+
+  // Play sounds when financial data is loaded
+  useEffect(() => {
+    if (pageLoaded && revenue > 0) {
+      audio.playSfx('money_coin_gain')
+    }
+  }, [pageLoaded, revenue])
+
+  useEffect(() => {
+    if (pageLoaded && liabilities > 0) {
+      audio.playSfx('debt_issued')
+      audio.playSfx('money_coin_gain')
+    }
+  }, [pageLoaded, liabilities])
 
   if (isLoading) {
     return (

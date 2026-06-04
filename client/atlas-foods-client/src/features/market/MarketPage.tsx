@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { audio } from '@/audio/AudioManager'
 import { getCompanyId } from '@/api/client'
 import { useCompany } from '@/api/company.api'
 import { useWarehouse } from '@/api/inventory.api'
@@ -13,11 +14,13 @@ import {
   useResources,
 } from '@/api/market.api'
 import {
+  ALL_RESOURCE_IDS,
   FALLBACK_MARKET_RESOURCES,
   MARKET_GROUPS,
   formatResourceName,
   resourceName,
   resourceIcon,
+  type MarketGroupId,
 } from '@/game/resources'
 import { PriceCurve } from './PriceCurve'
 import { ParticipantList } from './ParticipantList'
@@ -25,17 +28,17 @@ import { ParticipantList } from './ParticipantList'
 export function MarketPage() {
   const { t } = useTranslation()
   const [selectedResource, setSelectedResource] = useState(1)
-  const [selectedGroup, setSelectedGroup] = useState<(typeof MARKET_GROUPS)[number]['id']>('raw')
+  const [selectedGroup, setSelectedGroup] = useState<MarketGroupId>('all')
   const [orderKind, setOrderKind] = useState<'buy' | 'sell'>('buy')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('10.00')
 
   const { data: resourcesData } = useResources()
   const resources = resourcesData?.resources?.length ? resourcesData.resources : FALLBACK_MARKET_RESOURCES
-  const activeGroup = MARKET_GROUPS.find((g) => g.id === selectedGroup) ?? MARKET_GROUPS[0]
+  const activeIds = selectedGroup === 'all' ? ALL_RESOURCE_IDS : (MARKET_GROUPS.find((g) => g.id === selectedGroup)?.ids ?? ALL_RESOURCE_IDS)
   const visibleResources = useMemo(
-    () => activeGroup.ids.map((id) => resources.find((r) => r.resourceId === id)).filter(Boolean),
-    [activeGroup, resources],
+    () => activeIds.map((id) => resources.find((r) => r.resourceId === id)).filter(Boolean),
+    [activeIds, resources],
   )
 
   const { data: ticker } = useMarketTicker(selectedResource)
@@ -85,6 +88,8 @@ export function MarketPage() {
 
   const handleCreateOrder = () => {
     if (localOrderError) return
+    audio.playSfx(orderKind === 'buy' ? 'market_buy' : 'market_sell')
+    audio.playSfx('market_order_created')
     createOrder.mutate({
       resourceId: selectedResource,
       kind: orderKind === 'buy' ? 1 : 0,
@@ -95,6 +100,7 @@ export function MarketPage() {
   }
 
   const handleTakeBestAsk = () => {
+    audio.playSfx('market_buy')
     takeOrder.mutate({
       resourceId: selectedResource,
       quantity: numericQuantity,
@@ -117,6 +123,20 @@ export function MarketPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {/* All resources */}
+          <button
+            onClick={() => {
+              setSelectedGroup('all')
+              setSelectedResource(1)
+            }}
+            className={`rounded-full px-4 py-2 text-xs font-bold transition-colors ${
+              selectedGroup === 'all'
+                ? 'bg-amber-800 text-white shadow'
+                : 'bg-white/60 text-amber-800 hover:bg-amber-100'
+            }`}
+          >
+            {t('market.all')}
+          </button>
           {MARKET_GROUPS.map((group) => (
             <button
               key={group.id}

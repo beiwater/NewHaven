@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCompany } from '@/api/company.api'
 import { useSavePreferences } from '@/api/company.api'
+import { useAudio } from '@/audio/useAudio'
+import { audio } from '@/audio/AudioManager'
+import { SoundTestPanel } from '@/audio/SoundTestPanel'
 import {
   type SupportedLocale,
   SUPPORTED_LOCALES,
@@ -86,13 +89,14 @@ function ToggleRow({
 
 export function SettingsPage() {
   const { t } = useTranslation()
+  const { settings: audioSettings, setMasterVolume, setSfxVolume, setMusicVolume, muted, toggleMute } = useAudio()
   const [locale, setLocaleLocal] = useState<SupportedLocale>(getStoredLocale)
+  const [showSoundTest, setShowSoundTest] = useState(false)
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
   const [saved] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: companyData } = useCompany()
   const savePrefs = useSavePreferences()
-
   const companyName = companyData?.authCompany?.company ?? 'MC'
   const initial = companyName.charAt(0).toUpperCase()
 
@@ -223,21 +227,81 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {/* Gameplay */}
+        {/* Audio */}
         <section className="space-y-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.gameplay')}</h3>
-          <ToggleRow
-            label={t('settings.sound')}
-            description={t('settings.soundDesc')}
-            checked={settings.soundEnabled}
-            onChange={(v) => update({ soundEnabled: v })}
-          />
-          <ToggleRow
-            label={t('settings.autoCollect')}
-            description={t('settings.autoCollectDesc')}
-            checked={settings.autoCollect}
-            onChange={(v) => update({ autoCollect: v })}
-          />
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-700 px-1">{t('settings.audio')}</h3>
+          <div className="bg-white/60 rounded-xl border border-amber-200/40 p-4 space-y-3">
+            {/* Master Volume */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-amber-800">{t('settings.masterVolume')}</span>
+                <span className="text-[9px] text-amber-500">{Math.round(audioSettings.masterVolume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={audioSettings.masterVolume}
+                onChange={(e) => setMasterVolume(Number(e.target.value))}
+                className="w-full accent-amber-600"
+              />
+            </div>
+
+            {/* SFX Volume */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-amber-800">{t('settings.sfxVolume')}</span>
+                <span className="text-[9px] text-amber-500">{Math.round(audioSettings.sfxVolume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={audioSettings.sfxVolume}
+                onChange={(e) => setSfxVolume(Number(e.target.value))}
+                className="w-full accent-amber-600"
+              />
+            </div>
+
+            {/* Music Volume */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-amber-800">{t('settings.musicVolume')}</span>
+                <span className="text-[9px] text-amber-500">{Math.round(audioSettings.musicVolume * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={audioSettings.musicVolume}
+                onChange={(e) => setMusicVolume(Number(e.target.value))}
+                className="w-full accent-amber-600"
+              />
+            </div>
+
+            {/* Mute + Test */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => toggleMute()}
+                className={`px-3 py-1.5 text-[10px] font-semibold rounded-lg transition-colors ${
+                  muted
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                }`}
+              >
+                {muted ? t('settings.unmute') : t('settings.mute')}
+              </button>
+              <button
+                onClick={() => setShowSoundTest(true)}
+                className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[10px] font-semibold rounded-lg transition-colors"
+              >
+                ♪ Sound Test
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* Notifications */}
@@ -299,6 +363,7 @@ export function SettingsPage() {
           )}
         </div>
       </div>
+      <SoundTestPanel open={showSoundTest} onClose={() => setShowSoundTest(false)} />
     </div>
   )
 }

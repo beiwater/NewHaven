@@ -5,6 +5,7 @@ import { Icon } from '@/features/ui/Icon'
 import { FALLBACK_MARKET_RESOURCES, formatResourceName } from '@/game/resources'
 import { useUIStore } from '@/store/ui.store'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
+import { audio } from '@/audio/AudioManager'
 
 interface BuildingMarketItem {
   id: string
@@ -51,10 +52,12 @@ export function BuildView() {
       : ''
 
   const handleBuy = (buildingId: string) => {
+    audio.playSfx('build_confirm')
     buyBuilding.mutate(buildingId)
   }
 
   const handlePlace = (buildingId: string) => {
+    audio.playSfx('build_place')
     const pos = findNextBuildingSpot(placedBuildings)
     placeBuilding.mutate({
       buildingId,
@@ -196,7 +199,7 @@ export function BuildView() {
                 <div className="text-sm font-bold text-amber-900 mb-2">{b.name ?? ('Building ' + b.kind)}</div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => startBuildingPlacement(b.id)}
+                    onClick={() => { audio.playSfx('build_confirm'); startBuildingPlacement(b.id) }}
                     className="tutorial-place-building w-full py-1.5 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded transition-colors"
                   >
                     Place on Map

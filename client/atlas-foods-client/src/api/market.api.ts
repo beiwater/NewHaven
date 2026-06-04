@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { MarketOrder, MarketDepth, MarketTickerData, ResourceDefinition } from '@/game/types'
+import { audio } from '@/audio/AudioManager'
 
 // /api/v3/market-ticker/{id}/ returns { resource, series: [{price, time}] }
 export function useMarketTicker(resourceId: number) {
   return useQuery({
     queryKey: ['marketTicker', resourceId],
     queryFn: () => api.get<MarketTickerData>(`/api/v3/market-ticker/${resourceId}/`),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   })
 }
 
@@ -16,7 +17,7 @@ export function useMarketDepth(resourceId: number, quality = 0) {
   return useQuery({
     queryKey: ['marketDepth', resourceId, quality],
     queryFn: () => api.get<MarketDepth>(`/api/v3/market-depth/${resourceId}/${quality}/`),
-    refetchInterval: 15_000,
+    refetchInterval: 10_000,
   })
 }
 
@@ -26,7 +27,7 @@ export function useMarketOrders(resourceId: number, quality = 0) {
     queryKey: ['marketOrders', resourceId, quality],
     queryFn: () =>
       api.get<MarketOrder[]>(`/api/v3/market/${resourceId}/${quality}/`),
-    refetchInterval: 15_000,
+    refetchInterval: 10_000,
   })
 }
 
@@ -41,6 +42,7 @@ export function useCreateOrder() {
       price: number
     }) => api.post<{ order: MarketOrder }>('/api/v2/market-order/', order),
     onSuccess: (_, vars) => {
+      audio.playSfx(vars.kind === 0 ? 'money_coin_spend' : 'money_coin_gain')
       qc.invalidateQueries({ queryKey: ['marketOrders', vars.resourceId] })
       qc.invalidateQueries({ queryKey: ['marketDepth', vars.resourceId] })
       qc.invalidateQueries({ queryKey: ['company'] })
@@ -80,6 +82,7 @@ export function useTakeOrder() {
       },
     ),
     onSuccess: (_, vars) => {
+      audio.playSfx('money_coin_spend')
       qc.invalidateQueries({ queryKey: ['marketOrders', vars.resourceId] })
       qc.invalidateQueries({ queryKey: ['marketDepth', vars.resourceId] })
       qc.invalidateQueries({ queryKey: ['company'] })

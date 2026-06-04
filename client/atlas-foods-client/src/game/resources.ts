@@ -8,6 +8,10 @@ export const MARKET_GROUPS = [
   { id: 'finished', labelKey: 'marketGroup.finished', ids: [8, 9, 10, 11] },
 ] as const
 
+/** All resource IDs for "All" view. */
+export const ALL_RESOURCE_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const
+export type MarketGroupId = (typeof MARKET_GROUPS)[number]['id'] | 'all'
+
 export const FALLBACK_MARKET_RESOURCES: ResourceDefinition[] = [
   { resourceId: 1, name: '' },
   { resourceId: 2, name: '' },

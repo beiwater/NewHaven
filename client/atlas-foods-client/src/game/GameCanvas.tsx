@@ -1,3 +1,4 @@
+import { audio } from '@/audio/AudioManager'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IMAGE_LOAD_TIMEOUT_MS } from '@/constants'
 
@@ -133,6 +134,7 @@ function GameCanvas() {
   const startedRef = useRef(false)
   const [layerReady, setLayerReady] = useState(false)
   const [clock, setClock] = useState(Date.now())
+  const moveOverlayRef = useRef<Container | null>(null)
 
   const { data: buildingsData } = useBuildings()
   const { data: jobsData } = useProductionJobs()
@@ -181,23 +183,28 @@ function GameCanvas() {
         app.renderer.background.color = 0xe8dcc8
         textureCacheRef.current = await preloadBuildingTextures()
         resourceTextureCacheRef.current = await preloadResourceTextures()
-
         const sprite = new Sprite(Texture.from(img))
         sprite.anchor.set(0, 0)
+
         const screenW = app.screen.width
         const screenH = app.screen.height
         const baseScale = Math.max(screenW / sprite.width, screenH / sprite.height)
-        sprite.scale.set(baseScale)
-        app.stage.addChild(sprite)
+        const mapW = sprite.width   // image-pixel width
+        const mapH = sprite.height  // image-pixel height
 
-        const mapW = sprite.width * baseScale
-        const mapH = sprite.height * baseScale
+        // Content container at baseScale — everything inside uses image-pixel coords
+        const mapContent = new Container()
+        mapContent.scale.set(baseScale)
+        app.stage.addChild(mapContent)
+        mapContent.addChild(sprite)
+
         let zoom = 1.0
         const minZoom = 1.0; const maxZoom = 4.0
         const clampPivot = () => {
           const bleed = 180 / zoom
-          const maxPx = Math.max(0, mapW - screenW / zoom)
-          const maxPy = Math.max(0, mapH - screenH / zoom)
+          // pivot operates in stage coords; mapW * baseScale = stage width
+          const maxPx = Math.max(0, mapW * baseScale - screenW / zoom)
+          const maxPy = Math.max(0, mapH * baseScale - screenH / zoom)
           app!.stage.pivot.x = Math.max(-bleed, Math.min(maxPx + bleed, app!.stage.pivot.x))
           app!.stage.pivot.y = Math.max(-bleed, Math.min(maxPy + bleed, app!.stage.pivot.y))
         }
@@ -205,10 +212,50 @@ function GameCanvas() {
         const buildingLayer = new Container()
         buildingLayer.sortableChildren = true
         buildingLayerRef.current = buildingLayer
-        app.stage.addChild(buildingLayer)
+        mapContent.addChild(buildingLayer)
+
+        const moveOverlayLayer = new Container()
+        moveOverlayLayer.sortableChildren = true
+        moveOverlayLayer.name = 'moveOverlay'
+        moveOverlayRef.current = moveOverlayLayer
+        mapContent.addChild(moveOverlayLayer)
+        const drawOverlay = (grid: { x: number; y: number } | null, showGhost: boolean) => {
+          moveOverlayLayer.removeChildren()
+          if (!grid) return
+          const bw = 100
+          const bh = 80
+          // Grid cells — centered on grid position to match isometric tiles
+          for (let gy = 1; gy <= 10; gy++) {
+            for (let gx = 1; gx <= 12; gx++) {
+              const cx = 110 + gx * 112 + gy * 36
+              const cy = 95 + gy * 74
+              const cell = new Graphics()
+              const isHovered = gx === grid.x && gy === grid.y
+              cell.rect(cx - 50, cy - 40, bw, bh)
+              if (isHovered) {
+                cell.fill({ color: 0x3b82f6, alpha: 0.20 })
+                cell.stroke({ width: 2, color: 0x3b82f6, alpha: 0.60 })
+              } else {
+                cell.stroke({ width: 1, color: 0xffffff, alpha: 0.30 })
+              }
+              moveOverlayLayer.addChild(cell)
+            }
+          }
+          // Ghost preview
+          if (showGhost && grid) {
+            const cx = 110 + grid.x * 112 + grid.y * 36
+            const cy = 95 + grid.y * 74
+            const ghost = new Graphics()
+            ghost.rect(cx - 40, cy - 40, 80, 80)
+            ghost.stroke({ width: 2, color: 0x3b82f6, alpha: 0.75 })
+            moveOverlayLayer.addChild(ghost)
+          }
+        }
+        const clearOverlay = () => moveOverlayLayer.removeChildren()
         setLayerReady(true)
         const canvas = app.canvas as HTMLCanvasElement
 
+        // screenToMap: screen CSS coords → stage world coords
         const screenToMap = (clientX: number, clientY: number) => {
           const rect = canvas.getBoundingClientRect()
           return {
@@ -216,18 +263,12 @@ function GameCanvas() {
             y: app!.stage.pivot.y + (clientY - rect.top) / app!.stage.scale.y,
           }
         }
-        const toGrid = (worldX: number, worldY: number) => {
-          const y = Math.round((worldY - 95) / 74)
-          const x = Math.round((worldX - 110 - y * 36) / 112)
+        // toGrid: image-pixel coords → grid coords (1..12, 1..10)
+        const toGrid = (imgX: number, imgY: number) => {
+          const y = Math.round((imgY - 95) / 74)
+          const x = Math.round((imgX - 110 - y * 36) / 112)
           return { x: Math.max(1, Math.min(12, x)), y: Math.max(1, Math.min(10, y)) }
         }
-
-        canvas.addEventListener('wheel', (e: WheelEvent) => {
-          e.preventDefault()
-          const factor = e.deltaY > 0 ? 0.92 : 1.08
-          const next = Math.max(minZoom, Math.min(maxZoom, zoom * factor))
-          if (next !== zoom) { zoom = next; app!.stage.scale.set(zoom); clampPivot() }
-        }, { passive: false })
 
         let panning = false; let dragged = false
         const panStart = { x: 0, y: 0 }; const pivotStart = { x: 0, y: 0 }
@@ -288,10 +329,11 @@ function GameCanvas() {
           if (touches.size === 0 && !dragged && panning) {
             const state = useUIStore.getState()
             const world = screenToMap(panStart.x, panStart.y)
-            const grid = toGrid(world.x, world.y)
+            // Account for building visual offset (sprite foot at node.x+50, node.y+80)
+            const grid = toGrid(world.x / baseScale - 50, world.y / baseScale - 80)
             if (state.movingBuildingId) {
               moveBuildingRef.current({ buildingId: state.movingBuildingId, x: grid.x, y: grid.y }, {
-                onSuccess: () => clearBuildingMove(),
+                onSuccess: () => { clearBuildingMove(); clearOverlay() },
               })
             } else if (state.placementBuildingId) {
               placeBuildingRef.current({ buildingId: state.placementBuildingId, x: grid.x, y: grid.y }, {
@@ -309,8 +351,15 @@ function GameCanvas() {
           if (touches.size === 0) {
             panning = false
             pinchStartDist = 0
+            clearOverlay()
           }
         })
+        canvas.addEventListener('wheel', (e: WheelEvent) => {
+          e.preventDefault()
+          const factor = e.deltaY > 0 ? 0.92 : 1.08
+          const next = Math.max(minZoom, Math.min(maxZoom, zoom * factor))
+          if (next !== zoom) { zoom = next; app!.stage.scale.set(zoom); clampPivot() }
+        }, { passive: false })
         // ── Mouse events (desktop) ──
         canvas.addEventListener('mousedown', (e: MouseEvent) => {
           if (e.button !== 0 && e.button !== 1) return
@@ -319,20 +368,31 @@ function GameCanvas() {
           pivotStart.x = app!.stage.pivot.x; pivotStart.y = app!.stage.pivot.y
         })
         canvas.addEventListener('mousemove', (e: MouseEvent) => {
-          if (!panning) return
-          if (Math.abs(e.clientX - panStart.x) + Math.abs(e.clientY - panStart.y) > 6) dragged = true
-          app!.stage.pivot.x = pivotStart.x - (e.clientX - panStart.x) / app!.stage.scale.x
-          app!.stage.pivot.y = pivotStart.y - (e.clientY - panStart.y) / app!.stage.scale.y
-          clampPivot()
+          if (panning) {
+            if (Math.abs(e.clientX - panStart.x) + Math.abs(e.clientY - panStart.y) > 6) dragged = true
+            app!.stage.pivot.x = pivotStart.x - (e.clientX - panStart.x) / app!.stage.scale.x
+            app!.stage.pivot.y = pivotStart.y - (e.clientY - panStart.y) / app!.stage.scale.y
+            clampPivot()
+          }
+          // Ghost preview tracking during move/placement
+          const state = useUIStore.getState()
+          if (state.movingBuildingId || state.placementBuildingId) {
+            const world = screenToMap(e.clientX, e.clientY)
+            const grid = toGrid(world.x / baseScale - 50, world.y / baseScale - 80)
+            drawOverlay(grid, !!state.movingBuildingId)
+          } else {
+            clearOverlay()
+          }
         })
         canvas.addEventListener('mouseup', (e: MouseEvent) => {
           if (!dragged && e.button === 0) {
             const state = useUIStore.getState()
             const world = screenToMap(e.clientX, e.clientY)
-            const grid = toGrid(world.x, world.y)
+            // Account for building visual offset (sprite foot at node.x+50, node.y+80)
+            const grid = toGrid(world.x / baseScale - 50, world.y / baseScale - 80)
             if (state.movingBuildingId) {
               moveBuildingRef.current({ buildingId: state.movingBuildingId, x: grid.x, y: grid.y }, {
-                onSuccess: () => clearBuildingMove(),
+                onSuccess: () => { clearBuildingMove(); clearOverlay() },
               })
             } else if (state.placementBuildingId) {
               placeBuildingRef.current({ buildingId: state.placementBuildingId, x: grid.x, y: grid.y }, {
@@ -340,6 +400,10 @@ function GameCanvas() {
               })
             }
           }
+          panning = false
+          clearOverlay()
+        })
+        canvas.addEventListener('mouseleave', () => {
           panning = false
         })
       } catch (e) {
@@ -390,6 +454,7 @@ function GameCanvas() {
         const amount = collectableAmount(harvestJob, Date.now())
         claimProduction.mutate(harvestJob.id, {
           onSuccess: () => {
+            audio.playSfx('resource_pickup')
             const currentLayer = buildingLayerRef.current
             if (currentLayer) {
               addHarvestFloat(currentLayer, buildingToMapPosition(b), resourceCache[harvestJob.resourceId], amount)
@@ -415,6 +480,7 @@ function GameCanvas() {
           Click a map plot to move this building. Drag to pan.
         </div>
       )}
+
     </div>
   )
 }

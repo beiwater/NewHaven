@@ -1,4 +1,5 @@
 import { useExecutiveDetail, useTrainExecutive } from '@/api/executives.api'
+import { audio } from '@/audio/AudioManager'
 import { useCompany } from '@/api/company.api'
 import {
   productionBonusAtLevel,
@@ -66,6 +67,7 @@ export function ExecutiveDetail({ executiveId, onTrainingComplete }: ExecutiveDe
 
   const handleTrain = async () => {
     try {
+      audio.playSfx('executive_level_up')
       await trainExec.mutateAsync(detail.id)
       onTrainingComplete?.()
     } catch {

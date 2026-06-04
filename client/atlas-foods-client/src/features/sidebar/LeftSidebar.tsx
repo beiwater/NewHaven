@@ -2,6 +2,7 @@ import { useUIStore, type ActiveView } from '@/store/ui.store'
 import { useTranslation } from 'react-i18next'
 import { systemIcon } from '@/game/icons'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
+import { audio } from '@/audio/AudioManager'
 
 const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature: string }> = [
   { id: 'map', label: 'map', sysIcon: 'inventory', feature: 'map' },
@@ -37,7 +38,7 @@ export function LeftSidebar() {
             <button
               key={item.id}
               onClick={() => {
-                if (isUnlocked) setActiveView(item.id)
+              if (isUnlocked) { setActiveView(item.id); audio.playSfx('ui_button_click', { volume: 0.4 }) }
               }}
               disabled={!isUnlocked}
               title={isUnlocked ? t(`nav.${item.label}`) : t('nav.locked', { level: unlockLevel })}

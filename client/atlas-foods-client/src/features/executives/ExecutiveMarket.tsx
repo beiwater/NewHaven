@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useExecutiveSearch, useRecruitExecutive } from '@/api/executives.api'
 import { useCompany } from '@/api/company.api'
+import { audio } from '@/audio/AudioManager'
 import { ExecutiveCard } from './ExecutiveCard'
 
 export function ExecutiveMarket() {
@@ -15,6 +16,7 @@ export function ExecutiveMarket() {
 
   const handleRecruit = async (id: string) => {
     setRecruitingId(id)
+    audio.playSfx('executive_hire')
     try {
       await recruitExec.mutateAsync(id)
     } finally {

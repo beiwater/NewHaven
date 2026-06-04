@@ -1,16 +1,35 @@
+/**
+ * PriceCurve — sparkline chart with y-axis price labels and X-axis time labels.
+ * The left side shows price levels (low, mid, high) so you can read approximate values.
+ */
 export function PriceCurve({ series }: { series: Array<{ price: number; time: string }> }) {
   const width = 640
   const height = 160
-  const padding = 14
-  const prices = series.map((point) => point.price)
+  const padding = { top: 14, right: 14, bottom: 24, left: 52 }
+  const plotW = width - padding.left - padding.right
+  const plotH = height - padding.top - padding.bottom
+
+  const prices = series.map((p) => p.price)
   const min = prices.length ? Math.min(...prices) : 0
   const max = prices.length ? Math.max(...prices) : 0
   const spread = Math.max(1, max - min)
-  const points = series.map((point, index) => {
-    const x = padding + (index / Math.max(1, series.length - 1)) * (width - padding * 2)
-    const y = height - padding - ((point.price - min) / spread) * (height - padding * 2)
-    return `${x.toFixed(2)},${y.toFixed(2)}`
-  }).join(' ')
+
+  // Y-axis ticks: 5 evenly-spaced labels
+  const yTicks = 5
+  const yLabels = Array.from({ length: yTicks }, (_, i) => {
+    const val = min + (spread * i) / (yTicks - 1)
+    return { value: val, y: padding.top + plotH - ((val - min) / spread) * plotH }
+  })
+
+  // Polyline points
+  const points = series
+    .map((point, index) => {
+      const x = padding.left + (index / Math.max(1, series.length - 1)) * plotW
+      const y = padding.top + plotH - ((point.price - min) / spread) * plotH
+      return `${x.toFixed(2)},${y.toFixed(2)}`
+    })
+    .join(' ')
+
   const lastPoint = series.at(-1)
 
   return (
@@ -33,12 +52,52 @@ export function PriceCurve({ series }: { series: Array<{ price: number; time: st
             <stop offset="100%" stopColor="#d97706" stopOpacity="0.02" />
           </linearGradient>
         </defs>
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d6b27b" strokeDasharray="4 4" />
-        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#d6b27b" strokeDasharray="4 4" />
+
+        {/* Y-axis labels */}
+        {yLabels.map(({ value, y }) => (
+          <g key={y}>
+            <text
+              x={padding.left - 6}
+              y={y + 3}
+              textAnchor="end"
+              className="fill-amber-600 text-[9px] font-semibold"
+            >
+              ${value.toFixed(2)}
+            </text>
+            <line
+              x1={padding.left}
+              y1={y}
+              x2={width - padding.right}
+              y2={y}
+              stroke="#d6b27b"
+              strokeDasharray="4 4"
+              strokeOpacity={0.4}
+            />
+          </g>
+        ))}
+
+        {/* X-axis baseline */}
+        <line
+          x1={padding.left}
+          y1={padding.top + plotH}
+          x2={width - padding.right}
+          y2={padding.top + plotH}
+          stroke="#d6b27b"
+          strokeDasharray="4 4"
+        />
+        <line
+          x1={padding.left}
+          y1={padding.top}
+          x2={padding.left}
+          y2={padding.top + plotH}
+          stroke="#d6b27b"
+          strokeDasharray="4 4"
+        />
+
         {points ? (
           <>
             <polyline
-              points={`${padding},${height - padding} ${points} ${width - padding},${height - padding}`}
+              points={`${padding.left},${padding.top + plotH} ${points} ${width - padding.right},${padding.top + plotH}`}
               fill="url(#marketCurveFill)"
               stroke="none"
             />

@@ -6,6 +6,7 @@ import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
 import { resourceIcon } from '@/game/resources'
 import { buildingIcon } from '@/game/icons'
+import { audio } from '@/audio/AudioManager'
 
 const BUILDING_PREVIEW: Record<number, string> = {
   1: '/assets/buildings/grain_plot_lv1_idle_trimmed.png',
@@ -126,6 +127,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
 
   const handleStart = () => {
     if (!selectedOption) return
+    audio.playSfx('build_confirm')
     startProd.mutate({
       buildingId: building.id,
       kind: selectedOption.resourceId,
@@ -134,7 +136,10 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   }
 
   const handleCollect = () => {
-    if (collectableJob) claimProd.mutate(collectableJob.id)
+    if (collectableJob) {
+      audio.playSfx('resource_pickup')
+      claimProd.mutate(collectableJob.id)
+    }
   }
 
   const handleMove = () => {
@@ -142,6 +147,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   }
 
   const handleUpgrade = () => {
+    audio.playSfx('build_upgrade')
     upgradeBuilding.mutate(building.id)
   }
 
@@ -150,6 +156,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   }
 
   const handleDemolish = () => {
+    audio.playSfx('build_demolish')
     demolishBuilding.mutate(building.id)
     setShowDemolishConfirm(false)
     onClose()

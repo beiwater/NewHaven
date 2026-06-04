@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useProductionQueue, useProductionJobs, useCancelJob } from '@/api/production.api'
+import { audio } from '@/audio/AudioManager'
 
 export function ProductionQueue() {
   const { t } = useTranslation()
@@ -10,6 +11,14 @@ export function ProductionQueue() {
   const allJobs = jobs ?? []
   const collectableJobs = allJobs.filter((j) => (j.claimableAmount ?? 0) > 0)
   const activeJobs = allJobs.filter((j) => j.status !== 'claimed')
+  // Play sounds for collectable jobs and active jobs
+  if (collectableJobs.length > 0) {
+    audio.playSfx('kitchen_recipe_complete')
+    audio.playSfx('resource_pickup')
+  }
+  if (activeJobs.length > 0) {
+    audio.playSfx('mill_start')
+  }
 
   return (
     <div className="p-4">
