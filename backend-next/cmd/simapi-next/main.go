@@ -9,16 +9,26 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/newhaven/backend-next/internal/app"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
+	"github.com/newhaven/backend-next/internal/storage/memory"
 )
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	cfg := config.Load()
-
-	mux := httpapi.NewRouter(cfg)
+	st := memory.New()
+	application := app.New(cfg, st)
+	authHandler := httpapi.NewAuthHandler(application.AuthService)
+	mux := httpapi.NewRouter(cfg, authHandler)
+	if cfg.DevMode {
+		slog.Info("dev mode enabled, bootstrapping dev user")
+		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {
+			slog.Warn("dev bootstrap skipped", "error", err)
+		}
+	}
 
 	srv := &http.Server{
 		Addr:         cfg.Addr,

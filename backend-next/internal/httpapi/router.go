@@ -6,8 +6,7 @@ import (
 
 	"github.com/newhaven/backend-next/internal/config"
 )
-
-func NewRouter(cfg *config.Config) *chi.Mux {
+func NewRouter(cfg *config.Config, authHandler *AuthHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack (outermost first)
@@ -20,6 +19,12 @@ func NewRouter(cfg *config.Config) *chi.Mux {
 	// Health
 	r.Get("/healthz", handleHealthz)
 	r.Get("/readyz", handleReadyz)
+
+	// Auth routes (unauthenticated)
+	r.Route("/api", func(r chi.Router) {
+		r.Post("/register", authHandler.handleRegister)
+		r.Post("/login", authHandler.handleLogin)
+	})
 
 	// API v2 (retained compatibility)
 	r.Route("/api/v2", func(r chi.Router) {
