@@ -290,8 +290,7 @@ clinet-next/
       utils.ts                # 新建（cn() 工具函数）
 
     app/
-      providers/
-        QueryProvider.tsx     # 从 client 复制
+      providers.tsx           # 从 client 复制（实际是 src/app/providers.tsx）
 
     api/
       client.ts               # 从 client 复制 + 整理
@@ -338,8 +337,10 @@ clinet-next/
     tests/
       vitest.setup.ts         # 新建
       unit/                   # 新建（最小用例）
+
+  tests/
     e2e/
-      playwright.config.ts    # 新建（骨架）
+      playwright.config.ts    # 新建（骨架，项目根级）
 ```
 
 ---
