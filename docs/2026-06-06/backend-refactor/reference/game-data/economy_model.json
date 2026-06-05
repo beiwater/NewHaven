@@ -1,0 +1,136 @@
+{
+  "models": {
+    "1": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 1.5,
+        "modeledWagesPerUnitPerHour": 0.5,
+        "modeledStoreWages": 75,
+        "modeledSalesPerUnitPerHour": 150,
+        "modeledUnitsSoldAnHour": 150,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "2": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 2.1,
+        "modeledWagesPerUnitPerHour": 0.7,
+        "modeledStoreWages": 91,
+        "modeledSalesPerUnitPerHour": 130,
+        "modeledUnitsSoldAnHour": 130,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "3": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 4.0,
+        "modeledWagesPerUnitPerHour": 1.2,
+        "modeledStoreWages": 114,
+        "modeledSalesPerUnitPerHour": 95,
+        "modeledUnitsSoldAnHour": 95,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "4": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 5.4,
+        "modeledWagesPerUnitPerHour": 1.5,
+        "modeledStoreWages": 120,
+        "modeledSalesPerUnitPerHour": 80,
+        "modeledUnitsSoldAnHour": 80,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "5": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 6.2,
+        "modeledWagesPerUnitPerHour": 1.7,
+        "modeledStoreWages": 119,
+        "modeledSalesPerUnitPerHour": 70,
+        "modeledUnitsSoldAnHour": 70,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "6": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 1.9,
+        "modeledWagesPerUnitPerHour": 0.6,
+        "modeledStoreWages": 66,
+        "modeledSalesPerUnitPerHour": 110,
+        "modeledUnitsSoldAnHour": 110,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "7": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 8.8,
+        "modeledWagesPerUnitPerHour": 2.2,
+        "modeledStoreWages": 128,
+        "modeledSalesPerUnitPerHour": 58,
+        "modeledUnitsSoldAnHour": 58,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "8": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 11.5,
+        "modeledWagesPerUnitPerHour": 2.8,
+        "modeledStoreWages": 126,
+        "modeledSalesPerUnitPerHour": 45,
+        "modeledUnitsSoldAnHour": 45,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "9": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 15.0,
+        "modeledWagesPerUnitPerHour": 3.5,
+        "modeledStoreWages": 126,
+        "modeledSalesPerUnitPerHour": 36,
+        "modeledUnitsSoldAnHour": 36,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "10": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 18.2,
+        "modeledWagesPerUnitPerHour": 4.1,
+        "modeledStoreWages": 123,
+        "modeledSalesPerUnitPerHour": 30,
+        "modeledUnitsSoldAnHour": 30,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "11": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 7.5,
+        "modeledWagesPerUnitPerHour": 1.9,
+        "modeledStoreWages": 143,
+        "modeledSalesPerUnitPerHour": 75,
+        "modeledUnitsSoldAnHour": 75,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    },
+    "12": {
+      "state_1": {
+        "modeledProductionCostPerUnit": 1.8,
+        "modeledWagesPerUnitPerHour": 0.5,
+        "modeledStoreWages": 70,
+        "modeledSalesPerUnitPerHour": 140,
+        "modeledUnitsSoldAnHour": 140,
+        "buildingLevelsNeededPerUnitPerHour": 1.0,
+        "buildingKindModifier": 1.0
+      }
+    }
+  }
+}
