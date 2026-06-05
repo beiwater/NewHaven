@@ -24,13 +24,13 @@ type Config struct {
 }
 
 type GameConfig struct {
-	BondFaceValue         float64 `json:"bond_face_value"`
-	ExchangeFeePct        float64 `json:"exchange_fee_pct"`
-	BotReplacementRate    float64 `json:"bot_replacement_rate"`
-	BondMinInterest       float64 `json:"bond_min_interest"`
-	BondMaxInterest       float64 `json:"bond_max_interest"`
-	ProductionMod         float64 `json:"production_mod"`
-	AdminOverheadBase     float64 `json:"admin_overhead_base"`
+	BondFaceValue      float64 `json:"bond_face_value"`
+	ExchangeFeePct     float64 `json:"exchange_fee_pct"`
+	BotReplacementRate float64 `json:"bot_replacement_rate"`
+	BondMinInterest    float64 `json:"bond_min_interest"`
+	BondMaxInterest    float64 `json:"bond_max_interest"`
+	ProductionMod      float64 `json:"production_mod"`
+	AdminOverheadBase  float64 `json:"admin_overhead_base"`
 }
 
 func Load() *Config {
@@ -39,11 +39,11 @@ func Load() *Config {
 		JWTSigningKey: envStr("SIM_API_JWT_SECRET", "dev-secret-change-in-production"),
 		DatabaseURL:   os.Getenv("SIM_API_DATABASE_URL"),
 		DevMode:       envStr("SIM_API_DEV_MODE", "true") == "true",
-		Game:          loadGameConfig(findProjectRoot()),
+		Game:          loadGameConfig(FindProjectRoot()),
 	}
 }
 
-func findProjectRoot() string {
+func FindProjectRoot() string {
 	wd, _ := os.Getwd()
 	root := wd
 	for {

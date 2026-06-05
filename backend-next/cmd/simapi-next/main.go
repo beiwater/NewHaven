@@ -14,6 +14,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app/company"
 	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/app/warehouse"
+	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/storage/memory"
@@ -32,7 +33,21 @@ func main() {
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	buildingSvc := building.NewService(st)
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
-	productionSvc := production.NewService(st)
+
+	// Load static game data catalogs (best-effort in dev mode).
+	projectRoot := config.FindProjectRoot()
+	resources, err := catalog.LoadResources(projectRoot)
+	if err != nil {
+		slog.Warn("failed to load resources catalog, production start will fail", "error", err)
+		resources = make(map[int]*catalog.ResourceEntry)
+	}
+	buildings, err := catalog.LoadBuildings(projectRoot)
+	if err != nil {
+		slog.Warn("failed to load buildings catalog, production start will fail", "error", err)
+		buildings = make(map[int]*catalog.BuildingEntry)
+	}
+
+	productionSvc := production.NewService(st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler)
 	if cfg.DevMode {

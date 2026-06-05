@@ -112,6 +112,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v2/production/start/:
+    post:
+      tags: [Production]
+      summary: Start a production job
+      operationId: startProduction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartProductionRequest'
+      responses:
+        "200":
+          description: Production job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartProductionResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/login:
     post:
       tags: [Auth]
@@ -497,6 +530,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductionJobDTO'
+
+    BuildingProductionStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        busy:
+          type: boolean
+        job_id:
+          type: string
+    StartProductionResponse:
+      type: object
+      properties:
+        job:
+          $ref: '#/components/schemas/ProductionJobDTO'
+        building:
+          $ref: '#/components/schemas/BuildingProductionStatus'
 
     # --- Finance ---
 

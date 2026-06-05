@@ -8,52 +8,52 @@ import (
 
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	"github.com/newhaven/backend-next/internal/domain/company"
+	"github.com/newhaven/backend-next/internal/domain/finance"
 	"github.com/newhaven/backend-next/internal/domain/market"
 	"github.com/newhaven/backend-next/internal/domain/production"
-	"github.com/newhaven/backend-next/internal/domain/finance"
 	"github.com/newhaven/backend-next/internal/domain/research"
-	"github.com/newhaven/backend-next/internal/domain/warehouse"
 	"github.com/newhaven/backend-next/internal/domain/social"
+	"github.com/newhaven/backend-next/internal/domain/warehouse"
 )
 
 // Store is an in-memory implementation of storage.Storage.
 // Thread-safe via sync.RWMutex per domain.
 // Data is NOT persisted across restarts.
 type Store struct {
-	mu       sync.RWMutex
-	players  map[int]*auth.Player
-	byUser   map[string]*auth.Player
-	companies map[int]*company.Company
-	byPlayer map[int]*company.Company
-	orders   map[string]*market.MarketOrder
-	trades   []market.Trade
-	tickers  map[int]*market.Ticker
-	jobs     map[string]*production.ProductionJob
-	ledger   []finance.LedgerEntry
-	bonds    map[string]*finance.Bond
-	holdings []finance.BondHolding
-	research []research.Project
-	progress []research.CompanyProgress
-	messages []social.Message
-	notifs   []social.Notification
+	mu         sync.RWMutex
+	players    map[int]*auth.Player
+	byUser     map[string]*auth.Player
+	companies  map[int]*company.Company
+	byPlayer   map[int]*company.Company
+	orders     map[string]*market.MarketOrder
+	trades     []market.Trade
+	tickers    map[int]*market.Ticker
+	jobs       map[string]*production.ProductionJob
+	ledger     []finance.LedgerEntry
+	bonds      map[string]*finance.Bond
+	holdings   []finance.BondHolding
+	research   []research.Project
+	progress   []research.CompanyProgress
+	messages   []social.Message
+	notifs     []social.Notification
 	warehouses map[int]*warehouse.Warehouse
 	buildings  map[string]*company.Building
-	nextID   int
+	nextID     int
 }
 
 func New() *Store {
 	return &Store{
-		players:   make(map[int]*auth.Player),
-		byUser:    make(map[string]*auth.Player),
-		companies: make(map[int]*company.Company),
-		byPlayer:  make(map[int]*company.Company),
-		orders:    make(map[string]*market.MarketOrder),
-		tickers:   make(map[int]*market.Ticker),
-		jobs:      make(map[string]*production.ProductionJob),
-		bonds:     make(map[string]*finance.Bond),
+		players:    make(map[int]*auth.Player),
+		byUser:     make(map[string]*auth.Player),
+		companies:  make(map[int]*company.Company),
+		byPlayer:   make(map[int]*company.Company),
+		orders:     make(map[string]*market.MarketOrder),
+		tickers:    make(map[int]*market.Ticker),
+		jobs:       make(map[string]*production.ProductionJob),
+		bonds:      make(map[string]*finance.Bond),
 		buildings:  make(map[string]*company.Building),
 		warehouses: make(map[int]*warehouse.Warehouse),
-		nextID:    1,
+		nextID:     1,
 	}
 }
 
@@ -171,6 +171,60 @@ func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 func (s *Store) SaveBuilding(_ context.Context, b *company.Building) error { return nil }
 func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { return nil }
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return fmt.Errorf("company %d not found", companyID)
+	}
+	w, ok := s.warehouses[companyID]
+	if !ok {
+		return fmt.Errorf("warehouse for company %d not found", companyID)
+	}
+	cur := 0
+	if c.Inventory != nil {
+		cur = c.Inventory[resourceID]
+	}
+	newVal := cur + delta
+	if newVal < 0 {
+		return fmt.Errorf("insufficient inventory: resource %d has %d, need %d more", resourceID, cur, -delta)
+	}
+	if c.Inventory == nil {
+		c.Inventory = make(map[int]int)
+	}
+	c.Inventory[resourceID] = newVal
+
+	// Keep warehouse items consistent for quality 0.
+	found := false
+	for i := range w.Items {
+		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == 0 {
+			if newVal > 0 {
+				// Preserve existing ResourceName if present.
+				w.Items[i].Amount = newVal
+			} else {
+				// Remove zero-amount item.
+				w.Items = append(w.Items[:i], w.Items[i+1:]...)
+			}
+			found = true
+			break
+		}
+	}
+	if !found && newVal > 0 {
+		w.Items = append(w.Items, warehouse.Item{
+			ResourceID:   resourceID,
+			ResourceName: "",
+			Quality:      0,
+			Amount:       newVal,
+		})
+	}
+
+	// Recompute UsedCapacity as the sum of item amounts.
+	total := 0
+	for _, item := range w.Items {
+		total += item.Amount
+	}
+	w.UsedCapacity = total
+
 	return nil
 }
 

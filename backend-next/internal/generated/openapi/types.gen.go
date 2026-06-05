@@ -55,6 +55,13 @@ type BuildingListResponse struct {
 	Buildings *[]BuildingDTO `json:"buildings,omitempty"`
 }
 
+// BuildingProductionStatus defines model for BuildingProductionStatus.
+type BuildingProductionStatus struct {
+	Busy  *bool   `json:"busy,omitempty"`
+	Id    *string `json:"id,omitempty"`
+	JobId *string `json:"job_id,omitempty"`
+}
+
 // CompanySummary defines model for CompanySummary.
 type CompanySummary struct {
 	Id    *int     `json:"id,omitempty"`
@@ -133,6 +140,19 @@ type RegisterRequest struct {
 	Username string  `json:"username"`
 }
 
+// StartProductionRequest defines model for StartProductionRequest.
+type StartProductionRequest struct {
+	BuildingId string `json:"building_id"`
+	Quantity   int    `json:"quantity"`
+	ResourceId int    `json:"resource_id"`
+}
+
+// StartProductionResponse defines model for StartProductionResponse.
+type StartProductionResponse struct {
+	Building *BuildingProductionStatus `json:"building,omitempty"`
+	Job      *ProductionJobDTO         `json:"job,omitempty"`
+}
+
 // WarehouseItem defines model for WarehouseItem.
 type WarehouseItem struct {
 	Amount       *int    `json:"amount,omitempty"`
@@ -149,6 +169,9 @@ type LoginJSONRequestBody = LoginRequest
 
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
+
+// StartProductionJSONRequestBody defines body for StartProduction for application/json ContentType.
+type StartProductionJSONRequestBody = StartProductionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -167,6 +190,9 @@ type ServerInterface interface {
 	// List production jobs for my company
 	// (GET /api/v2/production/jobs/)
 	ListProductionJobs(w http.ResponseWriter, r *http.Request)
+	// Start a production job
+	// (POST /api/v2/production/start/)
+	StartProduction(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v3/companies/me/buildings/)
 	ListMyBuildings(w http.ResponseWriter, r *http.Request)
@@ -209,6 +235,12 @@ func (_ Unimplemented) ListMyCompanies(w http.ResponseWriter, r *http.Request) {
 // List production jobs for my company
 // (GET /api/v2/production/jobs/)
 func (_ Unimplemented) ListProductionJobs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Start a production job
+// (POST /api/v2/production/start/)
+func (_ Unimplemented) StartProduction(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -317,6 +349,26 @@ func (siw *ServerInterfaceWrapper) ListProductionJobs(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListProductionJobs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartProduction operation middleware
+func (siw *ServerInterfaceWrapper) StartProduction(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartProduction(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -501,6 +553,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/production/jobs/", wrapper.ListProductionJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/production/start/", wrapper.StartProduction)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v3/companies/me/buildings/", wrapper.ListMyBuildings)
