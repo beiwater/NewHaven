@@ -1,0 +1,348 @@
+openapi: "3.1.0"
+info:
+  title: NewHaven API
+  version: "0.1.0"
+  description: Backend API for NewHaven browser-based economy simulation game
+
+servers:
+  - url: http://localhost:8088
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: healthz
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      operationId: readyz
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        password:
+          type: string
+          minLength: 6
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        player_id:
+          type: integer
+        company_id:
+          type: integer
+        username:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+        gender:
+          type: string
+        email:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        data:
+          type: "null"
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+    # --- Company ---
+
+    CompanyResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        money:
+          type: number
+          format: float
+        level:
+          type: integer
+        xp:
+          type: integer
+        buildings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Building"
+        inventory:
+          type: object
+          additionalProperties:
+            type: integer
+
+    Building:
+      type: object
+      properties:
+        id:
+          type: string
+        building_id:
+          type: integer
+        kind:
+          type: integer
+        name:
+          type: string
+        level:
+          type: integer
+        map_id:
+          type: string
+        slot_id:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+        robot_count:
+          type: integer
+
+    # --- Market ---
+
+    MarketTicker:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        last_price:
+          type: number
+        volume_24h:
+          type: number
+        high_24h:
+          type: number
+        low_24h:
+          type: number
+        price_change_24h:
+          type: number
+        updated_at:
+          type: string
+          format: date-time
+
+    MarketDepth:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/DepthLevel"
+        asks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DepthLevel"
+
+    DepthLevel:
+      type: object
+      properties:
+        price:
+          type: number
+        quantity:
+          type: integer
+        orders:
+          type: integer
+
+    CreateOrderRequest:
+      type: object
+      required: [resource_id, is_buy, price, quantity]
+      properties:
+        resource_id:
+          type: integer
+          minimum: 1
+        is_buy:
+          type: boolean
+        price:
+          type: number
+          exclusiveMinimum: 0
+        quantity:
+          type: integer
+          minimum: 1
+
+    # --- Production ---
+
+    ProductionJob:
+      type: object
+      properties:
+        id:
+          type: string
+        company_id:
+          type: integer
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        target_quantity:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        status:
+          type: string
+          enum: [running, ready, claimed]
+
+    StartProductionRequest:
+      type: object
+      required: [building_id, resource_id, quantity]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 1
+
+    # --- Finance ---
+
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        company_id:
+          type: integer
+        kind:
+          type: string
+        amount:
+          type: number
+        direction:
+          type: string
+          enum: [in, out]
+        balance_after:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    Bond:
+      type: object
+      properties:
+        id:
+          type: string
+        issuer_company_id:
+          type: integer
+        face_value:
+          type: number
+        interest_rate:
+          type: number
+        total_quantity:
+          type: integer
+        issued_quantity:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
