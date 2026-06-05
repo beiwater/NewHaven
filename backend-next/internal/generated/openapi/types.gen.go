@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -14,6 +15,45 @@ import (
 const (
 	BearerAuthScopes bearerAuthContextKey = "BearerAuth.Scopes"
 )
+
+// Defines values for ProductionJobDTOStatus.
+const (
+	Claimed ProductionJobDTOStatus = "claimed"
+	Ready   ProductionJobDTOStatus = "ready"
+	Running ProductionJobDTOStatus = "running"
+)
+
+// Valid indicates whether the value is a known member of the ProductionJobDTOStatus enum.
+func (e ProductionJobDTOStatus) Valid() bool {
+	switch e {
+	case Claimed:
+		return true
+	case Ready:
+		return true
+	case Running:
+		return true
+	default:
+		return false
+	}
+}
+
+// BuildingDTO defines model for BuildingDTO.
+type BuildingDTO struct {
+	BuildingId *int    `json:"building_id,omitempty"`
+	Id         *string `json:"id,omitempty"`
+	Level      *int    `json:"level,omitempty"`
+	MapId      *string `json:"map_id,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	RobotCount *int    `json:"robot_count,omitempty"`
+	SlotId     *string `json:"slot_id,omitempty"`
+	X          *int    `json:"x,omitempty"`
+	Y          *int    `json:"y,omitempty"`
+}
+
+// BuildingListResponse defines model for BuildingListResponse.
+type BuildingListResponse struct {
+	Buildings *[]BuildingDTO `json:"buildings,omitempty"`
+}
 
 // CompanySummary defines model for CompanySummary.
 type CompanySummary struct {
@@ -65,6 +105,25 @@ type MyCompaniesResponse struct {
 	Companies *[]CompanySummary `json:"companies,omitempty"`
 }
 
+// ProductionJobDTO defines model for ProductionJobDTO.
+type ProductionJobDTO struct {
+	DurationSeconds *float32                `json:"duration_seconds,omitempty"`
+	Id              *string                 `json:"id,omitempty"`
+	Quantity        *int                    `json:"quantity,omitempty"`
+	ResourceId      *int                    `json:"resource_id,omitempty"`
+	StartedAt       *time.Time              `json:"started_at,omitempty"`
+	Status          *ProductionJobDTOStatus `json:"status,omitempty"`
+	TargetQuantity  *int                    `json:"target_quantity,omitempty"`
+}
+
+// ProductionJobDTOStatus defines model for ProductionJobDTO.Status.
+type ProductionJobDTOStatus string
+
+// ProductionJobListResponse defines model for ProductionJobListResponse.
+type ProductionJobListResponse struct {
+	Jobs *[]ProductionJobDTO `json:"jobs,omitempty"`
+}
+
 // RegisterRequest defines model for RegisterRequest.
 type RegisterRequest struct {
 	Email    *string `json:"email,omitempty"`
@@ -105,6 +164,12 @@ type ServerInterface interface {
 	// List my companies
 	// (GET /api/v2/players/me/companies/)
 	ListMyCompanies(w http.ResponseWriter, r *http.Request)
+	// List production jobs for my company
+	// (GET /api/v2/production/jobs/)
+	ListProductionJobs(w http.ResponseWriter, r *http.Request)
+
+	// (GET /api/v3/companies/me/buildings/)
+	ListMyBuildings(w http.ResponseWriter, r *http.Request)
 	// Health check
 	// (GET /healthz)
 	Healthz(w http.ResponseWriter, r *http.Request)
@@ -138,6 +203,17 @@ func (_ Unimplemented) GetMyWarehouse(w http.ResponseWriter, r *http.Request) {
 // List my companies
 // (GET /api/v2/players/me/companies/)
 func (_ Unimplemented) ListMyCompanies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List production jobs for my company
+// (GET /api/v2/production/jobs/)
+func (_ Unimplemented) ListProductionJobs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /api/v3/companies/me/buildings/)
+func (_ Unimplemented) ListMyBuildings(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -221,6 +297,46 @@ func (siw *ServerInterfaceWrapper) ListMyCompanies(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMyCompanies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListProductionJobs operation middleware
+func (siw *ServerInterfaceWrapper) ListProductionJobs(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListProductionJobs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyBuildings operation middleware
+func (siw *ServerInterfaceWrapper) ListMyBuildings(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyBuildings(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -382,6 +498,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/players/me/companies/", wrapper.ListMyCompanies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/production/jobs/", wrapper.ListProductionJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/companies/me/buildings/", wrapper.ListMyBuildings)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.Healthz)

@@ -37,6 +37,7 @@ type Store struct {
 	messages []social.Message
 	notifs   []social.Notification
 	warehouses map[int]*warehouse.Warehouse
+	buildings  map[string]*company.Building
 	nextID   int
 }
 
@@ -50,6 +51,7 @@ func New() *Store {
 		tickers:   make(map[int]*market.Ticker),
 		jobs:      make(map[string]*production.ProductionJob),
 		bonds:     make(map[string]*finance.Bond),
+		buildings:  make(map[string]*company.Building),
 		warehouses: make(map[int]*warehouse.Warehouse),
 		nextID:    1,
 	}
@@ -110,6 +112,32 @@ func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 		UsedCapacity: 0,
 		Items:        []warehouse.Item{},
 	}
+	// Auto-create sample buildings for new company
+	bld1 := company.Building{
+		ID:         fmt.Sprintf("bld-%d-1", c.ID),
+		BuildingID: 1,
+		Kind:       1,
+		Name:       "Bakery",
+		Level:      1,
+		MapID:      "map_1",
+		SlotID:     "slot_a1",
+		X:          5,
+		Y:          10,
+	}
+	bld2 := company.Building{
+		ID:         fmt.Sprintf("bld-%d-2", c.ID),
+		BuildingID: 2,
+		Kind:       2,
+		Name:       "Workshop",
+		Level:      1,
+		MapID:      "map_1",
+		SlotID:     "slot_b1",
+		X:          15,
+		Y:          20,
+	}
+	c.Buildings = []company.Building{bld1, bld2}
+	s.buildings[bld1.ID] = &c.Buildings[0]
+	s.buildings[bld2.ID] = &c.Buildings[1]
 	return nil
 }
 
@@ -144,6 +172,16 @@ func (s *Store) SaveBuilding(_ context.Context, b *company.Building) error { ret
 func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { return nil }
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {
 	return nil
+}
+
+func (s *Store) GetBuildings(_ context.Context, companyID int) ([]company.Building, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	return c.Buildings, nil
 }
 
 // --- WarehouseStorage ---

@@ -72,6 +72,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v3/companies/me/buildings/:
+    get:
+      tags: [Buildings]
+      operationId: listMyBuildings
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Building list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v2/production/jobs/:
+    get:
+      tags: [Production]
+      summary: List production jobs for my company
+      operationId: listProductionJobs
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Production job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionJobListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/login:
     post:
       tags: [Auth]
@@ -267,6 +307,35 @@ components:
         robot_count:
           type: integer
 
+
+    BuildingDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        building_id:
+          type: integer
+        name:
+          type: string
+        level:
+          type: integer
+        map_id:
+          type: string
+        slot_id:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+        robot_count:
+          type: integer
+    BuildingListResponse:
+      type: object
+      properties:
+        buildings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildingDTO'
     # --- Warehouse ---
 
     WarehouseItem:
@@ -394,6 +463,40 @@ components:
         quantity:
           type: integer
           minimum: 1
+
+    ProductionJobDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        target_quantity:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        status:
+          type: string
+          enum: [running, ready, claimed]
+    ProductionJobListData:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionJobDTO'
+    ProductionJobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionJobDTO'
 
     # --- Finance ---
 

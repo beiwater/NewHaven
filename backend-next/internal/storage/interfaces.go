@@ -28,6 +28,7 @@ type CompanyStorage interface {
 	UpdateCompany(ctx context.Context, c *company.Company) error
 	SaveBuilding(ctx context.Context, b *company.Building) error
 	RemoveBuilding(ctx context.Context, buildingID string) error
+	GetBuildings(ctx context.Context, companyID int) ([]company.Building, error)
 	UpdateInventory(ctx context.Context, companyID int, resourceID int, delta int) error
 }
 

@@ -8,25 +8,25 @@ import (
 	"testing"
 
 	"github.com/newhaven/backend-next/internal/app"
-	"github.com/newhaven/backend-next/internal/app/warehouse"
+	"github.com/newhaven/backend-next/internal/app/building"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
 
-func TestGetMyWarehouse_NoToken_401(t *testing.T) {
+func TestListMyBuildings_NoToken_401(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
-	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
+	buildingSvc := building.NewService(store)
+	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/warehouse/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -46,20 +46,20 @@ func TestGetMyWarehouse_NoToken_401(t *testing.T) {
 	}
 }
 
-func TestGetMyWarehouse_WithToken_200(t *testing.T) {
+func TestListMyBuildings_WithToken_200(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
-	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
+	buildingSvc := building.NewService(store)
+	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler)
 
 	// Register a user to get a valid token
-	registerBody := `{"username":"whuser","password":"secret123"}`
+	registerBody := `{"username":"blduser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(registerBody))
 	regReq.Header.Set("Content-Type", "application/json")
 	regW := httptest.NewRecorder()
@@ -86,8 +86,8 @@ func TestGetMyWarehouse_WithToken_200(t *testing.T) {
 		t.Fatal("register did not return a token")
 	}
 
-	// Now hit the warehouse endpoint with the token
-	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/warehouse/", nil)
+	// Now hit the buildings endpoint with the token
+	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
 	req.Header.Set("Authorization", "Bearer "+token.(string))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
@@ -104,113 +104,105 @@ func TestGetMyWarehouse_WithToken_200(t *testing.T) {
 		t.Fatalf("unexpected error: %+v", *resp.Error)
 	}
 
-	// Verify warehouse data in response
+	// Verify buildings data in response
 	var data map[string]any
 	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 
-	companyID, ok := data["company_id"]
+	buildings, ok := data["buildings"]
 	if !ok {
-		t.Fatal("expected company_id field in response data")
+		t.Fatal("expected buildings field in response data")
 	}
-	companyIDFloat, ok := companyID.(float64)
-	if !ok || companyIDFloat <= 0 {
-		t.Fatalf("expected positive company_id, got %v (%T)", companyID, companyID)
+	buildingsList, ok := buildings.([]any)
+	if !ok {
+		t.Fatalf("expected buildings to be array, got %T", buildings)
+	}
+	if len(buildingsList) != 2 {
+		t.Fatalf("expected 2 buildings, got %d", len(buildingsList))
 	}
 
-	capacity, ok := data["capacity"]
-	if !ok {
-		t.Fatal("expected capacity field")
+	first := buildingsList[0].(map[string]any)
+	if name, ok := first["name"]; !ok || name == "" {
+		t.Error("expected building with a name")
 	}
-	if capacity.(float64) != 1000 {
-		t.Errorf("expected capacity 1000, got %v", capacity)
-	}
-
-	usedCapacity, ok := data["used_capacity"]
-	if !ok {
-		t.Fatal("expected used_capacity field")
-	}
-	if usedCapacity.(float64) != 0 {
-		t.Errorf("expected used_capacity 0, got %v", usedCapacity)
-	}
-
-	items, ok := data["items"]
-	if !ok {
-		t.Fatal("expected items field in response data")
-	}
-	itemsList, ok := items.([]any)
-	if !ok {
-		t.Fatalf("expected items to be array, got %T", items)
-	}
-	if itemsList == nil {
-		t.Fatal("expected items to be non-nil array")
-	}
-	if len(itemsList) != 0 {
-		t.Errorf("expected empty items array, got %d items", len(itemsList))
+	if id, ok := first["id"]; !ok || id == "" {
+		t.Error("expected building with an id")
 	}
 }
 
-func TestGetMyWarehouse_ReturnsItemsArrayNotNull(t *testing.T) {
+func TestListMyBuildings_EmptyArray_200(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
-	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
+	buildingSvc := building.NewService(store)
+	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler)
 
-	// Register a user
-	registerBody := `{"username":"itemsuser","password":"secret123"}`
+	// Register a user to get a valid token
+	registerBody := `{"username":"emptyman","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(registerBody))
 	regReq.Header.Set("Content-Type", "application/json")
 	regW := httptest.NewRecorder()
 	mux.ServeHTTP(regW, regReq)
 
 	if regW.Code != http.StatusOK {
-		t.Fatalf("register failed: %d", regW.Code)
+		t.Fatalf("register failed: %d; body: %s", regW.Code, regW.Body.String())
 	}
 
 	var regResp apiResponse
 	if err := json.Unmarshal(regW.Body.Bytes(), &regResp); err != nil {
-		t.Fatalf("unmarshal register: %v", err)
+		t.Fatalf("unmarshal register response: %v", err)
 	}
+	if regResp.Error != nil {
+		t.Fatalf("register returned error: %+v", *regResp.Error)
+	}
+
 	var regData map[string]any
 	if err := json.Unmarshal(regResp.Data, &regData); err != nil {
-		t.Fatalf("unmarshal data: %v", err)
+		t.Fatalf("unmarshal register data: %v", err)
 	}
-	token := regData["token"].(string)
+	token, ok := regData["token"]
+	if !ok || token == "" {
+		t.Fatal("register did not return a token")
+	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/warehouse/", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	// Now hit the buildings endpoint with the token
+	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
+	req.Header.Set("Authorization", "Bearer "+token.(string))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(w.Body.Bytes(), &raw); err != nil {
-		t.Fatalf("unmarshal envelope: %v", err)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
 	}
 
-	// Parse the data field to check items
-	var data map[string]json.RawMessage
-	if err := json.Unmarshal(raw["data"], &data); err != nil {
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error != nil {
+		t.Fatalf("unexpected error: %+v", *resp.Error)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 
-	itemsRaw, ok := data["items"]
+	buildings, ok := data["buildings"]
 	if !ok {
-		t.Fatal("response data missing 'items' field")
+		t.Fatal("expected buildings field in response data")
 	}
-
-	var items []any
-	if err := json.Unmarshal(itemsRaw, &items); err != nil {
-		t.Fatalf("unmarshal items: %v", err)
+	buildingsList, ok := buildings.([]any)
+	if !ok {
+		t.Fatalf("expected buildings to be array, got %T", buildings)
 	}
-
-	if items == nil {
-		t.Fatal("expected items to be non-nil array, got nil")
+	if len(buildingsList) != 2 {
+		t.Errorf("expected 2 buildings, got %d", len(buildingsList))
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app"
 	"github.com/newhaven/backend-next/internal/app/company"
 	"github.com/newhaven/backend-next/internal/app/warehouse"
+	"github.com/newhaven/backend-next/internal/app/building"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/storage/memory"
@@ -28,7 +29,9 @@ func main() {
 	authHandler := httpapi.NewAuthHandler(application.AuthService)
 	warehouseSvc := warehouse.NewService(st, st, application.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler)
+	buildingSvc := building.NewService(st)
+	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler)
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {

@@ -5,6 +5,33 @@
 
 ---
 
+
+## 0. 子 Agent 强制规则（每条都必须遵守）
+
+| # | 规则 |
+|---|------|
+| 1 | Handler 只能做：读参数 → 调 app service → 映射 generated DTO → write response。禁止写业务逻辑/公式/库存修改/订单撮合/ledger。 |
+| 2 | 正式 API 禁止 `map[string]any`，必须用 generated OpenAPI DTO。 |
+| 3 | 不手改 `internal/generated/openapi/*.gen.go`。 |
+| 4 | 所有跨边界函数第一个参数必须是 `context.Context`。 |
+| 5 | Storage interface 改动必须写 exact signature，不能模糊写"支持查询"。 |
+| 6 | Router 注册必须照已有 handler 模板（`r.With(AuthRequired).Get("/path", handler.Fn)`），不发明新 pattern。 |
+| 7 | 测试必须包含：401、200、response envelope、回归旧端点。 |
+| 8 | 改动前必须列出：改哪些文件、不改哪些文件、是否改 API response、是否改经济行为。 |
+| 9 | 如果任务提供 `Execution Context Pack`（内联代码模板），以此为准，不要自己猜 generated type 名。 |
+| 10 | 遇到 bug 持续卡住 3 次以上，停止尝试并报告具体错误，等待人类处理。 |
+
+## 0a. 任务接收核对清单
+
+派工后先确认：
+```
+□ 我收到了 exact interface signature
+□ 我收到了 exact generated type name（否则去 grep types.gen.go）
+□ 我收到了 exact router registration pattern（否则照公司 handler 抄）
+□ 我收到了 exact test fixture pattern
+□ 我知道不改哪些文件
+□ 我知道 handler 不能写什么
+```
 ## 1. 项目身份
 
 ```
@@ -59,8 +86,20 @@ client/atlas-foods-client/src/
 
 ## 4. 编码风格
 
-以 `docs/2026-06-06/rebuild/10-go-coding-style.md` 为准。
+以 `docs/2026-06-06/rebuild/10-go-coding-style.md` 为准。**但不要求完整阅读**——核心规则已压缩在本文件 §0 中。如果 style 文档和 §0 冲突，以 §0 为准。
 
+## 4a. Execution Context Pack（任务上下文包）
+
+每个 Phase 施工单的「执行指令」部分应包含以下内联信息。如果任务中缺少某项，子 agent 应主动索要：
+
+```txt
+1. 本任务必须遵守的风格规则（前 5 条）
+2. 相关 existing code 代码模板
+3. exact interface signatures
+4. exact generated OpenAPI type names
+5. exact router registration pattern
+6. exact test fixture / helper pattern
+```
 ## 5. 修改前必须输出
 
 1. 本次要改哪些文件
