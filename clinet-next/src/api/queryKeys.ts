@@ -1,22 +1,24 @@
 export const queryKeys = {
-  company: { all: ['company'] as const },
-  buildings: { all: ['buildings'] as const },
-  inventory: { all: ['inventory'] as const },
-  production: { all: ['production'] as const },
+  company: {
+    all: () => ['company'] as const,
+  },
+  buildings: {
+    all: () => ['buildings'] as const,
+    byCompany: (companyId: number | null) => ['buildings', 'company', companyId] as const,
+    productionOptions: (buildingId: string | undefined) => ['buildings', 'production-options', buildingId] as const,
+  },
+  inventory: {
+    warehouse: () => ['warehouse'] as const,
+  },
+  production: {
+    jobs: () => ['production', 'jobs'] as const,
+    queue: () => ['production', 'queue'] as const,
+    claimable: () => ['production', 'claimable'] as const,
+  },
   market: {
-    all: ['market'] as const,
-    ticker: (id: number) => ['market', 'ticker', id] as const,
-    depth: (id: number, quality: number) => ['market', 'depth', id, quality] as const,
-    orders: (id: number, quality: number) => ['market', 'orders', id, quality] as const,
+    resources: () => ['market', 'resources'] as const,
+    ticker: (resourceId: number) => ['market', 'ticker', resourceId] as const,
+    depth: (resourceId: number, quality: number) => ['market', 'depth', resourceId, quality] as const,
+    orders: (resourceId: number, quality: number) => ['market', 'orders', resourceId, quality] as const,
   },
-  research: { all: ['research'] as const, progress: ['research', 'progress'] as const },
-  financial: { all: ['financial'] as const },
-  executives: {
-    all: ['executives'] as const,
-    my: ['myExecutives'] as const,
-    detail: (id: string) => ['executives', 'detail', id] as const,
-  },
-  chat: { all: ['chat'] as const },
-  leaderboard: { all: ['leaderboard'] as const },
-  powerups: { all: ['powerups'] as const },
 }
