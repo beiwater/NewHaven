@@ -7,7 +7,7 @@ import (
 	"github.com/newhaven/backend-next/internal/config"
 )
 
-func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler) *chi.Mux {
+func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack (outermost first)
@@ -31,6 +31,7 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", warehouseHandler.handleGetMyWarehouse)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/players/me/companies/", companyHandler.handleListMyCompanies)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/jobs/", productionHandler.handleListProductionJobs)
 	})
 
 	// API v3 domain routes (authenticated)

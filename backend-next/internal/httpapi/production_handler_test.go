@@ -8,25 +8,25 @@ import (
 	"testing"
 
 	"github.com/newhaven/backend-next/internal/app"
-	"github.com/newhaven/backend-next/internal/app/building"
+	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
 
-func TestListMyBuildings_NoToken_401(t *testing.T) {
+func TestListProductionJobs_NoToken_401(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	buildingSvc := building.NewService(store)
-	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
+	productionSvc := production.NewService(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/jobs/", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -46,20 +46,20 @@ func TestListMyBuildings_NoToken_401(t *testing.T) {
 	}
 }
 
-func TestListMyBuildings_WithToken_200(t *testing.T) {
+func TestListProductionJobs_WithToken_200(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	buildingSvc := building.NewService(store)
-	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
+	productionSvc := production.NewService(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
 
 	// Register a user to get a valid token
-	registerBody := `{"username":"blduser","password":"secret123"}`
+	registerBody := `{"username":"produser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(registerBody))
 	regReq.Header.Set("Content-Type", "application/json")
 	regW := httptest.NewRecorder()
@@ -86,8 +86,8 @@ func TestListMyBuildings_WithToken_200(t *testing.T) {
 		t.Fatal("register did not return a token")
 	}
 
-	// Now hit the buildings endpoint with the token
-	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
+	// Now hit the production jobs endpoint with the token
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/jobs/", nil)
 	req.Header.Set("Authorization", "Bearer "+token.(string))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
@@ -104,47 +104,41 @@ func TestListMyBuildings_WithToken_200(t *testing.T) {
 		t.Fatalf("unexpected error: %+v", *resp.Error)
 	}
 
-	// Verify buildings data in response
+	// Verify jobs data in response
 	var data map[string]any
 	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 
-	buildings, ok := data["buildings"]
+	jobs, ok := data["jobs"]
 	if !ok {
-		t.Fatal("expected buildings field in response data")
+		t.Fatal("expected jobs field in response data")
 	}
-	buildingsList, ok := buildings.([]any)
+	jobsList, ok := jobs.([]any)
 	if !ok {
-		t.Fatalf("expected buildings to be array, got %T", buildings)
+		t.Fatalf("expected jobs to be array, got %T", jobs)
 	}
-	if len(buildingsList) != 2 {
-		t.Fatalf("expected 2 buildings, got %d", len(buildingsList))
+	if jobsList == nil {
+		t.Fatal("expected jobs to be non-nil array")
 	}
-
-	first := buildingsList[0].(map[string]any)
-	if name, ok := first["name"]; !ok || name == "" {
-		t.Error("expected building with a name")
-	}
-	if id, ok := first["id"]; !ok || id == "" {
-		t.Error("expected building with an id")
-	}
+	// Dev bootstrap does not seed production jobs, so the list may be empty,
+	// but the array must not be null.
 }
 
-func TestListMyBuildings_EmptyArray_200(t *testing.T) {
+func TestListProductionJobs_EmptyJobsIsArray_200(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	buildingSvc := building.NewService(store)
-	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
+	productionSvc := production.NewService(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
 
 	// Register a user to get a valid token
-	registerBody := `{"username":"emptyman","password":"secret123"}`
+	registerBody := `{"username":"emptyjobs","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(registerBody))
 	regReq.Header.Set("Content-Type", "application/json")
 	regW := httptest.NewRecorder()
@@ -171,8 +165,8 @@ func TestListMyBuildings_EmptyArray_200(t *testing.T) {
 		t.Fatal("register did not return a token")
 	}
 
-	// Now hit the buildings endpoint with the token
-	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
+	// Now hit the production jobs endpoint with the token
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/jobs/", nil)
 	req.Header.Set("Authorization", "Bearer "+token.(string))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
@@ -181,28 +175,28 @@ func TestListMyBuildings_EmptyArray_200(t *testing.T) {
 		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
 	}
 
-	var resp apiResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal response: %v", err)
-	}
-	if resp.Error != nil {
-		t.Fatalf("unexpected error: %+v", *resp.Error)
+	// Verify the raw JSON to ensure jobs is [] not null
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(w.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("unmarshal envelope: %v", err)
 	}
 
-	var data map[string]any
-	if err := json.Unmarshal(resp.Data, &data); err != nil {
+	var data map[string]json.RawMessage
+	if err := json.Unmarshal(raw["data"], &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
 
-	buildings, ok := data["buildings"]
+	jobsRaw, ok := data["jobs"]
 	if !ok {
-		t.Fatal("expected buildings field in response data")
+		t.Fatal("response data missing 'jobs' field")
 	}
-	buildingsList, ok := buildings.([]any)
-	if !ok {
-		t.Fatalf("expected buildings to be array, got %T", buildings)
+
+	var jobs []any
+	if err := json.Unmarshal(jobsRaw, &jobs); err != nil {
+		t.Fatalf("unmarshal jobs: %v", err)
 	}
-	if len(buildingsList) != 2 {
-		t.Errorf("expected 2 buildings, got %d", len(buildingsList))
+
+	if jobs == nil {
+		t.Fatal("expected jobs to be non-nil array, got nil")
 	}
 }
