@@ -2,6 +2,7 @@ package production_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 
 // newTestService creates a production Service with minimal dependencies suitable for testing.
 // It uses a memory store and fake clock. Catalogs are populated from the provided maps, or
-// empty if nil.
 func newTestService(t *testing.T, resources map[int]*catalog.ResourceEntry, buildings map[int]*catalog.BuildingEntry) (*production.Service, *memory.Store) {
 	t.Helper()
 	store := memory.New()
@@ -33,7 +33,7 @@ func newTestService(t *testing.T, resources map[int]*catalog.ResourceEntry, buil
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	svc := production.NewService(store, store, cfg, resources, buildings, clock, idgen)
+	svc := production.NewService(store, store, store, cfg, resources, buildings, clock, idgen)
 	return svc, store
 }
 
@@ -63,7 +63,7 @@ func TestListProductionJobs_ReturnsJobs(t *testing.T) {
 		t.Fatalf("GetCompanyByPlayerID: %v", err)
 	}
 
-	now := time.Now()
+	clockNow := time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC)
 	err = store.CreateJob(ctx, &proddmn.ProductionJob{
 		ID:              "job-1",
 		CompanyID:       company.ID,
@@ -71,7 +71,7 @@ func TestListProductionJobs_ReturnsJobs(t *testing.T) {
 		ResourceID:      5,
 		Quantity:        10,
 		TargetQuantity:  10,
-		StartedAt:       now,
+		StartedAt:       clockNow,
 		DurationSeconds: 60.0,
 		Status:          proddmn.StatusRunning,
 	})
@@ -86,7 +86,7 @@ func TestListProductionJobs_ReturnsJobs(t *testing.T) {
 		ResourceID:      7,
 		Quantity:        25,
 		TargetQuantity:  25,
-		StartedAt:       now.Add(-time.Hour),
+		StartedAt:       clockNow.Add(-time.Hour),
 		DurationSeconds: 120.0,
 		Status:          proddmn.StatusReady,
 	})
@@ -557,5 +557,492 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 	}
 	if warehouseAfter2.UsedCapacity != 0 {
 		t.Errorf("expected used_capacity 0 after exhausting, got %d", warehouseAfter2.UsedCapacity)
+	}
+}
+
+// --- ClaimProduction tests ---
+
+func TestClaimProduction_JobCompleted_CreditsInventory(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 30, Username: "claimer"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  30,
+		Name:      "Claim Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, 30)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	// Create a job that is already completed (started far enough in the past).
+	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
+	startedAt := clock.Now().Add(-2 * time.Hour)
+	err = store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "claim-job-1",
+		CompanyID:       company.ID,
+		BuildingID:      "bld-1",
+		ResourceID:      5,
+		Quantity:        10,
+		TargetQuantity:  10,
+		StartedAt:       startedAt,
+		DurationSeconds: 3600.0, // 1 hour, so 2h elapsed = done
+		ClaimedAmount:   0,
+		ClaimableAmount: 10,
+		Status:          proddmn.StatusReady,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	// Verify inventory is empty before claim.
+	company, _ = store.GetCompany(ctx, company.ID)
+	if _, ok := company.Inventory[5]; ok {
+		t.Fatal("expected no resource 5 in inventory before claim")
+	}
+
+	resp, err := svc.ClaimProduction(ctx, company.ID, "claim-job-1")
+	if err != nil {
+		t.Fatalf("ClaimProduction failed: %v", err)
+	}
+
+	if resp.JobId == nil || *resp.JobId != "claim-job-1" {
+		t.Errorf("expected job_id 'claim-job-1', got %v", resp.JobId)
+	}
+	if resp.Status == nil || *resp.Status != "claimed" {
+		t.Errorf("expected status 'claimed', got %v", resp.Status)
+	}
+	if resp.Output == nil {
+		t.Fatal("expected non-nil output map")
+	}
+	if (*resp.Output)["5"] != 10 {
+		t.Errorf("expected output[5]=10, got %d", (*resp.Output)["5"])
+	}
+	if resp.ClaimedAmount == nil || *resp.ClaimedAmount != 10 {
+		t.Errorf("expected claimed_amount 10, got %v", resp.ClaimedAmount)
+	}
+	if resp.Remaining == nil || *resp.Remaining != 0 {
+		t.Errorf("expected remaining 0, got %v", resp.Remaining)
+	}
+	if resp.Xp == nil || *resp.Xp <= 0 {
+		t.Errorf("expected positive XP, got %v", resp.Xp)
+	}
+
+	// Verify inventory: resource 5 should have 10.
+	company, _ = store.GetCompany(ctx, company.ID)
+	if got := company.Inventory[5]; got != 10 {
+		t.Errorf("expected 10 of resource 5 in inventory, got %d", got)
+	}
+
+	// Verify job is claimed.
+	job, err := store.GetJob(ctx, "claim-job-1")
+	if err != nil {
+		t.Fatalf("GetJob: %v", err)
+	}
+	if job.Status != proddmn.StatusClaimed {
+		t.Errorf("expected job status 'claimed', got %s", job.Status)
+	}
+	if job.ClaimedAmount != 10 {
+		t.Errorf("expected job claimed_amount 10, got %d", job.ClaimedAmount)
+	}
+
+	entries, err := store.GetLedgerEntries(ctx, company.ID, 10)
+	if err != nil {
+		t.Fatalf("GetLedgerEntries: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 ledger entry, got %d", len(entries))
+	}
+	if entries[0].Kind != "production_output" {
+		t.Errorf("expected production_output ledger kind, got %s", entries[0].Kind)
+	}
+	if entries[0].Amount != 10 {
+		t.Errorf("expected ledger amount 10, got %v", entries[0].Amount)
+	}
+}
+
+func TestClaimProduction_PartialClaim_Works(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 31, Username: "partial"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  31,
+		Name:      "Partial Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        5,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, 31)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	// Create a fully-complete job that has already been partially claimed (10 of 20 units).
+	// ClaimedAmount=10, ClaimableAmount will be computed as 10 (target - claimed).
+	err = store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "partial-job",
+		CompanyID:       company.ID,
+		BuildingID:      "bld-1",
+		ResourceID:      7,
+		Quantity:        20,
+		TargetQuantity:  20,
+		StartedAt:       time.Date(2026, 6, 5, 10, 0, 0, 0, time.UTC), // 2h ago, fully elapsed
+		DurationSeconds: 60.0,
+		ClaimedAmount:   10, // already partially claimed
+		ClaimableAmount: 10,
+		XPAwarded:       5, // half of 10 max XP
+		Status:          proddmn.StatusReady,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	// Claim the remaining amount (10).
+	resp, err := svc.ClaimProduction(ctx, company.ID, "partial-job")
+	if err != nil {
+		t.Fatalf("Partial claim failed: %v", err)
+	}
+	if resp.Status == nil || *resp.Status != "claimed" {
+		t.Errorf("expected status 'claimed' after final claim, got %v", resp.Status)
+	}
+	if resp.ClaimedAmount == nil || *resp.ClaimedAmount != 20 {
+		t.Errorf("expected claimed_amount 20 after full claim, got %v", resp.ClaimedAmount)
+	}
+	if resp.Remaining == nil || *resp.Remaining != 0 {
+		t.Errorf("expected remaining 0 after full claim, got %v", resp.Remaining)
+	}
+	if resp.Xp == nil || *resp.Xp <= 0 {
+		t.Errorf("expected positive incremental XP, got %v", resp.Xp)
+	}
+
+	// Verify inventory has 10 units (the remaining claimed amount).
+	company, _ = store.GetCompany(ctx, company.ID)
+	if got := company.Inventory[7]; got != 10 {
+		t.Errorf("expected 10 of resource 7 in inventory, got %d", got)
+	}
+
+	// Verify job is fully claimed.
+	job, err := store.GetJob(ctx, "partial-job")
+	if err != nil {
+		t.Fatalf("GetJob: %v", err)
+	}
+	if job.Status != proddmn.StatusClaimed {
+		t.Errorf("expected job status 'claimed', got %s", job.Status)
+	}
+	if job.ClaimedAmount != 20 {
+		t.Errorf("expected job claimed_amount 20, got %d", job.ClaimedAmount)
+	}
+}
+
+func TestClaimProduction_TooEarly_ReturnsError(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 32, Username: "early"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  32,
+		Name:      "Early Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, 32)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	// Create a job that just started; no claimable amount.
+	now := time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC)
+	err = store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "early-job",
+		CompanyID:       company.ID,
+		BuildingID:      "bld-1",
+		ResourceID:      3,
+		Quantity:        100,
+		TargetQuantity:  100,
+		StartedAt:       now,
+		DurationSeconds: 3600.0, // 1h job
+		ClaimedAmount:   0,
+		ClaimableAmount: 0,
+		Status:          proddmn.StatusRunning,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	_, err = svc.ClaimProduction(ctx, company.ID, "early-job")
+	if err == nil {
+		t.Fatal("expected error for early claim, got nil")
+	}
+	if !strings.Contains(err.Error(), "nothing to claim") {
+		t.Errorf("expected 'nothing to claim' error, got: %v", err)
+	}
+
+	// Verify inventory unchanged (no items added).
+	company, _ = store.GetCompany(ctx, company.ID)
+	if company.Inventory != nil && company.Inventory[3] != 0 {
+		t.Errorf("expected no resource 3 in inventory, got %d", company.Inventory[3])
+	}
+
+	// Verify job state unchanged.
+	job, err := store.GetJob(ctx, "early-job")
+	if err != nil {
+		t.Fatalf("GetJob: %v", err)
+	}
+	if job.ClaimedAmount != 0 {
+		t.Errorf("expected claimed_amount 0, got %d", job.ClaimedAmount)
+	}
+	if job.Status != proddmn.StatusRunning {
+		t.Errorf("expected status 'running', got %s", job.Status)
+	}
+}
+
+func TestClaimProduction_AlreadyClaimed_ReturnsError(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 33, Username: "done"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  33,
+		Name:      "Done Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, 33)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	err = store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "done-job",
+		CompanyID:       company.ID,
+		BuildingID:      "bld-1",
+		ResourceID:      3,
+		Quantity:        10,
+		TargetQuantity:  10,
+		StartedAt:       time.Now().Add(-2 * time.Hour),
+		DurationSeconds: 60.0,
+		ClaimedAmount:   10,
+		ClaimableAmount: 0,
+		Status:          proddmn.StatusClaimed,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	_, err = svc.ClaimProduction(ctx, company.ID, "done-job")
+	if err == nil {
+		t.Fatal("expected error for claimed job, got nil")
+	}
+	if !strings.Contains(err.Error(), "already claimed") {
+		t.Errorf("expected 'already claimed' error, got: %v", err)
+	}
+}
+
+func TestClaimProduction_WrongCompany_ReturnsError(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	// Create company A and a job.
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 34, Username: "owner"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  34,
+		Name:      "Owner Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	ownerCompany, err := store.GetCompanyByPlayerID(ctx, 34)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	err = store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "other-job",
+		CompanyID:       ownerCompany.ID,
+		BuildingID:      "bld-1",
+		ResourceID:      3,
+		Quantity:        10,
+		TargetQuantity:  10,
+		StartedAt:       time.Now().Add(-2 * time.Hour),
+		DurationSeconds: 60.0,
+		ClaimedAmount:   0,
+		ClaimableAmount: 10,
+		Status:          proddmn.StatusReady,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	// Create company B (different user) and try to claim.
+	err = store.CreatePlayer(ctx, &auth.Player{ID: 35, Username: "intruder"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  35,
+		Name:      "Intruder Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	intruderCompany, err := store.GetCompanyByPlayerID(ctx, 35)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	_, err = svc.ClaimProduction(ctx, intruderCompany.ID, "other-job")
+	if err == nil {
+		t.Fatal("expected error for wrong company claim, got nil")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error (no leak), got: %v", err)
+	}
+}
+
+// --- ListClaimableJobs tests ---
+
+func TestListClaimableJobs_Empty_ReturnsNonNilArray(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 36, Username: "emptyclaims"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  36,
+		Name:      "Empty Claims Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, 36)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	resp, err := svc.ListClaimableJobs(ctx, company.ID)
+	if err != nil {
+		t.Fatalf("ListClaimableJobs failed: %v", err)
+	}
+	if resp.Jobs == nil {
+		t.Fatal("expected non-nil jobs array (should be empty)")
+	}
+	if len(*resp.Jobs) != 0 {
+		t.Errorf("expected 0 claimable jobs, got %d", len(*resp.Jobs))
+	}
+}
+
+func TestListClaimableJobs_WithReadyJob_ReturnsIt(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 37, Username: "hasclaims"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  37,
+		Name:      "Has Claims Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, 37)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+
+	// Create a completed job (ready + claimable).
+	err = store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "ready-job",
+		CompanyID:       company.ID,
+		BuildingID:      "bld-2",
+		ResourceID:      5,
+		Quantity:        30,
+		TargetQuantity:  30,
+		StartedAt:       time.Date(2026, 6, 5, 10, 0, 0, 0, time.UTC),
+		DurationSeconds: 60.0,
+		ClaimedAmount:   0,
+		ClaimableAmount: 30,
+		Status:          proddmn.StatusReady,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	resp, err := svc.ListClaimableJobs(ctx, company.ID)
+	if err != nil {
+		t.Fatalf("ListClaimableJobs failed: %v", err)
+	}
+	if resp.Jobs == nil {
+		t.Fatal("expected non-nil jobs array")
+	}
+	if len(*resp.Jobs) != 1 {
+		t.Fatalf("expected 1 claimable job, got %d", len(*resp.Jobs))
+	}
+	j := (*resp.Jobs)[0]
+	if j.JobId == nil || *j.JobId != "ready-job" {
+		t.Errorf("expected job_id 'ready-job', got %v", j.JobId)
+	}
+	if j.ClaimableAmount == nil || *j.ClaimableAmount != 30 {
+		t.Errorf("expected claimable_amount 30, got %v", j.ClaimableAmount)
+	}
+	if j.TotalAmount == nil || *j.TotalAmount != 30 {
+		t.Errorf("expected total_amount 30, got %v", j.TotalAmount)
 	}
 }

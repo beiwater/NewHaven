@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 
 	"github.com/newhaven/backend-next/internal/app/production"
@@ -73,6 +74,55 @@ func (h *ProductionHandler) handleStartProduction(w http.ResponseWriter, r *http
 		default:
 			writeErr(w, 500, ErrorInternal, "failed to start production", nil)
 		}
+		return
+	}
+
+	writeSuccess(w, 200, resp)
+}
+
+// handleClaimProduction claims produced resources from a production job.
+func (h *ProductionHandler) handleClaimProduction(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	jobID := chi.URLParam(r, "jobId")
+	if jobID == "" {
+		writeErr(w, 400, ErrorValidation, "jobId path parameter is required", nil)
+		return
+	}
+
+	resp, err := h.svc.ClaimProduction(r.Context(), companyID, jobID)
+	if err != nil {
+		switch {
+		case strings.Contains(err.Error(), "not found"):
+			writeErr(w, 404, ErrorNotFound, err.Error(), nil)
+		case strings.Contains(err.Error(), "already claimed"):
+			writeErr(w, 400, ErrorConflict, err.Error(), nil)
+		case strings.Contains(err.Error(), "nothing to claim"):
+			writeErr(w, 400, ErrorValidation, err.Error(), nil)
+		default:
+			writeErr(w, 500, ErrorInternal, "failed to claim production", nil)
+		}
+		return
+	}
+
+	writeSuccess(w, 200, resp)
+}
+
+// handleListClaimableJobs returns claimable production jobs.
+func (h *ProductionHandler) handleListClaimableJobs(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	resp, err := h.svc.ListClaimableJobs(r.Context(), companyID)
+	if err != nil {
+		writeErr(w, 500, ErrorInternal, "failed to list claimable jobs", nil)
 		return
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
+	proddmn "github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage/memory"
@@ -26,7 +27,7 @@ func newProductionSvc(store *memory.Store) *production.Service {
 	cfg := &config.GameConfig{ProductionMod: 1.0}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	return production.NewService(store, store, cfg,
+	return production.NewService(store, store, store, cfg,
 		make(map[int]*catalog.ResourceEntry),
 		make(map[int]*catalog.BuildingEntry),
 		clock, idgen)
@@ -296,7 +297,7 @@ func TestStartProduction_Success_200(t *testing.T) {
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	productionSvc := production.NewService(store, store, &config.GameConfig{ProductionMod: 1.0},
+	productionSvc := production.NewService(store, store, store, &config.GameConfig{ProductionMod: 1.0},
 		resources, buildings, clock, idgen)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -413,5 +414,242 @@ func TestStartProduction_Success_200(t *testing.T) {
 	jobsArr := listData["jobs"].([]any)
 	if len(jobsArr) != 1 {
 		t.Fatalf("expected 1 job in list, got %d", len(jobsArr))
+	}
+}
+
+// --- ClaimProduction handler tests ---
+
+func TestClaimProduction_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim/some-job/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestClaimProduction_NoToken_Claimable(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/claimable/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestClaimClaimable_Empty_200(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
+
+	// Register user
+	regBody := `{"username":"cl-empt","password":"secret123"}`
+	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
+	regReq.Header.Set("Content-Type", "application/json")
+	regW := httptest.NewRecorder()
+	mux.ServeHTTP(regW, regReq)
+	if regW.Code != http.StatusOK {
+		t.Fatalf("register failed: %d; body: %s", regW.Code, regW.Body.String())
+	}
+	var regResp apiResponse
+	if err := json.Unmarshal(regW.Body.Bytes(), &regResp); err != nil {
+		t.Fatalf("unmarshal register: %v", err)
+	}
+	var regData map[string]any
+	if err := json.Unmarshal(regResp.Data, &regData); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	token := regData["token"].(string)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/claimable/", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(w.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("unmarshal envelope: %v", err)
+	}
+	var data map[string]json.RawMessage
+	if err := json.Unmarshal(raw["data"], &data); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+
+	jobsRaw, ok := data["jobs"]
+	if !ok {
+		t.Fatal("response data missing 'jobs' field")
+	}
+	var jobs []any
+	if err := json.Unmarshal(jobsRaw, &jobs); err != nil {
+		t.Fatalf("unmarshal jobs: %v", err)
+	}
+	if jobs == nil {
+		t.Fatal("expected non-nil jobs array (should be empty)")
+	}
+	if len(jobs) != 0 {
+		t.Errorf("expected 0 claimable jobs, got %d", len(jobs))
+	}
+}
+
+func TestClaimProduction_InvalidJobId_400(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
+
+	// Register to get token
+	regBody := `{"username":"cl-inv","password":"secret123"}`
+	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
+	regReq.Header.Set("Content-Type", "application/json")
+	regW := httptest.NewRecorder()
+	mux.ServeHTTP(regW, regReq)
+
+	var regResp apiResponse
+	if err := json.Unmarshal(regW.Body.Bytes(), &regResp); err != nil {
+		t.Fatalf("unmarshal register: %v", err)
+	}
+	var regData map[string]any
+	if err := json.Unmarshal(regResp.Data, &regData); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	token := regData["token"].(string)
+
+	// Claim a non-existent job
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim/nonexistent/", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for nonexistent job, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestClaimProduction_Success_200(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler)
+
+	// Register user
+	regBody := `{"username":"cl-succ","password":"secret123"}`
+	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
+	regReq.Header.Set("Content-Type", "application/json")
+	regW := httptest.NewRecorder()
+	mux.ServeHTTP(regW, regReq)
+	if regW.Code != http.StatusOK {
+		t.Fatalf("register failed: %d; body: %s", regW.Code, regW.Body.String())
+	}
+	var regResp apiResponse
+	if err := json.Unmarshal(regW.Body.Bytes(), &regResp); err != nil {
+		t.Fatalf("unmarshal register: %v", err)
+	}
+	var regData map[string]any
+	if err := json.Unmarshal(regResp.Data, &regData); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	token := regData["token"].(string)
+	companyID := int(regData["company_id"].(float64))
+
+	// Seed a completed job for this company
+	startedAt := time.Date(2026, 6, 5, 10, 0, 0, 0, time.UTC)
+	jobID := "handler-claim-job"
+	err := store.CreateJob(nil, &proddmn.ProductionJob{
+		ID:              jobID,
+		CompanyID:       companyID,
+		BuildingID:      "bld-1",
+		ResourceID:      3,
+		Quantity:        10,
+		TargetQuantity:  10,
+		StartedAt:       startedAt,
+		DurationSeconds: 60.0,
+		ClaimedAmount:   0,
+		ClaimableAmount: 10,
+		Status:          proddmn.StatusReady,
+	})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	// POST to claim endpoint
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim/"+jobID+"/", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error != nil {
+		t.Fatalf("unexpected error: %+v", *resp.Error)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+
+	if data["job_id"] != jobID {
+		t.Errorf("expected job_id %s, got %v", jobID, data["job_id"])
+	}
+	if data["status"] != "claimed" {
+		t.Errorf("expected status 'claimed', got %v", data["status"])
+	}
+	if data["xp"] == nil || data["xp"].(float64) <= 0 {
+		t.Errorf("expected positive xp, got %v", data["xp"])
 	}
 }

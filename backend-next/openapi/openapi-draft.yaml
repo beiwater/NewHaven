@@ -145,6 +145,66 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v2/production/claim/{jobId}/:
+    post:
+      tags: [Production]
+      summary: Claim produced resources from a production job
+      operationId: claimProduction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Production claimed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimProductionResponse'
+        "400":
+          description: Nothing claimable or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/claimable/:
+    get:
+      tags: [Production]
+      summary: List claimable production jobs
+      operationId: listClaimableJobs
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Claimable job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimableJobListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/login:
     post:
       tags: [Auth]
@@ -513,6 +573,10 @@ components:
           format: date-time
         duration_seconds:
           type: number
+        claimed_amount:
+          type: integer
+        claimable_amount:
+          type: integer
         status:
           type: string
           enum: [running, ready, claimed]
@@ -547,6 +611,53 @@ components:
           $ref: '#/components/schemas/ProductionJobDTO'
         building:
           $ref: '#/components/schemas/BuildingProductionStatus'
+
+    ClaimProductionResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          enum: [running, ready, claimed]
+        output:
+          type: object
+          additionalProperties:
+            type: integer
+        claimed_amount:
+          type: integer
+        remaining:
+          type: integer
+        xp:
+          type: integer
+        level:
+          type: integer
+        market_unlocked:
+          type: boolean
+
+    ClaimableJobDTO:
+      type: object
+      properties:
+        job_id:
+          type: string
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        total_amount:
+          type: integer
+        claimed_amount:
+          type: integer
+        claimable_amount:
+          type: integer
+
+    ClaimableJobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimableJobDTO'
 
     # --- Finance ---
 

@@ -47,7 +47,7 @@ func main() {
 		buildings = make(map[int]*catalog.BuildingEntry)
 	}
 
-	productionSvc := production.NewService(st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
+	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler)
 	if cfg.DevMode {

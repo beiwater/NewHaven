@@ -33,6 +33,8 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/players/me/companies/", companyHandler.handleListMyCompanies)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/jobs/", productionHandler.handleListProductionJobs)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/start/", productionHandler.handleStartProduction)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/claim/{jobId}/", productionHandler.handleClaimProduction)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/claimable/", productionHandler.handleListClaimableJobs)
 	})
 
 	// API v3 domain routes (authenticated)

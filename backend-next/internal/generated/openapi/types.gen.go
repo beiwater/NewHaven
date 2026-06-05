@@ -10,27 +10,49 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 )
 
 const (
 	BearerAuthScopes bearerAuthContextKey = "BearerAuth.Scopes"
 )
 
+// Defines values for ClaimProductionResponseStatus.
+const (
+	ClaimProductionResponseStatusClaimed ClaimProductionResponseStatus = "claimed"
+	ClaimProductionResponseStatusReady   ClaimProductionResponseStatus = "ready"
+	ClaimProductionResponseStatusRunning ClaimProductionResponseStatus = "running"
+)
+
+// Valid indicates whether the value is a known member of the ClaimProductionResponseStatus enum.
+func (e ClaimProductionResponseStatus) Valid() bool {
+	switch e {
+	case ClaimProductionResponseStatusClaimed:
+		return true
+	case ClaimProductionResponseStatusReady:
+		return true
+	case ClaimProductionResponseStatusRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProductionJobDTOStatus.
 const (
-	Claimed ProductionJobDTOStatus = "claimed"
-	Ready   ProductionJobDTOStatus = "ready"
-	Running ProductionJobDTOStatus = "running"
+	ProductionJobDTOStatusClaimed ProductionJobDTOStatus = "claimed"
+	ProductionJobDTOStatusReady   ProductionJobDTOStatus = "ready"
+	ProductionJobDTOStatusRunning ProductionJobDTOStatus = "running"
 )
 
 // Valid indicates whether the value is a known member of the ProductionJobDTOStatus enum.
 func (e ProductionJobDTOStatus) Valid() bool {
 	switch e {
-	case Claimed:
+	case ProductionJobDTOStatusClaimed:
 		return true
-	case Ready:
+	case ProductionJobDTOStatusReady:
 		return true
-	case Running:
+	case ProductionJobDTOStatusRunning:
 		return true
 	default:
 		return false
@@ -60,6 +82,36 @@ type BuildingProductionStatus struct {
 	Busy  *bool   `json:"busy,omitempty"`
 	Id    *string `json:"id,omitempty"`
 	JobId *string `json:"job_id,omitempty"`
+}
+
+// ClaimProductionResponse defines model for ClaimProductionResponse.
+type ClaimProductionResponse struct {
+	ClaimedAmount  *int                           `json:"claimed_amount,omitempty"`
+	JobId          *string                        `json:"job_id,omitempty"`
+	Level          *int                           `json:"level,omitempty"`
+	MarketUnlocked *bool                          `json:"market_unlocked,omitempty"`
+	Output         *map[string]int                `json:"output,omitempty"`
+	Remaining      *int                           `json:"remaining,omitempty"`
+	Status         *ClaimProductionResponseStatus `json:"status,omitempty"`
+	Xp             *int                           `json:"xp,omitempty"`
+}
+
+// ClaimProductionResponseStatus defines model for ClaimProductionResponse.Status.
+type ClaimProductionResponseStatus string
+
+// ClaimableJobDTO defines model for ClaimableJobDTO.
+type ClaimableJobDTO struct {
+	BuildingId      *string `json:"building_id,omitempty"`
+	ClaimableAmount *int    `json:"claimable_amount,omitempty"`
+	ClaimedAmount   *int    `json:"claimed_amount,omitempty"`
+	JobId           *string `json:"job_id,omitempty"`
+	ResourceId      *int    `json:"resource_id,omitempty"`
+	TotalAmount     *int    `json:"total_amount,omitempty"`
+}
+
+// ClaimableJobListResponse defines model for ClaimableJobListResponse.
+type ClaimableJobListResponse struct {
+	Jobs *[]ClaimableJobDTO `json:"jobs,omitempty"`
 }
 
 // CompanySummary defines model for CompanySummary.
@@ -114,6 +166,8 @@ type MyCompaniesResponse struct {
 
 // ProductionJobDTO defines model for ProductionJobDTO.
 type ProductionJobDTO struct {
+	ClaimableAmount *int                    `json:"claimable_amount,omitempty"`
+	ClaimedAmount   *int                    `json:"claimed_amount,omitempty"`
 	DurationSeconds *float32                `json:"duration_seconds,omitempty"`
 	Id              *string                 `json:"id,omitempty"`
 	Quantity        *int                    `json:"quantity,omitempty"`
@@ -187,6 +241,12 @@ type ServerInterface interface {
 	// List my companies
 	// (GET /api/v2/players/me/companies/)
 	ListMyCompanies(w http.ResponseWriter, r *http.Request)
+	// Claim produced resources from a production job
+	// (POST /api/v2/production/claim/{jobId}/)
+	ClaimProduction(w http.ResponseWriter, r *http.Request, jobId string)
+	// List claimable production jobs
+	// (GET /api/v2/production/claimable/)
+	ListClaimableJobs(w http.ResponseWriter, r *http.Request)
 	// List production jobs for my company
 	// (GET /api/v2/production/jobs/)
 	ListProductionJobs(w http.ResponseWriter, r *http.Request)
@@ -229,6 +289,18 @@ func (_ Unimplemented) GetMyWarehouse(w http.ResponseWriter, r *http.Request) {
 // List my companies
 // (GET /api/v2/players/me/companies/)
 func (_ Unimplemented) ListMyCompanies(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Claim produced resources from a production job
+// (POST /api/v2/production/claim/{jobId}/)
+func (_ Unimplemented) ClaimProduction(w http.ResponseWriter, r *http.Request, jobId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List claimable production jobs
+// (GET /api/v2/production/claimable/)
+func (_ Unimplemented) ListClaimableJobs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -329,6 +401,58 @@ func (siw *ServerInterfaceWrapper) ListMyCompanies(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMyCompanies(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClaimProduction operation middleware
+func (siw *ServerInterfaceWrapper) ClaimProduction(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "jobId" -------------
+	var jobId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "jobId", chi.URLParam(r, "jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClaimProduction(w, r, jobId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListClaimableJobs operation middleware
+func (siw *ServerInterfaceWrapper) ListClaimableJobs(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListClaimableJobs(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -550,6 +674,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/players/me/companies/", wrapper.ListMyCompanies)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/production/claim/{jobId}/", wrapper.ClaimProduction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/production/claimable/", wrapper.ListClaimableJobs)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/production/jobs/", wrapper.ListProductionJobs)
