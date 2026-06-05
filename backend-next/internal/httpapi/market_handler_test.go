@@ -24,7 +24,8 @@ func newMarketSvc(store *memory.Store) *market.Service {
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	return market.NewService(store, store, store, resources, clock, idgen)
+	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
+	return market.NewService(store, store, store, resources, cfg, clock, idgen)
 }
 
 func registerMarketTestToken(t *testing.T, mux http.Handler, username string) string {
@@ -498,5 +499,109 @@ func TestMarketCancel_MissingOrder_404(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+// --- TakeOrder handler tests ---
+
+func TestTakeOrder_NoToken_401(t *testing.T) {
+	cfg := &config.Config{JWTSigningKey: "test-secret"}
+	store := memory.New()
+	a := app.New(cfg, store)
+	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestTakeOrder_InvalidBody_400(t *testing.T) {
+	cfg := &config.Config{JWTSigningKey: "test-secret"}
+	store := memory.New()
+	a := app.New(cfg, store)
+	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler)
+	token := registerMarketTestToken(t, mux, "tkbadbody")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
+		strings.NewReader(`not json`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestTakeOrder_InvalidPayload_400(t *testing.T) {
+	cfg := &config.Config{JWTSigningKey: "test-secret"}
+	store := memory.New()
+	a := app.New(cfg, store)
+	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler)
+	token := registerMarketTestToken(t, mux, "tkbadpayload")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
+		strings.NewReader(`{"resource":1,"quantity":0,"quality":0,"maxPrice":100.0}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d; body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestTakeOrder_Success_200(t *testing.T) {
+	cfg := &config.Config{JWTSigningKey: "test-secret"}
+	store := memory.New()
+	a := app.New(cfg, store)
+	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler)
+	token := registerMarketTestToken(t, mux, "tk succ")
+
+	body := `{"resource":1,"quantity":5,"quality":0,"maxPrice":100.0}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
+		strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if resp.Error != nil {
+		t.Fatalf("unexpected error: %+v", *resp.Error)
+	}
+	var data map[string]any
+	if err := json.Unmarshal(resp.Data, &data); err != nil {
+		t.Fatalf("unmarshal data: %v", err)
+	}
+	if data["amountBought"] == nil {
+		t.Fatal("response missing 'amountBought' field")
+	}
+	if data["trades"] == nil {
+		t.Fatal("response missing 'trades' field")
+	}
+	if data["moneyDelta"] == nil {
+		t.Fatal("response missing 'moneyDelta' field")
 	}
 }

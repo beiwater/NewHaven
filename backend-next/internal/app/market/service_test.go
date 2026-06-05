@@ -3,6 +3,7 @@ package market_test
 import (
 	"context"
 	"errors"
+	"github.com/newhaven/backend-next/internal/config"
 	"strings"
 	"testing"
 	"time"
@@ -24,7 +25,8 @@ func newTestSvc(resources map[int]*catalog.ResourceEntry) (*appmarket.Service, *
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	svc := appmarket.NewService(store, store, store, resources, clock, idgen)
+	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
+	svc := appmarket.NewService(store, store, store, resources, cfg, clock, idgen)
 	return svc, store
 }
 
@@ -477,7 +479,8 @@ func TestCreateOrder_Buy_RollsBackCashWhenOrderCreateFails(t *testing.T) {
 	store := memory.New()
 	failingStore := &createOrderFailStore{Store: store}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
-	svc := appmarket.NewService(failingStore, failingStore, failingStore, resources, clock, platform.NewIDGen())
+	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
+	svc := appmarket.NewService(failingStore, failingStore, failingStore, resources, cfg, clock, platform.NewIDGen())
 	cid := newTestCompany(t, store, 110, "rollbackbuyer", 1000)
 
 	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
@@ -657,5 +660,255 @@ func TestCancelOrder_AlreadyCancelled_Error(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "already settled") {
 		t.Errorf("expected 'already settled', got: %v", err)
+	}
+}
+
+// --- TakeOrder tests ---
+
+func TestTakeOrder_BuysFromBestSellOrders(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 200, "taker", 100000)
+	sellerCid := newTestCompany(t, store, 201, "seller", 1000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	// Create sell orders at different prices.
+	order10 := &domainmarket.MarketOrder{ID: "sell-10", CompanyID: sellerCid, ResourceID: 5, IsBuy: false, Price: 10.0, Quantity: 20, Quality: 0, Status: domainmarket.StatusOpen, CreatedAt: "2026-06-06T11:00:00Z"}
+	order12 := &domainmarket.MarketOrder{ID: "sell-12", CompanyID: sellerCid, ResourceID: 5, IsBuy: false, Price: 12.0, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CreatedAt: "2026-06-06T11:00:01Z"}
+	order11 := &domainmarket.MarketOrder{ID: "sell-11", CompanyID: sellerCid, ResourceID: 5, IsBuy: false, Price: 11.0, Quantity: 15, Quality: 0, Status: domainmarket.StatusOpen, CreatedAt: "2026-06-06T11:00:02Z"}
+	_ = store.CreateOrder(ctx, order10)
+	_ = store.CreateOrder(ctx, order12)
+	_ = store.CreateOrder(ctx, order11)
+	// Buy order that should NOT match.
+	_ = store.CreateOrder(ctx, &domainmarket.MarketOrder{ID: "buy-20", CompanyID: sellerCid, ResourceID: 5, IsBuy: true, Price: 20.0, Quantity: 5, Quality: 0, Status: domainmarket.StatusOpen})
+
+	resp, err := svc.TakeOrder(ctx, cid, &openapi.TakeOrderRequest{
+		Resource: 5, Quantity: 30, Quality: 0, MaxPrice: 100.0,
+	})
+	if err != nil {
+		t.Fatalf("TakeOrder failed: %v", err)
+	}
+	if resp.AmountBought == nil || *resp.AmountBought != 30 {
+		t.Fatalf("expected amountBought 30, got %v", resp.AmountBought)
+	}
+	// sell-10(20@10) + sell-11(10@11) = 30; sell-12(10@12) not needed.
+	if resp.Trades == nil || len(*resp.Trades) != 2 {
+		t.Fatalf("expected 2 trades, got %d", len(*resp.Trades))
+	}
+	firstTrade := (*resp.Trades)[0]
+	if float64(*firstTrade.Price) != 10.0 {
+		t.Errorf("expected first trade price 10.0, got %v", firstTrade.Price)
+	}
+	// Verify order statuses.
+	o10, _ := store.GetOrder(ctx, "sell-10")
+	if o10.Status != domainmarket.StatusFilled {
+		t.Errorf("expected sell-10 filled, got %s", o10.Status)
+	}
+	o12, _ := store.GetOrder(ctx, "sell-12")
+	if o12.Status != domainmarket.StatusOpen {
+		t.Errorf("expected sell-12 open (unfilled), got %s", o12.Status)
+	}
+	o11, _ := store.GetOrder(ctx, "sell-11")
+	if o11.Status != domainmarket.StatusPartial {
+		t.Errorf("expected sell-11 partial, got %s", o11.Status)
+	}
+	if o11.FilledQuantity != 10 {
+		t.Errorf("expected sell-11 filled 10, got %d", o11.FilledQuantity)
+	}
+	// Taker inventory.
+	c, _ := store.GetCompany(nil, cid)
+	if c.Inventory[5] != 30 {
+		t.Errorf("expected taker inventory 30, got %d", c.Inventory[5])
+	}
+}
+
+func TestTakeOrder_PartialFillWhenAvailableSellsRunOut(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 208, "partialtaker", 100000)
+	sellerCid := newTestCompany(t, store, 209, "partialseller", 1000)
+
+	_ = store.CreateOrder(ctx, &domainmarket.MarketOrder{
+		ID: "only-sell", CompanyID: sellerCid, ResourceID: 5, IsBuy: false,
+		Price: 7.0, Quantity: 6, Quality: 0, Status: domainmarket.StatusOpen,
+		CreatedAt: "2026-06-06T11:00:00Z",
+	})
+
+	resp, err := svc.TakeOrder(ctx, cid, &openapi.TakeOrderRequest{
+		Resource: 5, Quantity: 10, Quality: 0, MaxPrice: 100.0,
+	})
+	if err != nil {
+		t.Fatalf("TakeOrder failed: %v", err)
+	}
+	if resp.AmountBought == nil || *resp.AmountBought != 6 {
+		t.Fatalf("expected amountBought 6, got %v", resp.AmountBought)
+	}
+	if resp.Trades == nil || len(*resp.Trades) != 1 {
+		t.Fatalf("expected 1 trade, got %d", len(*resp.Trades))
+	}
+
+	order, _ := store.GetOrder(ctx, "only-sell")
+	if order.Status != domainmarket.StatusFilled {
+		t.Errorf("expected sell order filled, got %s", order.Status)
+	}
+
+	taker, _ := store.GetCompany(nil, cid)
+	if taker.Inventory[5] != 6 {
+		t.Errorf("expected taker inventory 6, got %d", taker.Inventory[5])
+	}
+}
+
+func TestTakeOrder_NoQualifyingSells_ReturnsZero(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 202, "noorder", 100000)
+
+	resp, err := svc.TakeOrder(ctx, cid, &openapi.TakeOrderRequest{
+		Resource: 5, Quantity: 10, Quality: 0, MaxPrice: 100.0,
+	})
+	if err != nil {
+		t.Fatalf("TakeOrder failed: %v", err)
+	}
+	if resp.AmountBought == nil || *resp.AmountBought != 0 {
+		t.Errorf("expected amountBought 0, got %v", resp.AmountBought)
+	}
+	if resp.Trades == nil || len(*resp.Trades) != 0 {
+		t.Errorf("expected 0 trades, got %d", len(*resp.Trades))
+	}
+	if resp.MoneyDelta == nil || *resp.MoneyDelta != 0 {
+		t.Errorf("expected moneyDelta 0, got %v", resp.MoneyDelta)
+	}
+}
+
+func TestTakeOrder_StopsWhenCannotAffordFill(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 203, "poortaker", 50)
+	sellerCid := newTestCompany(t, store, 204, "richseller", 1000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	_ = store.CreateOrder(ctx, &domainmarket.MarketOrder{ID: "s1", CompanyID: sellerCid, ResourceID: 5, IsBuy: false, Price: 2.0, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CreatedAt: "2026-06-06T11:00:00Z"})
+	_ = store.CreateOrder(ctx, &domainmarket.MarketOrder{ID: "s2", CompanyID: sellerCid, ResourceID: 5, IsBuy: false, Price: 3.0, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CreatedAt: "2026-06-06T11:00:01Z"})
+
+	resp, err := svc.TakeOrder(ctx, cid, &openapi.TakeOrderRequest{
+		Resource: 5, Quantity: 20, Quality: 0, MaxPrice: 100.0,
+	})
+	if err != nil {
+		t.Fatalf("TakeOrder failed: %v", err)
+	}
+	// First order at $2: fill=10, fee=ceil(10*2*0.04)=ceil(0.8)=1, cost=20+1=21
+	// Remaining money: 50-21=29
+	// Second order at $3: fill=10, fee=ceil(10*3*0.04)=ceil(1.2)=2, cost=30+2=32
+	// 29 < 32, so should stop before second fill.
+	if resp.AmountBought == nil || *resp.AmountBought != 10 {
+		t.Fatalf("expected amountBought 10, got %v", resp.AmountBought)
+	}
+	if resp.Trades == nil || len(*resp.Trades) != 1 {
+		t.Fatalf("expected 1 trade, got %d", len(*resp.Trades))
+	}
+	// Second order untouched.
+	o2, _ := store.GetOrder(ctx, "s2")
+	if o2.FilledQuantity != 0 {
+		t.Errorf("expected s2 unfilled, got filled=%d", o2.FilledQuantity)
+	}
+}
+
+func TestTakeOrder_RecordsTradesAndUpdatesTicker(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 205, "tradetest", 100000)
+	sellerCid := newTestCompany(t, store, 206, "selltrades", 1000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	_ = store.CreateOrder(ctx, &domainmarket.MarketOrder{ID: "ts1", CompanyID: sellerCid, ResourceID: 5, IsBuy: false, Price: 8.0, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CreatedAt: "2026-06-06T11:00:00Z"})
+
+	resp, err := svc.TakeOrder(ctx, cid, &openapi.TakeOrderRequest{
+		Resource: 5, Quantity: 10, Quality: 0, MaxPrice: 100.0,
+	})
+	if err != nil {
+		t.Fatalf("TakeOrder failed: %v", err)
+	}
+	if resp.Trades == nil || len(*resp.Trades) != 1 {
+		t.Fatalf("expected 1 trade")
+	}
+	trade := (*resp.Trades)[0]
+	if float64(*trade.Price) != 8.0 {
+		t.Errorf("expected trade price 8.0, got %v", trade.Price)
+	}
+	if *trade.Quantity != 10 {
+		t.Errorf("expected trade qty 10, got %v", trade.Quantity)
+	}
+
+	// Ticker updated.
+	ticker, err := store.GetTicker(ctx, 5)
+	if err != nil {
+		t.Fatalf("GetTicker: %v", err)
+	}
+	if ticker.LastPrice != 8.0 {
+		t.Errorf("expected LastPrice 8.0, got %.2f", ticker.LastPrice)
+	}
+	if ticker.Volume24h <= 0 {
+		t.Errorf("expected positive Volume24h, got %.2f", ticker.Volume24h)
+	}
+
+	// Ledger entry.
+	entries, _ := store.GetLedgerEntries(nil, cid, 10)
+	found := false
+	for _, e := range entries {
+		if e.Kind == "market_take_buy" && e.Amount > 0 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected market_take_buy ledger entry")
+	}
+
+	// Seller money credited.
+	seller, _ := store.GetCompany(nil, sellerCid)
+	if seller.Money <= 1000 {
+		t.Errorf("expected seller money > 1000, got %.2f", seller.Money)
+	}
+}
+
+func TestTakeOrder_ValidatesBadPayloads(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 207, "badpayload", 100000)
+
+	tests := []struct {
+		name string
+		req  openapi.TakeOrderRequest
+	}{
+		{"missing resource", openapi.TakeOrderRequest{Resource: 999, Quantity: 1, Quality: 0, MaxPrice: 10}},
+		{"zero quantity", openapi.TakeOrderRequest{Resource: 5, Quantity: 0, Quality: 0, MaxPrice: 10}},
+		{"zero maxPrice", openapi.TakeOrderRequest{Resource: 5, Quantity: 1, Quality: 0, MaxPrice: 0}},
+		{"non-zero quality", openapi.TakeOrderRequest{Resource: 5, Quantity: 1, Quality: 1, MaxPrice: 10}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := svc.TakeOrder(ctx, cid, &tt.req)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+		})
 	}
 }

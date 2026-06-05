@@ -50,7 +50,7 @@ func main() {
 
 	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
 
-	marketSvc := market.NewService(st, st, st, resources, application.Clock, application.IDGen)
+	marketSvc := market.NewService(st, st, st, resources, cfg.Game, application.Clock, application.IDGen)
 	marketHandler := httpapi.NewMarketHandler(marketSvc)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler)

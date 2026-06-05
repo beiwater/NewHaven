@@ -329,6 +329,34 @@ type StartProductionResponse struct {
 	Job      *ProductionJobDTO         `json:"job,omitempty"`
 }
 
+// TakeOrderRequest defines model for TakeOrderRequest.
+type TakeOrderRequest struct {
+	MaxPrice  float32 `json:"maxPrice"`
+	Quality   int     `json:"quality"`
+	Quantity  int     `json:"quantity"`
+	RequestId *string `json:"requestId,omitempty"`
+	Resource  int     `json:"resource"`
+}
+
+// TakeOrderResponse defines model for TakeOrderResponse.
+type TakeOrderResponse struct {
+	AmountBought *int        `json:"amountBought,omitempty"`
+	MoneyDelta   *float32    `json:"moneyDelta,omitempty"`
+	Trades       *[]TradeDTO `json:"trades,omitempty"`
+}
+
+// TradeDTO defines model for TradeDTO.
+type TradeDTO struct {
+	BuyOrderId  *string    `json:"buyOrderId,omitempty"`
+	CreatedAt   *time.Time `json:"createdAt,omitempty"`
+	Id          *string    `json:"id,omitempty"`
+	Price       *float32   `json:"price,omitempty"`
+	Quality     *int       `json:"quality,omitempty"`
+	Quantity    *int       `json:"quantity,omitempty"`
+	ResourceId  *int       `json:"resourceId,omitempty"`
+	SellOrderId *string    `json:"sellOrderId,omitempty"`
+}
+
 // WarehouseItem defines model for WarehouseItem.
 type WarehouseItem struct {
 	Amount       *int    `json:"amount,omitempty"`
@@ -348,6 +376,9 @@ type RegisterJSONRequestBody = RegisterRequest
 
 // CreateMarketOrderJSONRequestBody defines body for CreateMarketOrder for application/json ContentType.
 type CreateMarketOrderJSONRequestBody = CreateOrderRequestFrontend
+
+// TakeMarketOrderJSONRequestBody defines body for TakeMarketOrder for application/json ContentType.
+type TakeMarketOrderJSONRequestBody = TakeOrderRequest
 
 // StartProductionJSONRequestBody defines body for StartProduction for application/json ContentType.
 type StartProductionJSONRequestBody = StartProductionRequest
@@ -369,6 +400,9 @@ type ServerInterface interface {
 	// Cancel a market order
 	// (DELETE /api/v2/market-order/cancel/{orderId}/)
 	CancelMarketOrder(w http.ResponseWriter, r *http.Request, orderId string)
+	// Take (buy from) market orders
+	// (POST /api/v2/market-order/take/)
+	TakeMarketOrder(w http.ResponseWriter, r *http.Request)
 	// List my companies
 	// (GET /api/v2/players/me/companies/)
 	ListMyCompanies(w http.ResponseWriter, r *http.Request)
@@ -438,6 +472,12 @@ func (_ Unimplemented) CreateMarketOrder(w http.ResponseWriter, r *http.Request)
 // Cancel a market order
 // (DELETE /api/v2/market-order/cancel/{orderId}/)
 func (_ Unimplemented) CancelMarketOrder(w http.ResponseWriter, r *http.Request, orderId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Take (buy from) market orders
+// (POST /api/v2/market-order/take/)
+func (_ Unimplemented) TakeMarketOrder(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -612,6 +652,26 @@ func (siw *ServerInterfaceWrapper) CancelMarketOrder(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CancelMarketOrder(w, r, orderId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TakeMarketOrder operation middleware
+func (siw *ServerInterfaceWrapper) TakeMarketOrder(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TakeMarketOrder(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1042,6 +1102,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v2/market-order/cancel/{orderId}/", wrapper.CancelMarketOrder)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/market-order/take/", wrapper.TakeMarketOrder)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/players/me/companies/", wrapper.ListMyCompanies)

@@ -185,3 +185,33 @@ func (h *MarketHandler) handleCancelOrder(w http.ResponseWriter, r *http.Request
 
 	writeSuccess(w, 200, resp)
 }
+
+// handleTakeOrder takes (buys from) market sell orders.
+func (h *MarketHandler) handleTakeOrder(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	var req openapi.TakeOrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
+		return
+	}
+
+	resp, err := h.svc.TakeOrder(r.Context(), companyID, &req)
+	if err != nil {
+		switch {
+		case strings.Contains(err.Error(), "not found"):
+			writeErr(w, 404, ErrorNotFound, err.Error(), nil)
+		case strings.Contains(err.Error(), "insufficient"):
+			writeErr(w, 400, ErrorInsufficientFunds, err.Error(), nil)
+		default:
+			writeErr(w, 400, ErrorBadRequest, err.Error(), nil)
+		}
+		return
+	}
+
+	writeSuccess(w, 200, resp)
+}

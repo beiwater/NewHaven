@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/newhaven/backend-next/internal/catalog"
+	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/domain/finance"
 	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
@@ -17,21 +19,24 @@ import (
 
 // Service is the market application use case.
 type Service struct {
+	mu        sync.Mutex
 	market    storage.MarketStorage
 	companies storage.CompanyStorage
 	finance   storage.FinanceStorage
 	resources map[int]*catalog.ResourceEntry
+	cfg       *config.GameConfig
 	clock     platform.Clock
 	idgen     *platform.IDGen
 }
 
 // NewService creates a new market service.
-func NewService(market storage.MarketStorage, companies storage.CompanyStorage, finance storage.FinanceStorage, resources map[int]*catalog.ResourceEntry, clock platform.Clock, idgen *platform.IDGen) *Service {
+func NewService(market storage.MarketStorage, companies storage.CompanyStorage, finance storage.FinanceStorage, resources map[int]*catalog.ResourceEntry, cfg *config.GameConfig, clock platform.Clock, idgen *platform.IDGen) *Service {
 	return &Service{
 		market:    market,
 		companies: companies,
 		finance:   finance,
 		resources: resources,
+		cfg:       cfg,
 		clock:     clock,
 		idgen:     idgen,
 	}
@@ -75,6 +80,9 @@ func (s *Service) ListResources(ctx context.Context) (*openapi.ResourcesResponse
 
 // GetMarketTicker returns ticker data for a resource, falling back to a synthetic series.
 func (s *Service) GetMarketTicker(ctx context.Context, resourceID int) (*openapi.MarketTickerResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Try reading from storage first.
 	ticker, err := s.market.GetTicker(ctx, resourceID)
 	if err == nil && ticker != nil {
@@ -122,6 +130,9 @@ func (s *Service) GetMarketTicker(ctx context.Context, resourceID int) (*openapi
 
 // GetMarketDepth returns aggregated buy/sell depth for a resource and quality.
 func (s *Service) GetMarketDepth(ctx context.Context, resourceID int, quality int) (*openapi.MarketDepthResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	orders, err := s.market.GetOrdersByResource(ctx, resourceID)
 	if err != nil {
 		return nil, err
@@ -189,6 +200,9 @@ func (s *Service) GetMarketDepth(ctx context.Context, resourceID int, quality in
 
 // ListMarketOrders returns orders for a resource and quality as DTOs.
 func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality int) (*openapi.MarketOrderListResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	orders, err := s.market.GetOrdersByResource(ctx, resourceID)
 	if err != nil {
 		return nil, err
@@ -252,6 +266,9 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	if req == nil {
 		return nil, fmt.Errorf("request is required")
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Validate resource exists in catalog.
 	if _, ok := s.resources[req.ResourceId]; !ok {
@@ -381,6 +398,9 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 
 // CancelOrder cancels an existing open order and refunds the reserved funds/inventory.
 func (s *Service) CancelOrder(ctx context.Context, companyID int, orderID string) (*openapi.CancelOrderResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	order, err := s.market.GetOrder(ctx, orderID)
 	if err != nil {
 		return nil, err // will be wrapped by handler as not-found
@@ -448,6 +468,261 @@ func (s *Service) CancelOrder(ctx context.Context, companyID int, orderID string
 		Id:     &order.ID,
 		Status: &statusStr,
 	}, nil
+}
+
+// TakeOrder takes (buys from) market sell orders up to the requested quantity and maxPrice.
+func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.TakeOrderRequest) (*openapi.TakeOrderResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("request is required")
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.resources[req.Resource]; !ok {
+		return nil, fmt.Errorf("resource %d not found", req.Resource)
+	}
+
+	if req.Quantity <= 0 {
+		return nil, fmt.Errorf("quantity must be positive")
+	}
+
+	if req.MaxPrice <= 0 {
+		return nil, fmt.Errorf("maxPrice must be positive")
+	}
+
+	if req.Quality != 0 {
+		return nil, fmt.Errorf("non-zero quality not supported in this phase")
+	}
+
+	taker, err := s.companies.GetCompany(ctx, companyID)
+	if err != nil {
+		return nil, fmt.Errorf("company lookup: %w", err)
+	}
+
+	// Collect candidate sell orders.
+	allOrders, err := s.market.GetOrdersByResource(ctx, req.Resource)
+	if err != nil {
+		return nil, err
+	}
+
+	sellOrders := make([]*domainmarket.MarketOrder, 0)
+	for i := range allOrders {
+		o := &allOrders[i]
+		if o.IsBuy {
+			continue
+		}
+		if o.Quality != req.Quality {
+			continue
+		}
+		if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
+			continue
+		}
+		if o.Remaining() <= 0 {
+			continue
+		}
+		if o.Price > float64(req.MaxPrice) {
+			continue
+		}
+		sellOrders = append(sellOrders, o)
+	}
+
+	// Sort by price ascending, then CreatedAt ascending, then ID.
+	sort.Slice(sellOrders, func(i, j int) bool {
+		if sellOrders[i].Price != sellOrders[j].Price {
+			return sellOrders[i].Price < sellOrders[j].Price
+		}
+		if sellOrders[i].CreatedAt != sellOrders[j].CreatedAt {
+			return sellOrders[i].CreatedAt < sellOrders[j].CreatedAt
+		}
+		return sellOrders[i].ID < sellOrders[j].ID
+	})
+
+	type tradeResult struct {
+		fill  int
+		cost  float64
+		trade *domainmarket.Trade
+	}
+
+	var results []tradeResult
+	need := req.Quantity
+	now := s.clock.Now().UTC()
+
+	for _, sell := range sellOrders {
+		if need <= 0 {
+			break
+		}
+		fill := need
+		if sell.Remaining() < fill {
+			fill = sell.Remaining()
+		}
+
+		fee := math.Ceil(float64(fill) * sell.Price * s.exchangeFeePct())
+		cost := float64(fill)*sell.Price + fee
+
+		if taker.Money < cost {
+			// Cannot afford the full cost of this fill; stop as per legacy behavior.
+			break
+		}
+
+		// Deduct from taker.
+		takerOriginalMoney := taker.Money
+		taker.Money -= cost
+		if err := s.companies.UpdateCompany(ctx, taker); err != nil {
+			taker.Money = takerOriginalMoney
+			return nil, fmt.Errorf("update taker company: %w", err)
+		}
+
+		// Add inventory to taker.
+		if err := s.companies.UpdateInventory(ctx, companyID, req.Resource, fill); err != nil {
+			// Rollback taker money.
+			taker.Money = takerOriginalMoney
+			_ = s.companies.UpdateCompany(ctx, taker)
+			return nil, fmt.Errorf("add inventory to taker: %w", err)
+		}
+
+		// Credit seller if different company.
+		var sellerOriginalMoney float64
+		sellerCredited := false
+		seller, err := s.companies.GetCompany(ctx, sell.CompanyID)
+		if err == nil && sell.CompanyID != companyID {
+			sellerOriginalMoney = seller.Money
+			seller.Money += float64(fill) * sell.Price
+			if err := s.companies.UpdateCompany(ctx, seller); err != nil {
+				// Rollback: undo taker money + inventory.
+				taker.Money = takerOriginalMoney
+				_ = s.companies.UpdateCompany(ctx, taker)
+				_ = s.companies.UpdateInventory(ctx, companyID, req.Resource, -fill)
+				return nil, fmt.Errorf("credit seller: %w", err)
+			}
+			sellerCredited = true
+		}
+
+		// Update sell order.
+		originalFilledQuantity := sell.FilledQuantity
+		originalStatus := sell.Status
+		sell.FilledQuantity += fill
+		if sell.Remaining() == 0 {
+			sell.Status = domainmarket.StatusFilled
+		} else {
+			sell.Status = domainmarket.StatusPartial
+		}
+		if err := s.market.UpdateOrder(ctx, sell); err != nil {
+			// Rollback: undo taker, seller, inventory.
+			taker.Money = takerOriginalMoney
+			_ = s.companies.UpdateCompany(ctx, taker)
+			_ = s.companies.UpdateInventory(ctx, companyID, req.Resource, -fill)
+			if sellerCredited {
+				seller.Money = sellerOriginalMoney
+				_ = s.companies.UpdateCompany(ctx, seller)
+			}
+			sell.FilledQuantity = originalFilledQuantity
+			sell.Status = originalStatus
+			return nil, fmt.Errorf("update sell order: %w", err)
+		}
+
+		// Record trade.
+		trade := &domainmarket.Trade{
+			ID:          s.idgen.Next("trade"),
+			BuyOrderID:  "take-" + s.idgen.NanoID(),
+			SellOrderID: sell.ID,
+			ResourceID:  req.Resource,
+			Quality:     req.Quality,
+			Quantity:    fill,
+			Price:       sell.Price,
+			BuyerFee:    fee,
+			CreatedAt:   now.Format(time.RFC3339),
+		}
+		if err := s.market.SaveTrade(ctx, trade); err != nil {
+			// Rollback everything.
+			taker.Money = takerOriginalMoney
+			_ = s.companies.UpdateCompany(ctx, taker)
+			_ = s.companies.UpdateInventory(ctx, companyID, req.Resource, -fill)
+			if sellerCredited {
+				seller.Money = sellerOriginalMoney
+				_ = s.companies.UpdateCompany(ctx, seller)
+			}
+			sell.FilledQuantity = originalFilledQuantity
+			sell.Status = originalStatus
+			_ = s.market.UpdateOrder(ctx, sell)
+			return nil, fmt.Errorf("save trade: %w", err)
+		}
+
+		// Update ticker.
+		ticker, tickErr := s.market.GetTicker(ctx, req.Resource)
+		if tickErr != nil {
+			ticker = &domainmarket.Ticker{
+				ResourceID: req.Resource,
+			}
+		}
+		ticker.LastPrice = sell.Price
+		ticker.Volume24h += float64(fill) * sell.Price
+		ticker.UpdatedAt = now.Format(time.RFC3339)
+		_ = s.market.UpdateTicker(ctx, ticker)
+
+		// Append buyer ledger entry.
+		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
+			CompanyID: companyID,
+			Kind:      "market_take_buy",
+			Amount:    cost,
+			Direction: "out",
+			Metadata: map[string]any{
+				"resourceId":  req.Resource,
+				"quantity":    fill,
+				"price":       sell.Price,
+				"fee":         fee,
+				"tradeId":     trade.ID,
+				"sellOrderId": sell.ID,
+			},
+		})
+
+		results = append(results, tradeResult{fill: fill, cost: cost, trade: trade})
+		need -= fill
+	}
+
+	// Build response.
+	amountBought := 0
+	moneyDelta := float32(0.0)
+	tradeDTOs := make([]openapi.TradeDTO, len(results))
+	for i, r := range results {
+		amountBought += r.fill
+		moneyDelta -= float32(r.cost)
+		tID := r.trade.ID
+		tResourceID := r.trade.ResourceID
+		tQuality := r.trade.Quality
+		tQty := r.trade.Quantity
+		tPrice := float32(r.trade.Price)
+		tBuyOrderID := r.trade.BuyOrderID
+		tSellOrderID := r.trade.SellOrderID
+		// Parse CreatedAt string to time.Time.
+		var tCreatedAt time.Time
+		if r.trade.CreatedAt != "" {
+			tCreatedAt, _ = time.Parse(time.RFC3339, r.trade.CreatedAt)
+		}
+		tradeDTOs[i] = openapi.TradeDTO{
+			Id:          &tID,
+			ResourceId:  &tResourceID,
+			Quality:     &tQuality,
+			Quantity:    &tQty,
+			Price:       &tPrice,
+			BuyOrderId:  &tBuyOrderID,
+			SellOrderId: &tSellOrderID,
+			CreatedAt:   &tCreatedAt,
+		}
+	}
+
+	return &openapi.TakeOrderResponse{
+		AmountBought: &amountBought,
+		Trades:       &tradeDTOs,
+		MoneyDelta:   &moneyDelta,
+	}, nil
+}
+
+func (s *Service) exchangeFeePct() float64 {
+	if s.cfg == nil {
+		return 0.04
+	}
+	return s.cfg.ExchangeFeePct
 }
 
 // basePriceForResource looks up the catalog BasePrice for a given resource ID.

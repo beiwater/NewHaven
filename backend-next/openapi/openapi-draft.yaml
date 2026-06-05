@@ -389,6 +389,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/market-order/take/:
+    post:
+      tags: [Market]
+      summary: Take (buy from) market orders
+      operationId: takeMarketOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TakeOrderRequest'
+      responses:
+        "200":
+          description: Order taken successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TakeOrderResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/login:
     post:
       tags: [Auth]
@@ -832,6 +865,57 @@ components:
           type: string
         status:
           type: string
+
+    TradeDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        resourceId:
+          type: integer
+        quality:
+          type: integer
+        quantity:
+          type: integer
+        price:
+          type: number
+        buyOrderId:
+          type: string
+        sellOrderId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    TakeOrderRequest:
+      type: object
+      required: [resource, quantity, quality, maxPrice]
+      properties:
+        requestId:
+          type: string
+        resource:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          minimum: 1
+        quality:
+          type: integer
+          minimum: 0
+        maxPrice:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+    TakeOrderResponse:
+      type: object
+      properties:
+        amountBought:
+          type: integer
+        trades:
+          type: array
+          items:
+            $ref: '#/components/schemas/TradeDTO'
+        moneyDelta:
+          type: number
     # --- Production ---
 
     ProductionJob:

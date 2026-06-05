@@ -48,6 +48,7 @@ type Trade struct {
 	SellOrderID string  `json:"sell_order_id"`
 	ResourceID  int     `json:"resource_id"`
 	Price       float64 `json:"price"`
+	Quality     int     `json:"quality"`
 	Quantity    int     `json:"quantity"`
 	BuyerFee    float64 `json:"buyer_fee"`
 	SellerFee   float64 `json:"seller_fee"`
