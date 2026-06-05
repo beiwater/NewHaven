@@ -7,7 +7,7 @@ import (
 	"github.com/newhaven/backend-next/internal/config"
 )
 
-func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler, marketHandler *MarketHandler) *chi.Mux {
+func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler, marketHandler *MarketHandler, financeHandler *FinanceHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack (outermost first)
@@ -30,6 +30,10 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", warehouseHandler.handleGetMyWarehouse)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/cashflow/recent/", financeHandler.handleRecentCashflow)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/income-statement/", financeHandler.handleIncomeStatement)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/balance-sheet/", financeHandler.handleBalanceSheet)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/cashflow-statement/", financeHandler.handleCashflowStatement)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/market-order/", marketHandler.handleCreateOrder)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Delete("/market-order/cancel/{orderId}/", marketHandler.handleCancelOrder)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/market-order/take/", marketHandler.handleTakeOrder)
@@ -44,6 +48,7 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	r.Route("/api/v3", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/buildings/", buildingHandler.handleListMyBuildings)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/resources/", marketHandler.handleResources)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/past-finances/", financeHandler.handlePastFinances)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-ticker/{resourceId}/", marketHandler.handleMarketTicker)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-depth/{resourceId}/{quality}/", marketHandler.handleMarketDepth)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market/{resourceId}/{quality}/", marketHandler.handleMarketOrders)

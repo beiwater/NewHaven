@@ -95,6 +95,13 @@ func (e ProductionJobDTOStatus) Valid() bool {
 	}
 }
 
+// BalanceSheetResponse defines model for BalanceSheetResponse.
+type BalanceSheetResponse struct {
+	Assets      *float32 `json:"assets,omitempty"`
+	Equity      *float32 `json:"equity,omitempty"`
+	Liabilities *float32 `json:"liabilities,omitempty"`
+}
+
 // BuildingDTO defines model for BuildingDTO.
 type BuildingDTO struct {
 	BuildingId *int    `json:"building_id,omitempty"`
@@ -124,6 +131,20 @@ type BuildingProductionStatus struct {
 type CancelOrderResponse struct {
 	Id     *string `json:"id,omitempty"`
 	Status *string `json:"status,omitempty"`
+}
+
+// CashflowEntry defines model for CashflowEntry.
+type CashflowEntry struct {
+	At         *time.Time `json:"at,omitempty"`
+	Kind       *string    `json:"kind,omitempty"`
+	MoneyDelta *float32   `json:"moneyDelta,omitempty"`
+}
+
+// CashflowStatementResponse defines model for CashflowStatementResponse.
+type CashflowStatementResponse struct {
+	Financing *float32 `json:"financing,omitempty"`
+	Investing *float32 `json:"investing,omitempty"`
+	Operating *float32 `json:"operating,omitempty"`
 }
 
 // ClaimProductionResponse defines model for ClaimProductionResponse.
@@ -205,6 +226,13 @@ type HealthResponse struct {
 	Status *string `json:"status,omitempty"`
 }
 
+// IncomeStatementResponse defines model for IncomeStatementResponse.
+type IncomeStatementResponse struct {
+	Expenses  *float32 `json:"expenses,omitempty"`
+	NetIncome *float32 `json:"netIncome,omitempty"`
+	Revenue   *float32 `json:"revenue,omitempty"`
+}
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	Password string `json:"password"`
@@ -271,6 +299,17 @@ type MyCompaniesResponse struct {
 	Companies *[]CompanySummary `json:"companies,omitempty"`
 }
 
+// PastFinancePoint defines model for PastFinancePoint.
+type PastFinancePoint struct {
+	Date *string  `json:"date,omitempty"`
+	Net  *float32 `json:"net,omitempty"`
+}
+
+// PastFinancesResponse defines model for PastFinancesResponse.
+type PastFinancesResponse struct {
+	Series *[]PastFinancePoint `json:"series,omitempty"`
+}
+
 // ProductionJobDTO defines model for ProductionJobDTO.
 type ProductionJobDTO struct {
 	ClaimableAmount *int                    `json:"claimable_amount,omitempty"`
@@ -290,6 +329,13 @@ type ProductionJobDTOStatus string
 // ProductionJobListResponse defines model for ProductionJobListResponse.
 type ProductionJobListResponse struct {
 	Jobs *[]ProductionJobDTO `json:"jobs,omitempty"`
+}
+
+// RecentCashflowResponse defines model for RecentCashflowResponse.
+type RecentCashflowResponse struct {
+	Data         *[]CashflowEntry `json:"data,omitempty"`
+	Money        *float32         `json:"money,omitempty"`
+	OldestPulled *time.Time       `json:"oldestPulled,omitempty"`
 }
 
 // RegisterRequest defines model for RegisterRequest.
@@ -391,6 +437,18 @@ type ServerInterface interface {
 	// Register
 	// (POST /api/register)
 	Register(w http.ResponseWriter, r *http.Request)
+	// Balance sheet
+	// (GET /api/v2/companies/me/balance-sheet/)
+	GetBalanceSheet(w http.ResponseWriter, r *http.Request)
+	// Cashflow statement
+	// (GET /api/v2/companies/me/cashflow-statement/)
+	GetCashflowStatement(w http.ResponseWriter, r *http.Request)
+	// Recent cashflow entries
+	// (GET /api/v2/companies/me/cashflow/recent/)
+	GetRecentCashflow(w http.ResponseWriter, r *http.Request)
+	// Income statement
+	// (GET /api/v2/companies/me/income-statement/)
+	GetIncomeStatement(w http.ResponseWriter, r *http.Request)
 	// Get my company warehouse
 	// (GET /api/v2/companies/me/warehouse/)
 	GetMyWarehouse(w http.ResponseWriter, r *http.Request)
@@ -421,6 +479,9 @@ type ServerInterface interface {
 
 	// (GET /api/v3/companies/me/buildings/)
 	ListMyBuildings(w http.ResponseWriter, r *http.Request)
+	// Past finances (daily net series)
+	// (GET /api/v3/companies/me/past-finances/)
+	GetPastFinances(w http.ResponseWriter, r *http.Request)
 	// Get market depth (order book) for a resource and quality
 	// (GET /api/v3/market-depth/{resourceId}/{quality}/)
 	GetMarketDepth(w http.ResponseWriter, r *http.Request, resourceId int, quality int)
@@ -454,6 +515,30 @@ func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request) {
 // Register
 // (POST /api/register)
 func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Balance sheet
+// (GET /api/v2/companies/me/balance-sheet/)
+func (_ Unimplemented) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Cashflow statement
+// (GET /api/v2/companies/me/cashflow-statement/)
+func (_ Unimplemented) GetCashflowStatement(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Recent cashflow entries
+// (GET /api/v2/companies/me/cashflow/recent/)
+func (_ Unimplemented) GetRecentCashflow(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Income statement
+// (GET /api/v2/companies/me/income-statement/)
+func (_ Unimplemented) GetIncomeStatement(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -513,6 +598,12 @@ func (_ Unimplemented) StartProduction(w http.ResponseWriter, r *http.Request) {
 
 // (GET /api/v3/companies/me/buildings/)
 func (_ Unimplemented) ListMyBuildings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Past finances (daily net series)
+// (GET /api/v3/companies/me/past-finances/)
+func (_ Unimplemented) GetPastFinances(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -580,6 +671,86 @@ func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Register(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBalanceSheet operation middleware
+func (siw *ServerInterfaceWrapper) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBalanceSheet(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCashflowStatement operation middleware
+func (siw *ServerInterfaceWrapper) GetCashflowStatement(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCashflowStatement(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRecentCashflow operation middleware
+func (siw *ServerInterfaceWrapper) GetRecentCashflow(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRecentCashflow(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetIncomeStatement operation middleware
+func (siw *ServerInterfaceWrapper) GetIncomeStatement(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIncomeStatement(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -804,6 +975,26 @@ func (siw *ServerInterfaceWrapper) ListMyBuildings(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMyBuildings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPastFinances operation middleware
+func (siw *ServerInterfaceWrapper) GetPastFinances(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPastFinances(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1095,6 +1286,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/register", wrapper.Register)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/companies/me/balance-sheet/", wrapper.GetBalanceSheet)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/companies/me/cashflow-statement/", wrapper.GetCashflowStatement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/companies/me/cashflow/recent/", wrapper.GetRecentCashflow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/companies/me/income-statement/", wrapper.GetIncomeStatement)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/warehouse/", wrapper.GetMyWarehouse)
 	})
 	r.Group(func(r chi.Router) {
@@ -1123,6 +1326,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v3/companies/me/buildings/", wrapper.ListMyBuildings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/companies/me/past-finances/", wrapper.GetPastFinances)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v3/market-depth/{resourceId}/{quality}/", wrapper.GetMarketDepth)

@@ -24,7 +24,7 @@ func TestListMyBuildings_NoToken_401(t *testing.T) {
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/buildings/", nil)
 	w := httptest.NewRecorder()
@@ -56,7 +56,7 @@ func TestListMyBuildings_WithToken_200(t *testing.T) {
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil, nil, nil)
 
 	// Register a user to get a valid token
 	registerBody := `{"username":"blduser","password":"secret123"}`
@@ -141,7 +141,7 @@ func TestListMyBuildings_EmptyArray_200(t *testing.T) {
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, buildingHandler, nil, nil, nil)
 
 	// Register a user to get a valid token
 	registerBody := `{"username":"emptyman","password":"secret123"}`

@@ -422,6 +422,111 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/cashflow/recent/:
+    get:
+      tags: [Finance]
+      summary: Recent cashflow entries
+      operationId: getRecentCashflow
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Recent cashflow data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecentCashflowResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/income-statement/:
+    get:
+      tags: [Finance]
+      summary: Income statement
+      operationId: getIncomeStatement
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Income statement data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeStatementResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/balance-sheet/:
+    get:
+      tags: [Finance]
+      summary: Balance sheet
+      operationId: getBalanceSheet
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Balance sheet data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceSheetResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/cashflow-statement/:
+    get:
+      tags: [Finance]
+      summary: Cashflow statement
+      operationId: getCashflowStatement
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Cashflow statement data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashflowStatementResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/companies/me/past-finances/:
+    get:
+      tags: [Finance]
+      summary: Past finances (daily net series)
+      operationId: getPastFinances
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Past finances series
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PastFinancesResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/login:
     post:
       tags: [Auth]
@@ -462,9 +567,9 @@ paths:
         "200":
           description: Registration successful
           content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LoginResponse"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
         "400":
           description: Invalid request
           content:
@@ -1098,3 +1203,67 @@ components:
         created_at:
           type: string
           format: date-time
+
+    CashflowEntry:
+      type: object
+      properties:
+        kind:
+          type: string
+        moneyDelta:
+          type: number
+        at:
+          type: string
+          format: date-time
+    RecentCashflowResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CashflowEntry'
+        oldestPulled:
+          type: string
+          format: date-time
+        money:
+          type: number
+    IncomeStatementResponse:
+      type: object
+      properties:
+        revenue:
+          type: number
+        expenses:
+          type: number
+        netIncome:
+          type: number
+    BalanceSheetResponse:
+      type: object
+      properties:
+        assets:
+          type: number
+        liabilities:
+          type: number
+        equity:
+          type: number
+    CashflowStatementResponse:
+      type: object
+      properties:
+        operating:
+          type: number
+        investing:
+          type: number
+        financing:
+          type: number
+    PastFinancePoint:
+      type: object
+      properties:
+        date:
+          type: string
+        net:
+          type: number
+    PastFinancesResponse:
+      type: object
+      properties:
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/PastFinancePoint'
