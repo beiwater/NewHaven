@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/newhaven/backend-next/internal/catalog"
+	"github.com/newhaven/backend-next/internal/domain/finance"
 	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
@@ -17,16 +18,22 @@ import (
 // Service is the market application use case.
 type Service struct {
 	market    storage.MarketStorage
+	companies storage.CompanyStorage
+	finance   storage.FinanceStorage
 	resources map[int]*catalog.ResourceEntry
 	clock     platform.Clock
+	idgen     *platform.IDGen
 }
 
 // NewService creates a new market service.
-func NewService(market storage.MarketStorage, resources map[int]*catalog.ResourceEntry, clock platform.Clock) *Service {
+func NewService(market storage.MarketStorage, companies storage.CompanyStorage, finance storage.FinanceStorage, resources map[int]*catalog.ResourceEntry, clock platform.Clock, idgen *platform.IDGen) *Service {
 	return &Service{
 		market:    market,
+		companies: companies,
+		finance:   finance,
 		resources: resources,
 		clock:     clock,
+		idgen:     idgen,
 	}
 }
 
@@ -237,6 +244,209 @@ func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality 
 
 	return &openapi.MarketOrderListResponse{
 		Orders: &dtos,
+	}, nil
+}
+
+// CreateOrder creates a new market order (buy or sell).
+func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.CreateOrderRequestFrontend) (*openapi.CreateOrderResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("request is required")
+	}
+
+	// Validate resource exists in catalog.
+	if _, ok := s.resources[req.ResourceId]; !ok {
+		return nil, fmt.Errorf("resource %d not found", req.ResourceId)
+	}
+
+	// Validate kind.
+	if req.Kind != 0 && req.Kind != 1 {
+		return nil, fmt.Errorf("kind must be 0 (sell) or 1 (buy)")
+	}
+
+	// Validate quantity.
+	if req.Quantity <= 0 {
+		return nil, fmt.Errorf("quantity must be positive")
+	}
+
+	// Validate price.
+	if req.Price <= 0 {
+		return nil, fmt.Errorf("price must be positive")
+	}
+
+	// Validate quality; backend-next only supports quality 0.
+	if req.Quality != 0 {
+		return nil, fmt.Errorf("non-zero quality not supported in this phase")
+	}
+
+	isBuy := req.Kind == 1
+	var reservedCompanyID int
+	var originalMoney float64
+
+	// Pre-check and reserve funds/inventory.
+	if isBuy {
+		total := float64(req.Price) * float64(req.Quantity)
+		company, err := s.companies.GetCompany(ctx, companyID)
+		if err != nil {
+			return nil, fmt.Errorf("company lookup: %w", err)
+		}
+		if company.Money < total {
+			return nil, fmt.Errorf("insufficient funds")
+		}
+		reservedCompanyID = company.ID
+		originalMoney = company.Money
+		company.Money -= total
+		if err := s.companies.UpdateCompany(ctx, company); err != nil {
+			return nil, fmt.Errorf("update company: %w", err)
+		}
+	} else {
+		if err := s.companies.UpdateInventory(ctx, companyID, req.ResourceId, -req.Quantity); err != nil {
+			return nil, fmt.Errorf("reserve inventory: %w", err)
+		}
+	}
+
+	// Create the order.
+	now := s.clock.Now().UTC()
+	order := &domainmarket.MarketOrder{
+		ID:             s.idgen.Next("order"),
+		CompanyID:      companyID,
+		ResourceID:     req.ResourceId,
+		IsBuy:          isBuy,
+		Price:          float64(req.Price),
+		Quantity:       req.Quantity,
+		FilledQuantity: 0,
+		Quality:        0,
+		Status:         domainmarket.StatusOpen,
+		CreatedAt:      now.Format(time.RFC3339),
+	}
+
+	if err := s.market.CreateOrder(ctx, order); err != nil {
+		// Best-effort rollback.
+		if isBuy {
+			comp, rbErr := s.companies.GetCompany(ctx, reservedCompanyID)
+			if rbErr == nil {
+				comp.Money = originalMoney
+				_ = s.companies.UpdateCompany(ctx, comp)
+			}
+		} else {
+			_ = s.companies.UpdateInventory(ctx, companyID, req.ResourceId, req.Quantity)
+		}
+		return nil, fmt.Errorf("create order: %w", err)
+	}
+
+	// Append ledger entry for buy orders.
+	if isBuy {
+		total := float64(req.Price) * float64(req.Quantity)
+		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
+			CompanyID: companyID,
+			Kind:      "market_buy_reserve",
+			Amount:    total,
+			Direction: "out",
+			Metadata: map[string]any{
+				"orderId":    order.ID,
+				"resourceId": req.ResourceId,
+				"quantity":   req.Quantity,
+				"price":      float64(req.Price),
+			},
+		})
+	}
+
+	// Build response DTO.
+	remaining := order.Remaining()
+	kindVal := openapi.MarketOrderDTOKind(1)
+	if !isBuy {
+		kindVal = 0
+	}
+	var createdAt time.Time
+	if order.CreatedAt != "" {
+		createdAt, _ = time.Parse(time.RFC3339, order.CreatedAt)
+	}
+	statusStr := string(order.Status)
+	orderDTO := openapi.MarketOrderDTO{
+		Id:         &order.ID,
+		ResourceId: &order.ResourceID,
+		Kind:       &kindVal,
+		Price:      float32Ptr(order.Price),
+		Quality:    &order.Quality,
+		Quantity:   &order.Quantity,
+		Remaining:  &remaining,
+		CompanyId:  &order.CompanyID,
+		CreatedAt:  &createdAt,
+		Status:     &statusStr,
+	}
+
+	return &openapi.CreateOrderResponse{
+		Order: &orderDTO,
+	}, nil
+}
+
+// CancelOrder cancels an existing open order and refunds the reserved funds/inventory.
+func (s *Service) CancelOrder(ctx context.Context, companyID int, orderID string) (*openapi.CancelOrderResponse, error) {
+	order, err := s.market.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, err // will be wrapped by handler as not-found
+	}
+
+	if order.CompanyID != companyID {
+		return nil, fmt.Errorf("order not found")
+	}
+
+	if order.Status == domainmarket.StatusFilled || order.Status == domainmarket.StatusCancelled || order.Remaining() <= 0 {
+		return nil, fmt.Errorf("order already settled")
+	}
+
+	remaining := order.Remaining()
+	originalFilledQuantity := order.FilledQuantity
+	originalStatus := order.Status
+	var originalMoney float64
+
+	// Refund.
+	if order.IsBuy {
+		refund := order.Price * float64(remaining)
+		company, err := s.companies.GetCompany(ctx, companyID)
+		if err != nil {
+			return nil, fmt.Errorf("company lookup: %w", err)
+		}
+		originalMoney = company.Money
+		company.Money += refund
+		if err := s.companies.UpdateCompany(ctx, company); err != nil {
+			return nil, fmt.Errorf("update company: %w", err)
+		}
+		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
+			CompanyID: companyID,
+			Kind:      "market_buy_refund",
+			Amount:    refund,
+			Direction: "in",
+			Metadata: map[string]any{
+				"orderId": order.ID,
+			},
+		})
+	} else {
+		if err := s.companies.UpdateInventory(ctx, companyID, order.ResourceID, remaining); err != nil {
+			return nil, fmt.Errorf("return inventory: %w", err)
+		}
+	}
+
+	// Mark order cancelled.
+	order.Status = domainmarket.StatusCancelled
+	if err := s.market.UpdateOrder(ctx, order); err != nil {
+		if order.IsBuy {
+			company, rbErr := s.companies.GetCompany(ctx, companyID)
+			if rbErr == nil {
+				company.Money = originalMoney
+				_ = s.companies.UpdateCompany(ctx, company)
+			}
+		} else {
+			_ = s.companies.UpdateInventory(ctx, companyID, order.ResourceID, -remaining)
+		}
+		order.FilledQuantity = originalFilledQuantity
+		order.Status = originalStatus
+		return nil, fmt.Errorf("update order: %w", err)
+	}
+
+	statusStr := "cancelled"
+	return &openapi.CancelOrderResponse{
+		Id:     &order.ID,
+		Status: &statusStr,
 	}, nil
 }
 

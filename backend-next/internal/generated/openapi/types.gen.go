@@ -38,18 +38,36 @@ func (e ClaimProductionResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for CreateOrderRequestFrontendKind.
+const (
+	CreateOrderRequestFrontendKindN0 CreateOrderRequestFrontendKind = 0
+	CreateOrderRequestFrontendKindN1 CreateOrderRequestFrontendKind = 1
+)
+
+// Valid indicates whether the value is a known member of the CreateOrderRequestFrontendKind enum.
+func (e CreateOrderRequestFrontendKind) Valid() bool {
+	switch e {
+	case CreateOrderRequestFrontendKindN0:
+		return true
+	case CreateOrderRequestFrontendKindN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MarketOrderDTOKind.
 const (
-	N0 MarketOrderDTOKind = 0
-	N1 MarketOrderDTOKind = 1
+	MarketOrderDTOKindN0 MarketOrderDTOKind = 0
+	MarketOrderDTOKindN1 MarketOrderDTOKind = 1
 )
 
 // Valid indicates whether the value is a known member of the MarketOrderDTOKind enum.
 func (e MarketOrderDTOKind) Valid() bool {
 	switch e {
-	case N0:
+	case MarketOrderDTOKindN0:
 		return true
-	case N1:
+	case MarketOrderDTOKindN1:
 		return true
 	default:
 		return false
@@ -102,6 +120,12 @@ type BuildingProductionStatus struct {
 	JobId *string `json:"job_id,omitempty"`
 }
 
+// CancelOrderResponse defines model for CancelOrderResponse.
+type CancelOrderResponse struct {
+	Id     *string `json:"id,omitempty"`
+	Status *string `json:"status,omitempty"`
+}
+
 // ClaimProductionResponse defines model for ClaimProductionResponse.
 type ClaimProductionResponse struct {
 	ClaimedAmount  *int                           `json:"claimed_amount,omitempty"`
@@ -138,6 +162,24 @@ type CompanySummary struct {
 	Level *int     `json:"level,omitempty"`
 	Money *float32 `json:"money,omitempty"`
 	Name  *string  `json:"name,omitempty"`
+}
+
+// CreateOrderRequestFrontend defines model for CreateOrderRequestFrontend.
+type CreateOrderRequestFrontend struct {
+	Kind       CreateOrderRequestFrontendKind `json:"kind"`
+	Price      float32                        `json:"price"`
+	Quality    int                            `json:"quality"`
+	Quantity   int                            `json:"quantity"`
+	RequestId  *string                        `json:"requestId,omitempty"`
+	ResourceId int                            `json:"resourceId"`
+}
+
+// CreateOrderRequestFrontendKind defines model for CreateOrderRequestFrontend.Kind.
+type CreateOrderRequestFrontendKind int
+
+// CreateOrderResponse defines model for CreateOrderResponse.
+type CreateOrderResponse struct {
+	Order *MarketOrderDTO `json:"order,omitempty"`
 }
 
 // ErrorResponse defines model for ErrorResponse.
@@ -304,6 +346,9 @@ type LoginJSONRequestBody = LoginRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
+// CreateMarketOrderJSONRequestBody defines body for CreateMarketOrder for application/json ContentType.
+type CreateMarketOrderJSONRequestBody = CreateOrderRequestFrontend
+
 // StartProductionJSONRequestBody defines body for StartProduction for application/json ContentType.
 type StartProductionJSONRequestBody = StartProductionRequest
 
@@ -318,6 +363,12 @@ type ServerInterface interface {
 	// Get my company warehouse
 	// (GET /api/v2/companies/me/warehouse/)
 	GetMyWarehouse(w http.ResponseWriter, r *http.Request)
+	// Create a market order
+	// (POST /api/v2/market-order/)
+	CreateMarketOrder(w http.ResponseWriter, r *http.Request)
+	// Cancel a market order
+	// (DELETE /api/v2/market-order/cancel/{orderId}/)
+	CancelMarketOrder(w http.ResponseWriter, r *http.Request, orderId string)
 	// List my companies
 	// (GET /api/v2/players/me/companies/)
 	ListMyCompanies(w http.ResponseWriter, r *http.Request)
@@ -375,6 +426,18 @@ func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
 // Get my company warehouse
 // (GET /api/v2/companies/me/warehouse/)
 func (_ Unimplemented) GetMyWarehouse(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a market order
+// (POST /api/v2/market-order/)
+func (_ Unimplemented) CreateMarketOrder(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Cancel a market order
+// (DELETE /api/v2/market-order/cancel/{orderId}/)
+func (_ Unimplemented) CancelMarketOrder(w http.ResponseWriter, r *http.Request, orderId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -497,6 +560,58 @@ func (siw *ServerInterfaceWrapper) GetMyWarehouse(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMyWarehouse(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMarketOrder operation middleware
+func (siw *ServerInterfaceWrapper) CreateMarketOrder(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMarketOrder(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelMarketOrder operation middleware
+func (siw *ServerInterfaceWrapper) CancelMarketOrder(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "orderId" -------------
+	var orderId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "orderId", chi.URLParam(r, "orderId"), &orderId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "orderId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelMarketOrder(w, r, orderId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -921,6 +1036,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/warehouse/", wrapper.GetMyWarehouse)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/market-order/", wrapper.CreateMarketOrder)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v2/market-order/cancel/{orderId}/", wrapper.CancelMarketOrder)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/players/me/companies/", wrapper.ListMyCompanies)

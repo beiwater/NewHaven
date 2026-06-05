@@ -30,6 +30,8 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", warehouseHandler.handleGetMyWarehouse)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/market-order/", marketHandler.handleCreateOrder)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Delete("/market-order/cancel/{orderId}/", marketHandler.handleCancelOrder)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/players/me/companies/", companyHandler.handleListMyCompanies)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/jobs/", productionHandler.handleListProductionJobs)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/start/", productionHandler.handleStartProduction)

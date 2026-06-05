@@ -2,12 +2,17 @@ package market_test
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	appmarket "github.com/newhaven/backend-next/internal/app/market"
 	"github.com/newhaven/backend-next/internal/catalog"
+	"github.com/newhaven/backend-next/internal/domain/auth"
+	"github.com/newhaven/backend-next/internal/domain/company"
 	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
+	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
@@ -18,9 +23,44 @@ func newTestSvc(resources map[int]*catalog.ResourceEntry) (*appmarket.Service, *
 		resources = make(map[int]*catalog.ResourceEntry)
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
-	svc := appmarket.NewService(store, resources, clock)
+	idgen := platform.NewIDGen()
+	svc := appmarket.NewService(store, store, store, resources, clock, idgen)
 	return svc, store
 }
+
+type createOrderFailStore struct {
+	*memory.Store
+}
+
+func (s *createOrderFailStore) CreateOrder(context.Context, *domainmarket.MarketOrder) error {
+	return errors.New("create order failed")
+}
+
+func newTestCompany(t *testing.T, store *memory.Store, playerID int, username string, money float64) int {
+	t.Helper()
+	err := store.CreatePlayer(nil, &auth.Player{ID: playerID, Username: username, PasswordHash: "hash"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(nil, &company.Company{
+		PlayerID:  playerID,
+		Name:      username + " Corp",
+		Money:     money,
+		Level:     1,
+		XP:        0,
+		Inventory: make(map[int]int),
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	c, err := store.GetCompanyByPlayerID(nil, playerID)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+	return c.ID
+}
+
+// --- ListResources tests ---
 
 func TestListResources_FiltersCorrectly(t *testing.T) {
 	ctx := context.Background()
@@ -31,16 +71,12 @@ func TestListResources_FiltersCorrectly(t *testing.T) {
 		4: {ID: 4, DbLetter: 0, Name: "NoDbLetter", IsExchangeTradable: true},
 	}
 	svc, _ := newTestSvc(resources)
-
 	resp, err := svc.ListResources(ctx)
 	if err != nil {
 		t.Fatalf("ListResources failed: %v", err)
 	}
-	if resp.Resources == nil {
-		t.Fatal("expected non-nil resources array")
-	}
-	if len(*resp.Resources) != 2 {
-		t.Fatalf("expected 2 resources (filtered), got %d", len(*resp.Resources))
+	if resp.Resources == nil || len(*resp.Resources) != 2 {
+		t.Fatalf("expected 2 resources, got %d", len(*resp.Resources))
 	}
 
 	r := (*resp.Resources)[0]
@@ -55,23 +91,20 @@ func TestListResources_FiltersCorrectly(t *testing.T) {
 func TestListResources_Empty(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newTestSvc(nil)
-
 	resp, err := svc.ListResources(ctx)
 	if err != nil {
 		t.Fatalf("ListResources failed: %v", err)
 	}
-	if resp.Resources == nil {
-		t.Fatal("expected non-nil resources array (should be empty)")
-	}
-	if len(*resp.Resources) != 0 {
-		t.Errorf("expected 0 resources, got %d", len(*resp.Resources))
+	if resp.Resources == nil || len(*resp.Resources) != 0 {
+		t.Fatal("expected empty resources")
 	}
 }
+
+// --- MarketDepth tests ---
 
 func TestGetMarketDepth_SortsAndTakesTop5(t *testing.T) {
 	ctx := context.Background()
 	svc, store := newTestSvc(nil)
-
 	for _, b := range []struct {
 		id    string
 		price float64
@@ -102,7 +135,6 @@ func TestGetMarketDepth_SortsAndTakesTop5(t *testing.T) {
 		ID: "q1-sell", ResourceID: 10, IsBuy: false, Price: 110.0,
 		Quantity: 5, Quality: 1, Status: domainmarket.StatusOpen,
 	})
-
 	resp, err := svc.GetMarketDepth(ctx, 10, 0)
 	if err != nil {
 		t.Fatalf("GetMarketDepth failed: %v", err)
@@ -113,7 +145,6 @@ func TestGetMarketDepth_SortsAndTakesTop5(t *testing.T) {
 	if resp.Sells == nil || len(*resp.Sells) != 5 {
 		t.Fatalf("expected 5 sells, got %d", len(*resp.Sells))
 	}
-
 	expectedBuyPrices := []float64{101, 100, 99, 98, 97}
 	for i, level := range *resp.Buys {
 		if level.Price == nil || float64(*level.Price) != expectedBuyPrices[i] {
@@ -123,7 +154,6 @@ func TestGetMarketDepth_SortsAndTakesTop5(t *testing.T) {
 			t.Errorf("buy[%d]: qty and quantity mismatch", i)
 		}
 	}
-
 	expectedSellPrices := []float64{104, 105, 106, 107, 108}
 	for i, level := range *resp.Sells {
 		if level.Price == nil || float64(*level.Price) != expectedSellPrices[i] {
@@ -135,7 +165,6 @@ func TestGetMarketDepth_SortsAndTakesTop5(t *testing.T) {
 func TestGetMarketDepth_AggregatesOpenAndPartialOrders(t *testing.T) {
 	ctx := context.Background()
 	svc, store := newTestSvc(nil)
-
 	orders := []*domainmarket.MarketOrder{
 		{ID: "buy-open-1", ResourceID: 12, IsBuy: true, Price: 31.5, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen},
 		{ID: "buy-open-2", ResourceID: 12, IsBuy: true, Price: 31.5, Quantity: 8, Quality: 0, Status: domainmarket.StatusOpen},
@@ -144,11 +173,8 @@ func TestGetMarketDepth_AggregatesOpenAndPartialOrders(t *testing.T) {
 		{ID: "sell-open", ResourceID: 12, IsBuy: false, Price: 33.5, Quantity: 6, Quality: 0, Status: domainmarket.StatusOpen},
 	}
 	for _, o := range orders {
-		if err := store.CreateOrder(ctx, o); err != nil {
-			t.Fatalf("CreateOrder: %v", err)
-		}
+		_ = store.CreateOrder(ctx, o)
 	}
-
 	resp, err := svc.GetMarketDepth(ctx, 12, 0)
 	if err != nil {
 		t.Fatalf("GetMarketDepth failed: %v", err)
@@ -175,7 +201,6 @@ func TestGetMarketDepth_AggregatesOpenAndPartialOrders(t *testing.T) {
 func TestGetMarketDepth_Empty(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newTestSvc(nil)
-
 	resp, err := svc.GetMarketDepth(ctx, 99, 0)
 	if err != nil {
 		t.Fatalf("GetMarketDepth failed: %v", err)
@@ -188,12 +213,13 @@ func TestGetMarketDepth_Empty(t *testing.T) {
 	}
 }
 
+// --- Ticker tests ---
+
 func TestGetMarketTicker_FallbackSeries(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newTestSvc(map[int]*catalog.ResourceEntry{
 		12: {ID: 12, DbLetter: 12, Name: "Bread", IsExchangeTradable: true, BasePrice: 42.5},
 	})
-
 	resp, err := svc.GetMarketTicker(ctx, 12)
 	if err != nil {
 		t.Fatalf("GetMarketTicker failed: %v", err)
@@ -222,21 +248,19 @@ func TestGetMarketTicker_FallbackSeries(t *testing.T) {
 	}
 }
 
+// --- ListMarketOrders tests ---
+
 func TestListMarketOrders_FiltersByQuality(t *testing.T) {
 	ctx := context.Background()
 	svc, store := newTestSvc(nil)
-
 	orders := []*domainmarket.MarketOrder{
 		{ID: "o1", ResourceID: 20, IsBuy: true, Price: 50.0, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: 1},
 		{ID: "o2", ResourceID: 20, IsBuy: false, Price: 55.0, Quantity: 5, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: 2},
 		{ID: "o3", ResourceID: 20, IsBuy: true, Price: 52.0, Quantity: 8, Quality: 1, Status: domainmarket.StatusOpen, CompanyID: 1},
 	}
 	for _, o := range orders {
-		if err := store.CreateOrder(ctx, o); err != nil {
-			t.Fatalf("CreateOrder: %v", err)
-		}
+		_ = store.CreateOrder(ctx, o)
 	}
-
 	resp, err := svc.ListMarketOrders(ctx, 20, 0)
 	if err != nil {
 		t.Fatalf("ListMarketOrders failed: %v", err)
@@ -247,8 +271,6 @@ func TestListMarketOrders_FiltersByQuality(t *testing.T) {
 	if len(*resp.Orders) != 2 {
 		t.Fatalf("expected 2 orders for quality 0, got %d", len(*resp.Orders))
 	}
-
-	// Check each returned order (map iteration is non-deterministic).
 	ids := make(map[string]bool)
 	for _, dto := range *resp.Orders {
 		ids[*dto.Id] = true
@@ -285,7 +307,6 @@ func TestListMarketOrders_FiltersByQuality(t *testing.T) {
 func TestListMarketOrders_Empty(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newTestSvc(nil)
-
 	resp, err := svc.ListMarketOrders(ctx, 99, 0)
 	if err != nil {
 		t.Fatalf("ListMarketOrders failed: %v", err)
@@ -295,5 +316,346 @@ func TestListMarketOrders_Empty(t *testing.T) {
 	}
 	if len(*resp.Orders) != 0 {
 		t.Errorf("expected 0 orders, got %d", len(*resp.Orders))
+	}
+}
+
+// --- CreateOrder tests ---
+
+func TestCreateOrder_Buy_ReservesCashCreatesOpenOrderAndLedger(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 100, "buyer", 10000)
+
+	resp, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 25.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder failed: %v", err)
+	}
+	if resp.Order == nil {
+		t.Fatal("expected non-nil order in response")
+	}
+	if *resp.Order.Kind != 1 {
+		t.Errorf("expected kind 1 (buy), got %d", *resp.Order.Kind)
+	}
+	if *resp.Order.Status != "open" {
+		t.Errorf("expected status open, got %s", *resp.Order.Status)
+	}
+	if *resp.Order.Remaining != 10 {
+		t.Errorf("expected remaining 10, got %d", *resp.Order.Remaining)
+	}
+
+	// Cash deducted.
+	company, _ := store.GetCompany(nil, cid)
+	if company.Money != 10000-250 {
+		t.Errorf("expected money 9750, got %.2f", company.Money)
+	}
+
+	// Ledger entry present.
+	entries, _ := store.GetLedgerEntries(nil, cid, 10)
+	found := false
+	for _, e := range entries {
+		if e.Kind == "market_buy_reserve" && e.Amount == 250.0 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected market_buy_reserve ledger entry for 250")
+	}
+}
+
+func TestCreateOrder_Sell_ReservesInventoryCreatesOpenOrder(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 101, "seller", 5000)
+	// Seed inventory.
+	err := store.UpdateInventory(nil, cid, 5, 20)
+	if err != nil {
+		t.Fatalf("UpdateInventory: %v", err)
+	}
+
+	resp, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 8, Price: 20.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder failed: %v", err)
+	}
+	if resp.Order == nil {
+		t.Fatal("expected non-nil order")
+	}
+	if *resp.Order.Kind != 0 {
+		t.Errorf("expected kind 0 (sell), got %d", *resp.Order.Kind)
+	}
+	if *resp.Order.Status != "open" {
+		t.Errorf("expected status open, got %s", *resp.Order.Status)
+	}
+
+	// Inventory deducted.
+	c, _ := store.GetCompany(nil, cid)
+	if c.Inventory[5] != 12 {
+		t.Errorf("expected 12 of resource 5 remaining, got %d", c.Inventory[5])
+	}
+
+	// No ledger entry for sell.
+	entries, _ := store.GetLedgerEntries(nil, cid, 10)
+	for _, e := range entries {
+		if e.Kind == "market_buy_reserve" {
+			t.Error("sell orders should not produce reserve ledger entries")
+		}
+	}
+}
+
+func TestCreateOrder_InvalidPayloads(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 102, "invalid", 5000)
+
+	tests := []struct {
+		name string
+		req  openapi.CreateOrderRequestFrontend
+	}{
+		{"missing resource", openapi.CreateOrderRequestFrontend{ResourceId: 999, Kind: 1, Quality: 0, Quantity: 1, Price: 10}},
+		{"bad kind", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 2, Quality: 0, Quantity: 1, Price: 10}},
+		{"zero quantity", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 0, Quantity: 0, Price: 10}},
+		{"zero price", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 0, Quantity: 1, Price: 0}},
+		{"non-zero quality", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 1, Quantity: 1, Price: 10}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := svc.CreateOrder(ctx, cid, &tt.req)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+		})
+	}
+}
+
+func TestCreateOrder_InsufficientFunds_NoOrder(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 103, "poor", 100)
+
+	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 20, Price: 25.0, // total=500 > 100
+	})
+	if err == nil {
+		t.Fatal("expected insufficient funds error")
+	}
+	if !strings.Contains(err.Error(), "insufficient funds") {
+		t.Errorf("expected 'insufficient funds', got: %v", err)
+	}
+	// Money unchanged.
+	c, _ := store.GetCompany(nil, cid)
+	if c.Money != 100 {
+		t.Errorf("expected money unchanged 100, got %.2f", c.Money)
+	}
+	// No orders created.
+	orders, _ := store.GetOrdersByCompany(nil, cid)
+	if len(orders) != 0 {
+		t.Error("expected no orders created")
+	}
+}
+
+func TestCreateOrder_Buy_RollsBackCashWhenOrderCreateFails(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	store := memory.New()
+	failingStore := &createOrderFailStore{Store: store}
+	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
+	svc := appmarket.NewService(failingStore, failingStore, failingStore, resources, clock, platform.NewIDGen())
+	cid := newTestCompany(t, store, 110, "rollbackbuyer", 1000)
+
+	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 4, Price: 25.0,
+	})
+	if err == nil {
+		t.Fatal("expected create order failure")
+	}
+
+	c, _ := store.GetCompany(nil, cid)
+	if c.Money != 1000 {
+		t.Errorf("expected money rolled back to 1000, got %.2f", c.Money)
+	}
+}
+
+func TestCreateOrder_InsufficientInventory_NoOrder(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 104, "poorinv", 5000)
+
+	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 5, Price: 10.0,
+	})
+	if err == nil {
+		t.Fatal("expected insufficient inventory error")
+	}
+	if !strings.Contains(err.Error(), "insufficient inventory") {
+		t.Errorf("expected 'insufficient inventory', got: %v", err)
+	}
+}
+
+// --- CancelOrder tests ---
+
+func TestCancelOrder_Buy_RefundsCashAndLedger(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 105, "canbuy", 5000)
+
+	cr, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 25.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder: %v", err)
+	}
+
+	beforeMoney, _ := store.GetCompany(nil, cid)
+	beforeAmt := beforeMoney.Money
+
+	resp, err := svc.CancelOrder(ctx, cid, *cr.Order.Id)
+	if err != nil {
+		t.Fatalf("CancelOrder failed: %v", err)
+	}
+	if resp.Id == nil || *resp.Id != *cr.Order.Id {
+		t.Errorf("expected id %s, got %v", *cr.Order.Id, resp.Id)
+	}
+	if resp.Status == nil || *resp.Status != "cancelled" {
+		t.Errorf("expected status cancelled, got %v", resp.Status)
+	}
+
+	// Money refunded full remaining (10 * 25 = 250).
+	afterMoney, _ := store.GetCompany(nil, cid)
+	if afterMoney.Money != beforeAmt+250 {
+		t.Errorf("expected money %v, got %.2f", beforeAmt+250, afterMoney.Money)
+	}
+
+	// Order marked cancelled.
+	order, _ := store.GetOrder(nil, *cr.Order.Id)
+	if order.Status != domainmarket.StatusCancelled {
+		t.Errorf("expected cancelled, got %s", order.Status)
+	}
+	if order.FilledQuantity != 0 {
+		t.Errorf("expected FilledQuantity to preserve actual fills, got %d", order.FilledQuantity)
+	}
+
+	// Ledger refund entry.
+	entries, _ := store.GetLedgerEntries(nil, cid, 10)
+	foundRefund := false
+	for _, e := range entries {
+		if e.Kind == "market_buy_refund" && e.Amount == 250.0 {
+			foundRefund = true
+			break
+		}
+	}
+	if !foundRefund {
+		t.Error("expected market_buy_refund ledger entry")
+	}
+}
+
+func TestCancelOrder_Sell_ReturnsInventory(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 106, "cansell", 100)
+	_ = store.UpdateInventory(nil, cid, 5, 15)
+
+	cr, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 10, Price: 20.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder: %v", err)
+	}
+
+	_, err = svc.CancelOrder(ctx, cid, *cr.Order.Id)
+	if err != nil {
+		t.Fatalf("CancelOrder: %v", err)
+	}
+
+	// Inventory restored.
+	c, _ := store.GetCompany(nil, cid)
+	if c.Inventory[5] != 15 {
+		t.Errorf("expected inventory 15 restored, got %d", c.Inventory[5])
+	}
+}
+
+func TestCancelOrder_WrongCompany_Error(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cidA := newTestCompany(t, store, 107, "owner", 1000)
+	cidB := newTestCompany(t, store, 108, "intruder", 1000)
+
+	cr, err := svc.CreateOrder(ctx, cidA, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 5, Price: 10.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder: %v", err)
+	}
+
+	_, err = svc.CancelOrder(ctx, cidB, *cr.Order.Id)
+	if err == nil {
+		t.Fatal("expected error for wrong company")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found', got: %v", err)
+	}
+
+	// Order still open.
+	order, _ := store.GetOrder(nil, *cr.Order.Id)
+	if order.Status != domainmarket.StatusOpen {
+		t.Errorf("expected order still open, got %s", order.Status)
+	}
+}
+
+func TestCancelOrder_AlreadyCancelled_Error(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 109, "dblcan", 1000)
+
+	cr, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 5, Price: 10.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder: %v", err)
+	}
+
+	_, err = svc.CancelOrder(ctx, cid, *cr.Order.Id)
+	if err != nil {
+		t.Fatalf("First cancel: %v", err)
+	}
+
+	_, err = svc.CancelOrder(ctx, cid, *cr.Order.Id)
+	if err == nil {
+		t.Fatal("expected error for second cancel")
+	}
+	if !strings.Contains(err.Error(), "already settled") {
+		t.Errorf("expected 'already settled', got: %v", err)
 	}
 }

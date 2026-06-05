@@ -317,6 +317,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/market-order/:
+    post:
+      tags: [Market]
+      summary: Create a market order
+      operationId: createMarketOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequestFrontend'
+      responses:
+        "200":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/market-order/cancel/{orderId}/:
+    delete:
+      tags: [Market]
+      summary: Cancel a market order
+      operationId: cancelMarketOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderResponse'
+        "400":
+          description: Bad request or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/login:
     post:
       tags: [Auth]
@@ -725,6 +797,41 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MarketOrderDTO'
+
+    CreateOrderRequestFrontend:
+      type: object
+      required: [resourceId, kind, quality, quantity, price]
+      properties:
+        requestId:
+          type: string
+        resourceId:
+          type: integer
+          minimum: 1
+        kind:
+          type: integer
+          enum: [0, 1]
+        quality:
+          type: integer
+          minimum: 0
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+    CreateOrderResponse:
+      type: object
+      properties:
+        order:
+          $ref: '#/components/schemas/MarketOrderDTO'
+    CancelOrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
     # --- Production ---
 
     ProductionJob:
