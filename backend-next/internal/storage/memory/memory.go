@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/finance"
 	"github.com/newhaven/backend-next/internal/domain/research"
+	"github.com/newhaven/backend-next/internal/domain/warehouse"
 	"github.com/newhaven/backend-next/internal/domain/social"
 )
 
@@ -35,6 +36,7 @@ type Store struct {
 	progress []research.CompanyProgress
 	messages []social.Message
 	notifs   []social.Notification
+	warehouses map[int]*warehouse.Warehouse
 	nextID   int
 }
 
@@ -48,6 +50,7 @@ func New() *Store {
 		tickers:   make(map[int]*market.Ticker),
 		jobs:      make(map[string]*production.ProductionJob),
 		bonds:     make(map[string]*finance.Bond),
+		warehouses: make(map[int]*warehouse.Warehouse),
 		nextID:    1,
 	}
 }
@@ -100,6 +103,13 @@ func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 	c.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	s.companies[c.ID] = c
 	s.byPlayer[c.PlayerID] = c
+	// Auto-create default warehouse for new company
+	s.warehouses[c.ID] = &warehouse.Warehouse{
+		CompanyID:    c.ID,
+		Capacity:     1000,
+		UsedCapacity: 0,
+		Items:        []warehouse.Item{},
+	}
 	return nil
 }
 
@@ -134,6 +144,18 @@ func (s *Store) SaveBuilding(_ context.Context, b *company.Building) error { ret
 func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { return nil }
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {
 	return nil
+}
+
+// --- WarehouseStorage ---
+
+func (s *Store) GetWarehouse(_ context.Context, companyID int) (*warehouse.Warehouse, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	w, ok := s.warehouses[companyID]
+	if !ok {
+		return nil, fmt.Errorf("warehouse not found")
+	}
+	return w, nil
 }
 
 // --- MarketStorage ---

@@ -6,6 +6,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	"github.com/newhaven/backend-next/internal/domain/company"
 	"github.com/newhaven/backend-next/internal/domain/market"
+	"github.com/newhaven/backend-next/internal/domain/warehouse"
 	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/finance"
 	"github.com/newhaven/backend-next/internal/domain/research"
@@ -83,6 +84,11 @@ type SocialStorage interface {
 	MarkNotificationRead(ctx context.Context, notificationID int) error
 }
 
+// WarehouseStorage handles warehouse persistence.
+type WarehouseStorage interface {
+	GetWarehouse(ctx context.Context, companyID int) (*warehouse.Warehouse, error)
+}
+
 // Storage combines all domain storage interfaces.
 // Implementations can choose to implement all or compose from sub-stores.
 type Storage interface {
@@ -93,5 +99,6 @@ type Storage interface {
 	FinanceStorage
 	ResearchStorage
 	SocialStorage
+	WarehouseStorage
 	Close() error
 }

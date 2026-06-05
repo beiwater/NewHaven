@@ -34,6 +34,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
+  /api/v2/players/me/companies/:
+    get:
+      tags: [Companies]
+      summary: List my companies
+      operationId: listMyCompanies
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Company list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyCompaniesResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/companies/me/warehouse/:
+    get:
+      tags: [Warehouse]
+      summary: Get my company warehouse
+      operationId: getMyWarehouse
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Warehouse data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMyWarehouseData'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/login:
     post:
       tags: [Auth]
@@ -184,6 +222,27 @@ components:
           additionalProperties:
             type: integer
 
+    MyCompaniesResponse:
+      type: object
+      properties:
+        companies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanySummary'
+
+    CompanySummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        money:
+          type: number
+          format: float
+        level:
+          type: integer
+
     Building:
       type: object
       properties:
@@ -207,6 +266,35 @@ components:
           type: integer
         robot_count:
           type: integer
+
+    # --- Warehouse ---
+
+    WarehouseItem:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        resource_name:
+          type: string
+        quality:
+          type: integer
+        amount:
+          type: integer
+
+    GetMyWarehouseData:
+      type: object
+      properties:
+        company_id:
+          type: integer
+        capacity:
+          type: integer
+        used_capacity:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WarehouseItem'
+
 
     # --- Market ---
 

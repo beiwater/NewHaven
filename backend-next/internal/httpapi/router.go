@@ -6,7 +6,8 @@ import (
 
 	"github.com/newhaven/backend-next/internal/config"
 )
-func NewRouter(cfg *config.Config, authHandler *AuthHandler) *chi.Mux {
+
+func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack (outermost first)
@@ -26,18 +27,11 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler) *chi.Mux {
 		r.Post("/login", authHandler.handleLogin)
 	})
 
-	// API v2 (retained compatibility)
+	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
-		_ = cfg // will use when wiring domain routes
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", warehouseHandler.handleGetMyWarehouse)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/players/me/companies/", companyHandler.handleListMyCompanies)
 	})
-
-	// API v3 (retained)
-	r.Route("/api/v3", func(r chi.Router) {
-	})
-
-	// Future: mounts for each migrated domain
-	// r.Mount("/api/v2/companies", companyHandler)
-	// r.Mount("/api/v3/market", marketHandler)
 
 	return r
 }
