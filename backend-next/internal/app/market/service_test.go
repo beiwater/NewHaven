@@ -912,3 +912,316 @@ func TestTakeOrder_ValidatesBadPayloads(t *testing.T) {
 		})
 	}
 }
+
+// --- Auto-match on CreateOrder tests ---
+
+func TestCreateOrder_BuyAutoMatchesExistingSell(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	sellerCid := newTestCompany(t, store, 300, "seller", 1000)
+	buyerCid := newTestCompany(t, store, 301, "buyer", 10000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	// Pre-create a sell order at $8.
+	_, err := svc.CreateOrder(ctx, sellerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 20, Price: 8.0,
+	})
+	if err != nil {
+		t.Fatalf("create sell: %v", err)
+	}
+
+	// Create a buy order at $10. It should match the sell at $8.
+	resp, err := svc.CreateOrder(ctx, buyerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 10.0,
+	})
+	if err != nil {
+		t.Fatalf("create buy: %v", err)
+	}
+
+	// Buy order should be filled (10 units matched against sell's 20, remaining 10 on sell).
+	if resp.Order == nil {
+		t.Fatal("expected order in response")
+	}
+	if *resp.Order.Status != "filled" {
+		t.Errorf("expected buy order status 'filled', got %s", *resp.Order.Status)
+	}
+	if *resp.Order.Remaining != 0 {
+		t.Errorf("expected buy order remaining 0, got %d", *resp.Order.Remaining)
+	}
+
+	// Buyer got inventory: 10 units.
+	buyer, _ := store.GetCompany(nil, buyerCid)
+	if buyer.Inventory[5] != 10 {
+		t.Errorf("expected buyer inventory 10, got %d", buyer.Inventory[5])
+	}
+	// Buyer paid: reserved 100, refund 20 (10 * (10-8)), net 80 spent.
+	// Money was 10000, reserved 100, refunded 20, so 9920.
+	if buyer.Money != 9920 {
+		t.Errorf("expected buyer money 9920 (10000-100+20), got %.2f", buyer.Money)
+	}
+
+	// Seller got money: 10*8 - fee where fee=ceil(80*0.04)=ceil(3.2)=4, so 80-4=76.
+	seller, _ := store.GetCompany(nil, sellerCid)
+	if seller.Money != 1000+76 {
+		t.Errorf("expected seller money 1076, got %.2f", seller.Money)
+	}
+
+	// Sell order partially filled (20->10 remaining).
+	sellOrders, _ := store.GetOrdersByCompany(nil, sellerCid)
+	if len(sellOrders) != 1 {
+		t.Fatalf("expected 1 sell order, got %d", len(sellOrders))
+	}
+	sellOrder := sellOrders[0]
+	if sellOrder.Status != domainmarket.StatusPartial {
+		t.Errorf("expected sell order partial, got %s", sellOrder.Status)
+	}
+	if sellOrder.FilledQuantity != 10 {
+		t.Errorf("expected sell order filled 10, got %d", sellOrder.FilledQuantity)
+	}
+
+	// Trade recorded.
+	trades, _ := store.GetTrades(nil, 5, 10)
+	if len(trades) == 0 {
+		t.Error("expected at least one trade")
+	}
+	ticker, err := store.GetTicker(ctx, 5)
+	if err != nil {
+		t.Fatalf("expected ticker update: %v", err)
+	}
+	if ticker.LastPrice != 8.0 {
+		t.Errorf("expected ticker last price 8.0, got %.2f", ticker.LastPrice)
+	}
+
+	// Ledger entries: seller has market_trade and market_fee.
+	entries, _ := store.GetLedgerEntries(nil, sellerCid, 10)
+	foundTrade := false
+	foundFee := false
+	for _, e := range entries {
+		if e.Kind == "market_trade" && e.Amount == 80.0 {
+			foundTrade = true
+		}
+		if e.Kind == "market_fee" && e.Amount == 4.0 {
+			foundFee = true
+		}
+	}
+	if !foundTrade {
+		t.Error("expected market_trade ledger entry for seller")
+	}
+	if !foundFee {
+		t.Error("expected market_fee ledger entry for seller")
+	}
+
+	// Buyer has market_buy_refund.
+	buyerEntries, _ := store.GetLedgerEntries(nil, buyerCid, 10)
+	foundRefund := false
+	for _, e := range buyerEntries {
+		if e.Kind == "market_buy_refund" && e.Amount == 20.0 {
+			foundRefund = true
+		}
+	}
+	if !foundRefund {
+		t.Error("expected market_buy_refund ledger entry for buyer")
+	}
+}
+
+func TestCreateOrder_SellAutoMatchesExistingBuy(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	buyerCid := newTestCompany(t, store, 302, "buyer", 10000)
+	sellerCid := newTestCompany(t, store, 303, "seller", 1000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	// Pre-create a buy order at $18 for 15 units.
+	_, err := svc.CreateOrder(ctx, buyerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 15, Price: 18.0,
+	})
+	if err != nil {
+		t.Fatalf("create buy: %v", err)
+	}
+
+	// Reset buyer money tracking; we know the buy reserved 18*15=270 from 10000.
+	// Now create a sell at $15 for 10 units.
+	resp, err := svc.CreateOrder(ctx, sellerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 10, Price: 15.0,
+	})
+	if err != nil {
+		t.Fatalf("create sell: %v", err)
+	}
+
+	if resp.Order == nil {
+		t.Fatal("expected order in response")
+	}
+	if *resp.Order.Status != "filled" {
+		t.Errorf("expected sell order status 'filled', got %s", *resp.Order.Status)
+	}
+
+	// Buyer gets 10 units, refunded (18-15)*10=30.
+	buyer, _ := store.GetCompany(nil, buyerCid)
+	if buyer.Inventory[5] != 10 {
+		t.Errorf("expected buyer inventory 10, got %d", buyer.Inventory[5])
+	}
+	// Buyer reserved 270, refunded 30, net spent 240.
+	// But wait: buyer initially had 10000. Reserved 270 (9730). Refunded 30 (9760). So buyer.Money should be ~9760.
+	if buyer.Money != 10000-270+30 {
+		t.Errorf("expected buyer money 9760, got %.2f", buyer.Money)
+	}
+
+	// Seller gets paid: 10*15 - fee = 150 - ceil(150*0.04)=150-6=144.
+	seller, _ := store.GetCompany(nil, sellerCid)
+	if seller.Money != 1000+144 {
+		t.Errorf("expected seller money 1144, got %.2f", seller.Money)
+	}
+
+	// Buy order partially filled (15->5 remaining).
+	buyOrders, _ := store.GetOrdersByCompany(nil, buyerCid)
+	if len(buyOrders) != 1 {
+		t.Fatalf("expected 1 buy order, got %d", len(buyOrders))
+	}
+	buyOrder := buyOrders[0]
+	if buyOrder.Status != domainmarket.StatusPartial {
+		t.Errorf("expected buy order partial, got %s", buyOrder.Status)
+	}
+	if buyOrder.FilledQuantity != 10 {
+		t.Errorf("expected buy order filled 10, got %d", buyOrder.FilledQuantity)
+	}
+}
+
+func TestCreateOrder_PartialMatch(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	sellerCid := newTestCompany(t, store, 304, "seller", 1000)
+	buyerCid := newTestCompany(t, store, 305, "buyer", 10000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	// Pre-create a sell order for 30 units at $8.
+	_, err := svc.CreateOrder(ctx, sellerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 30, Price: 8.0,
+	})
+	if err != nil {
+		t.Fatalf("create sell: %v", err)
+	}
+
+	// Create a buy order for 50 units at $10.
+	resp, err := svc.CreateOrder(ctx, buyerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 50, Price: 10.0,
+	})
+	if err != nil {
+		t.Fatalf("create buy: %v", err)
+	}
+
+	if resp.Order == nil {
+		t.Fatal("expected order in response")
+	}
+	// Buy order should be partial: 30 filled, 20 remaining.
+	if *resp.Order.Status != "partial" {
+		t.Errorf("expected buy order status 'partial', got %s", *resp.Order.Status)
+	}
+	if *resp.Order.Remaining != 20 {
+		t.Errorf("expected buy order remaining 20, got %d", *resp.Order.Remaining)
+	}
+
+	// Buyer got 30 units.
+	buyer, _ := store.GetCompany(nil, buyerCid)
+	if buyer.Inventory[5] != 30 {
+		t.Errorf("expected buyer inventory 30, got %d", buyer.Inventory[5])
+	}
+
+	// Sell order filled.
+	sellOrders, _ := store.GetOrdersByCompany(nil, sellerCid)
+	if len(sellOrders) != 1 {
+		t.Fatalf("expected 1 sell order, got %d", len(sellOrders))
+	}
+	if sellOrders[0].Status != domainmarket.StatusFilled {
+		t.Errorf("expected sell order filled, got %s", sellOrders[0].Status)
+	}
+}
+
+func TestCreateOrder_NoMatchWhenPriceDoesNotCross(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	sellerCid := newTestCompany(t, store, 306, "expensiveseller", 1000)
+	buyerCid := newTestCompany(t, store, 308, "cheapbuyer", 10000)
+	_ = store.UpdateInventory(nil, sellerCid, 5, 100)
+
+	_, err := svc.CreateOrder(ctx, sellerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 10, Price: 8.0,
+	})
+	if err != nil {
+		t.Fatalf("create sell: %v", err)
+	}
+
+	resp, err := svc.CreateOrder(ctx, buyerCid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 5.0,
+	})
+	if err != nil {
+		t.Fatalf("CreateOrder: %v", err)
+	}
+
+	// Order stays open, no inventory given.
+	if resp.Order == nil || *resp.Order.Status != "open" {
+		t.Errorf("expected status open, got %v", resp.Order.Status)
+	}
+	company, _ := store.GetCompany(nil, buyerCid)
+	if company.Inventory == nil || company.Inventory[5] != 0 {
+		t.Errorf("expected no inventory added, got %d", company.Inventory[5])
+	}
+	sellOrders, _ := store.GetOrdersByCompany(nil, sellerCid)
+	if len(sellOrders) != 1 {
+		t.Fatalf("expected one seller order, got %d", len(sellOrders))
+	}
+	if sellOrders[0].Status != domainmarket.StatusOpen || sellOrders[0].FilledQuantity != 0 {
+		t.Errorf("expected sell order untouched, got status=%s filled=%d", sellOrders[0].Status, sellOrders[0].FilledQuantity)
+	}
+}
+
+func TestCreateOrder_NoMatchSameCompany(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	cid := newTestCompany(t, store, 307, "sameco", 100000)
+	_ = store.UpdateInventory(nil, cid, 5, 100)
+
+	// Create a sell order first.
+	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 0, Quality: 0, Quantity: 20, Price: 8.0,
+	})
+	if err != nil {
+		t.Fatalf("create sell: %v", err)
+	}
+
+	// Now create a buy from the same company at a higher price.
+	resp, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 10.0,
+	})
+	if err != nil {
+		t.Fatalf("create buy: %v", err)
+	}
+
+	// Should NOT match (same company). Both orders should remain open.
+	if resp.Order == nil || *resp.Order.Status != "open" {
+		t.Errorf("expected status open (no same-company match), got %v", resp.Order.Status)
+	}
+	orders, _ := store.GetOrdersByCompany(nil, cid)
+	if len(orders) != 2 {
+		t.Fatalf("expected 2 orders, got %d", len(orders))
+	}
+	for _, o := range orders {
+		if o.Status != domainmarket.StatusOpen {
+			t.Errorf("expected order %s to remain open, got %s", o.ID, o.Status)
+		}
+	}
+}
