@@ -5,12 +5,12 @@ import (
 
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	"github.com/newhaven/backend-next/internal/domain/company"
-	"github.com/newhaven/backend-next/internal/domain/market"
-	"github.com/newhaven/backend-next/internal/domain/warehouse"
-	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/finance"
+	"github.com/newhaven/backend-next/internal/domain/market"
+	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/research"
 	"github.com/newhaven/backend-next/internal/domain/social"
+	"github.com/newhaven/backend-next/internal/domain/warehouse"
 )
 
 // PlayerStorage handles player/auth persistence.
@@ -39,6 +39,7 @@ type MarketStorage interface {
 	UpdateOrder(ctx context.Context, o *market.MarketOrder) error
 	GetOpenOrders(ctx context.Context, resourceID int, isBuy bool) ([]market.MarketOrder, error)
 	GetOrdersByCompany(ctx context.Context, companyID int) ([]market.MarketOrder, error)
+	GetOrdersByResource(ctx context.Context, resourceID int) ([]market.MarketOrder, error)
 	SaveTrade(ctx context.Context, t *market.Trade) error
 	GetTrades(ctx context.Context, resourceID int, limit int) ([]market.Trade, error)
 	GetTicker(ctx context.Context, resourceID int) (*market.Ticker, error)

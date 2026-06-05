@@ -1,0 +1,281 @@
+package market
+
+import (
+	"context"
+	"fmt"
+	"math"
+	"sort"
+	"time"
+
+	"github.com/newhaven/backend-next/internal/catalog"
+	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
+	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
+	"github.com/newhaven/backend-next/internal/platform"
+	"github.com/newhaven/backend-next/internal/storage"
+)
+
+// Service is the market application use case.
+type Service struct {
+	market    storage.MarketStorage
+	resources map[int]*catalog.ResourceEntry
+	clock     platform.Clock
+}
+
+// NewService creates a new market service.
+func NewService(market storage.MarketStorage, resources map[int]*catalog.ResourceEntry, clock platform.Clock) *Service {
+	return &Service{
+		market:    market,
+		resources: resources,
+		clock:     clock,
+	}
+}
+
+// ListResources returns market-tradable resource definitions.
+func (s *Service) ListResources(ctx context.Context) (*openapi.ResourcesResponse, error) {
+	dtos := make([]openapi.ResourceDefinition, 0)
+	for _, r := range s.resources {
+		if r.DbLetter <= 0 {
+			continue
+		}
+		if r.IsResearch {
+			continue
+		}
+		if !r.IsExchangeTradable {
+			continue
+		}
+		rid := r.DbLetter
+		producedFrom := make(map[string]int)
+		for k, v := range r.ProducedFrom {
+			producedFrom[fmt.Sprintf("%d", k)] = v
+		}
+		dto := openapi.ResourceDefinition{
+			ResourceId:         &rid,
+			Name:               &r.Name,
+			ProducedFrom:       &producedFrom,
+			ProducedPerHourRaw: &r.ProducedPerHourRaw,
+			UnitsSoldAnHour:    &r.UnitsSoldAnHour,
+			HasEconomyModel:    &r.HasEconomyModel,
+		}
+		dtos = append(dtos, dto)
+	}
+	sort.Slice(dtos, func(i, j int) bool {
+		return valueOrZero(dtos[i].ResourceId) < valueOrZero(dtos[j].ResourceId)
+	})
+	return &openapi.ResourcesResponse{
+		Resources: &dtos,
+	}, nil
+}
+
+// GetMarketTicker returns ticker data for a resource, falling back to a synthetic series.
+func (s *Service) GetMarketTicker(ctx context.Context, resourceID int) (*openapi.MarketTickerResponse, error) {
+	// Try reading from storage first.
+	ticker, err := s.market.GetTicker(ctx, resourceID)
+	if err == nil && ticker != nil {
+		series := make([]openapi.MarketTickerPoint, 48)
+		now := s.clock.Now().UTC().Truncate(time.Hour)
+		for i := 47; i >= 0; i-- {
+			ts := now.Add(-time.Duration(i) * time.Hour)
+			price32 := float32(ticker.LastPrice)
+			series[47-i] = openapi.MarketTickerPoint{
+				Price: &price32,
+				Time:  &ts,
+			}
+		}
+		return &openapi.MarketTickerResponse{
+			Resource: &resourceID,
+			Series:   &series,
+		}, nil
+	}
+
+	// Fallback: synthesize deterministic series from catalog BasePrice.
+	basePrice := s.basePriceForResource(resourceID)
+	if basePrice <= 0 {
+		basePrice = 20.0 + float64(resourceID%11)*3.0
+	}
+
+	series := make([]openapi.MarketTickerPoint, 48)
+	now := s.clock.Now().UTC().Truncate(time.Hour)
+	for i := 47; i >= 0; i-- {
+		hour := now.Add(-time.Duration(i) * time.Hour)
+		h := hour.Unix() / 3600
+		wave := math.Sin(float64(h+int64(resourceID*17))*0.37)*0.025 +
+			math.Cos(float64(h+int64(resourceID*31))*0.11)*0.015
+		price := float32(math.Round(basePrice*(1+wave)*100) / 100)
+		series[47-i] = openapi.MarketTickerPoint{
+			Price: &price,
+			Time:  &hour,
+		}
+	}
+
+	return &openapi.MarketTickerResponse{
+		Resource: &resourceID,
+		Series:   &series,
+	}, nil
+}
+
+// GetMarketDepth returns aggregated buy/sell depth for a resource and quality.
+func (s *Service) GetMarketDepth(ctx context.Context, resourceID int, quality int) (*openapi.MarketDepthResponse, error) {
+	orders, err := s.market.GetOrdersByResource(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	buysMap := make(map[float64]int)
+	sellsMap := make(map[float64]int)
+
+	for _, o := range orders {
+		if o.Quality != quality {
+			continue
+		}
+		if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
+			continue
+		}
+		remaining := o.Remaining()
+		if remaining <= 0 {
+			continue
+		}
+		if o.IsBuy {
+			buysMap[o.Price] += remaining
+		} else {
+			sellsMap[o.Price] += remaining
+		}
+	}
+
+	buyPrices := sortFloat64KeysDesc(buysMap)
+	sellPrices := sortFloat64KeysAsc(sellsMap)
+	if len(buyPrices) > 5 {
+		buyPrices = buyPrices[:5]
+	}
+	if len(sellPrices) > 5 {
+		sellPrices = sellPrices[:5]
+	}
+
+	buys := make([]openapi.MarketDepthLevel, 0, len(buyPrices))
+	for _, p := range buyPrices {
+		q := buysMap[p]
+		p32 := float32(p)
+		level := openapi.MarketDepthLevel{
+			Price:    &p32,
+			Quantity: &q,
+			Qty:      &q,
+		}
+		buys = append(buys, level)
+	}
+
+	sells := make([]openapi.MarketDepthLevel, 0, len(sellPrices))
+	for _, p := range sellPrices {
+		q := sellsMap[p]
+		p32 := float32(p)
+		level := openapi.MarketDepthLevel{
+			Price:    &p32,
+			Quantity: &q,
+			Qty:      &q,
+		}
+		sells = append(sells, level)
+	}
+
+	return &openapi.MarketDepthResponse{
+		Buys:  &buys,
+		Sells: &sells,
+	}, nil
+}
+
+// ListMarketOrders returns orders for a resource and quality as DTOs.
+func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality int) (*openapi.MarketOrderListResponse, error) {
+	orders, err := s.market.GetOrdersByResource(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := make([]openapi.MarketOrderDTO, 0)
+	sort.Slice(orders, func(i, j int) bool {
+		if orders[i].IsBuy != orders[j].IsBuy {
+			return !orders[i].IsBuy
+		}
+		if orders[i].Price != orders[j].Price {
+			if orders[i].IsBuy {
+				return orders[i].Price > orders[j].Price
+			}
+			return orders[i].Price < orders[j].Price
+		}
+		return orders[i].ID < orders[j].ID
+	})
+	for _, o := range orders {
+		if o.Quality != quality {
+			continue
+		}
+		kind := 0
+		if o.IsBuy {
+			kind = 1
+		}
+		kindVal := openapi.MarketOrderDTOKind(kind)
+
+		remaining := o.Remaining()
+
+		// Parse CreatedAt string to time.Time.
+		var createdAt time.Time
+		if o.CreatedAt != "" {
+			createdAt, _ = time.Parse(time.RFC3339, o.CreatedAt)
+		}
+
+		statusStr := string(o.Status)
+
+		dto := openapi.MarketOrderDTO{
+			Id:         &o.ID,
+			ResourceId: &o.ResourceID,
+			Kind:       &kindVal,
+			Price:      float32Ptr(o.Price),
+			Quality:    &o.Quality,
+			Quantity:   &o.Quantity,
+			Remaining:  &remaining,
+			CompanyId:  &o.CompanyID,
+			CreatedAt:  &createdAt,
+			Status:     &statusStr,
+		}
+		dtos = append(dtos, dto)
+	}
+
+	return &openapi.MarketOrderListResponse{
+		Orders: &dtos,
+	}, nil
+}
+
+// basePriceForResource looks up the catalog BasePrice for a given resource ID.
+func (s *Service) basePriceForResource(resourceID int) float64 {
+	if r, ok := s.resources[resourceID]; ok {
+		return r.BasePrice
+	}
+	return 0
+}
+
+// --- Helpers ---
+
+func float32Ptr(v float64) *float32 {
+	r := float32(v)
+	return &r
+}
+
+func valueOrZero(v *int) int {
+	if v == nil {
+		return 0
+	}
+	return *v
+}
+
+func sortFloat64KeysDesc(m map[float64]int) []float64 {
+	keys := make([]float64, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] > keys[j] })
+	return keys
+}
+
+func sortFloat64KeysAsc(m map[float64]int) []float64 {
+	keys := make([]float64, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	return keys
+}

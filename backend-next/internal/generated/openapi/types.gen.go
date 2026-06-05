@@ -38,6 +38,24 @@ func (e ClaimProductionResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for MarketOrderDTOKind.
+const (
+	N0 MarketOrderDTOKind = 0
+	N1 MarketOrderDTOKind = 1
+)
+
+// Valid indicates whether the value is a known member of the MarketOrderDTOKind enum.
+func (e MarketOrderDTOKind) Valid() bool {
+	switch e {
+	case N0:
+		return true
+	case N1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ProductionJobDTOStatus.
 const (
 	ProductionJobDTOStatusClaimed ProductionJobDTOStatus = "claimed"
@@ -159,6 +177,53 @@ type LoginResponse struct {
 	Username  *string `json:"username,omitempty"`
 }
 
+// MarketDepthLevel defines model for MarketDepthLevel.
+type MarketDepthLevel struct {
+	Price    *float32 `json:"price,omitempty"`
+	Qty      *int     `json:"qty,omitempty"`
+	Quantity *int     `json:"quantity,omitempty"`
+}
+
+// MarketDepthResponse defines model for MarketDepthResponse.
+type MarketDepthResponse struct {
+	Buys  *[]MarketDepthLevel `json:"buys,omitempty"`
+	Sells *[]MarketDepthLevel `json:"sells,omitempty"`
+}
+
+// MarketOrderDTO defines model for MarketOrderDTO.
+type MarketOrderDTO struct {
+	CompanyId  *int                `json:"companyId,omitempty"`
+	CreatedAt  *time.Time          `json:"createdAt,omitempty"`
+	Id         *string             `json:"id,omitempty"`
+	Kind       *MarketOrderDTOKind `json:"kind,omitempty"`
+	Price      *float32            `json:"price,omitempty"`
+	Quality    *int                `json:"quality,omitempty"`
+	Quantity   *int                `json:"quantity,omitempty"`
+	Remaining  *int                `json:"remaining,omitempty"`
+	ResourceId *int                `json:"resourceId,omitempty"`
+	Status     *string             `json:"status,omitempty"`
+}
+
+// MarketOrderDTOKind defines model for MarketOrderDTO.Kind.
+type MarketOrderDTOKind int
+
+// MarketOrderListResponse defines model for MarketOrderListResponse.
+type MarketOrderListResponse struct {
+	Orders *[]MarketOrderDTO `json:"orders,omitempty"`
+}
+
+// MarketTickerPoint defines model for MarketTickerPoint.
+type MarketTickerPoint struct {
+	Price *float32   `json:"price,omitempty"`
+	Time  *time.Time `json:"time,omitempty"`
+}
+
+// MarketTickerResponse defines model for MarketTickerResponse.
+type MarketTickerResponse struct {
+	Resource *int                 `json:"resource,omitempty"`
+	Series   *[]MarketTickerPoint `json:"series,omitempty"`
+}
+
 // MyCompaniesResponse defines model for MyCompaniesResponse.
 type MyCompaniesResponse struct {
 	Companies *[]CompanySummary `json:"companies,omitempty"`
@@ -192,6 +257,21 @@ type RegisterRequest struct {
 	Name     *string `json:"name,omitempty"`
 	Password string  `json:"password"`
 	Username string  `json:"username"`
+}
+
+// ResourceDefinition defines model for ResourceDefinition.
+type ResourceDefinition struct {
+	HasEconomyModel    *bool           `json:"hasEconomyModel,omitempty"`
+	Name               *string         `json:"name,omitempty"`
+	ProducedFrom       *map[string]int `json:"producedFrom,omitempty"`
+	ProducedPerHourRaw *int            `json:"producedPerHourRaw,omitempty"`
+	ResourceId         *int            `json:"resourceId,omitempty"`
+	UnitsSoldAnHour    *int            `json:"unitsSoldAnHour,omitempty"`
+}
+
+// ResourcesResponse defines model for ResourcesResponse.
+type ResourcesResponse struct {
+	Resources *[]ResourceDefinition `json:"resources,omitempty"`
 }
 
 // StartProductionRequest defines model for StartProductionRequest.
@@ -256,6 +336,18 @@ type ServerInterface interface {
 
 	// (GET /api/v3/companies/me/buildings/)
 	ListMyBuildings(w http.ResponseWriter, r *http.Request)
+	// Get market depth (order book) for a resource and quality
+	// (GET /api/v3/market-depth/{resourceId}/{quality}/)
+	GetMarketDepth(w http.ResponseWriter, r *http.Request, resourceId int, quality int)
+	// Get market ticker for a resource
+	// (GET /api/v3/market-ticker/{resourceId}/)
+	GetMarketTicker(w http.ResponseWriter, r *http.Request, resourceId int)
+	// List market orders for a resource and quality
+	// (GET /api/v3/market/{resourceId}/{quality}/)
+	ListMarketOrders(w http.ResponseWriter, r *http.Request, resourceId int, quality int)
+	// List market-tradable resources
+	// (GET /api/v3/resources/)
+	ListResources(w http.ResponseWriter, r *http.Request)
 	// Health check
 	// (GET /healthz)
 	Healthz(w http.ResponseWriter, r *http.Request)
@@ -318,6 +410,30 @@ func (_ Unimplemented) StartProduction(w http.ResponseWriter, r *http.Request) {
 
 // (GET /api/v3/companies/me/buildings/)
 func (_ Unimplemented) ListMyBuildings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get market depth (order book) for a resource and quality
+// (GET /api/v3/market-depth/{resourceId}/{quality}/)
+func (_ Unimplemented) GetMarketDepth(w http.ResponseWriter, r *http.Request, resourceId int, quality int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get market ticker for a resource
+// (GET /api/v3/market-ticker/{resourceId}/)
+func (_ Unimplemented) GetMarketTicker(w http.ResponseWriter, r *http.Request, resourceId int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List market orders for a resource and quality
+// (GET /api/v3/market/{resourceId}/{quality}/)
+func (_ Unimplemented) ListMarketOrders(w http.ResponseWriter, r *http.Request, resourceId int, quality int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List market-tradable resources
+// (GET /api/v3/resources/)
+func (_ Unimplemented) ListResources(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -522,6 +638,140 @@ func (siw *ServerInterfaceWrapper) ListMyBuildings(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetMarketDepth operation middleware
+func (siw *ServerInterfaceWrapper) GetMarketDepth(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "resourceId" -------------
+	var resourceId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceId", chi.URLParam(r, "resourceId"), &resourceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resourceId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "quality" -------------
+	var quality int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "quality", chi.URLParam(r, "quality"), &quality, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "quality", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMarketDepth(w, r, resourceId, quality)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMarketTicker operation middleware
+func (siw *ServerInterfaceWrapper) GetMarketTicker(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "resourceId" -------------
+	var resourceId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceId", chi.URLParam(r, "resourceId"), &resourceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resourceId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMarketTicker(w, r, resourceId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMarketOrders operation middleware
+func (siw *ServerInterfaceWrapper) ListMarketOrders(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "resourceId" -------------
+	var resourceId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "resourceId", chi.URLParam(r, "resourceId"), &resourceId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resourceId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "quality" -------------
+	var quality int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "quality", chi.URLParam(r, "quality"), &quality, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "quality", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMarketOrders(w, r, resourceId, quality)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListResources operation middleware
+func (siw *ServerInterfaceWrapper) ListResources(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListResources(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Healthz operation middleware
 func (siw *ServerInterfaceWrapper) Healthz(w http.ResponseWriter, r *http.Request) {
 
@@ -689,6 +939,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v3/companies/me/buildings/", wrapper.ListMyBuildings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/market-depth/{resourceId}/{quality}/", wrapper.GetMarketDepth)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/market-ticker/{resourceId}/", wrapper.GetMarketTicker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/market/{resourceId}/{quality}/", wrapper.ListMarketOrders)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/resources/", wrapper.ListResources)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/healthz", wrapper.Healthz)

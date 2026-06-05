@@ -12,9 +12,9 @@ const (
 type OrderStatus string
 
 const (
-	StatusOpen    OrderStatus = "open"
-	StatusPartial OrderStatus = "partial"
-	StatusFilled  OrderStatus = "filled"
+	StatusOpen      OrderStatus = "open"
+	StatusPartial   OrderStatus = "partial"
+	StatusFilled    OrderStatus = "filled"
 	StatusCancelled OrderStatus = "cancelled"
 )
 
@@ -27,21 +27,31 @@ type MarketOrder struct {
 	Price          float64     `json:"price"`
 	Quantity       int         `json:"quantity"`
 	FilledQuantity int         `json:"filled_quantity"`
+	Quality        int         `json:"quality"`
 	Status         OrderStatus `json:"status"`
 	CreatedAt      string      `json:"created_at"`
 }
 
+// Remaining returns the unfilled quantity.
+func (o *MarketOrder) Remaining() int {
+	r := o.Quantity - o.FilledQuantity
+	if r < 0 {
+		return 0
+	}
+	return r
+}
+
 // Trade represents an executed trade between two orders.
 type Trade struct {
-	ID           string  `json:"id"`
-	BuyOrderID   string  `json:"buy_order_id"`
-	SellOrderID  string  `json:"sell_order_id"`
-	ResourceID   int     `json:"resource_id"`
-	Price        float64 `json:"price"`
-	Quantity     int     `json:"quantity"`
-	BuyerFee     float64 `json:"buyer_fee"`
-	SellerFee    float64 `json:"seller_fee"`
-	CreatedAt    string  `json:"created_at"`
+	ID          string  `json:"id"`
+	BuyOrderID  string  `json:"buy_order_id"`
+	SellOrderID string  `json:"sell_order_id"`
+	ResourceID  int     `json:"resource_id"`
+	Price       float64 `json:"price"`
+	Quantity    int     `json:"quantity"`
+	BuyerFee    float64 `json:"buyer_fee"`
+	SellerFee   float64 `json:"seller_fee"`
+	CreatedAt   string  `json:"created_at"`
 }
 
 // Ticker represents the current market state for a resource.
@@ -64,9 +74,9 @@ type DepthLevel struct {
 
 // OrderbookDepth shows the current order book.
 type OrderbookDepth struct {
-	ResourceID int           `json:"resource_id"`
-	Bids       []DepthLevel  `json:"bids"`
-	Asks       []DepthLevel  `json:"asks"`
+	ResourceID int          `json:"resource_id"`
+	Bids       []DepthLevel `json:"bids"`
+	Asks       []DepthLevel `json:"asks"`
 }
 
 // CreateOrderRequest is the DTO for creating a new order.

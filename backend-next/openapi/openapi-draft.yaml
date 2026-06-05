@@ -205,6 +205,118 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+
+  /api/v3/resources/:
+    get:
+      tags: [Market]
+      summary: List market-tradable resources
+      operationId: listResources
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Resource list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourcesResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/market-ticker/{resourceId}/:
+    get:
+      tags: [Market]
+      summary: Get market ticker for a resource
+      operationId: getMarketTicker
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market ticker data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketTickerResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/market-depth/{resourceId}/{quality}/:
+    get:
+      tags: [Market]
+      summary: Get market depth (order book) for a resource and quality
+      operationId: getMarketDepth
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quality
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market depth data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketDepthResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/market/{resourceId}/{quality}/:
+    get:
+      tags: [Market]
+      summary: List market orders for a resource and quality
+      operationId: listMarketOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quality
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketOrderListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/login:
     post:
       tags: [Auth]
@@ -245,9 +357,9 @@ paths:
         "200":
           description: Registration successful
           content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LoginResponse"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginResponse"
         "400":
           description: Invalid request
           content:
@@ -519,6 +631,100 @@ components:
         quantity:
           type: integer
           minimum: 1
+
+    ResourceDefinition:
+      type: object
+      properties:
+        resourceId:
+          type: integer
+        name:
+          type: string
+        producedFrom:
+          type: object
+          additionalProperties:
+            type: integer
+        producedPerHourRaw:
+          type: integer
+        unitsSoldAnHour:
+          type: integer
+        hasEconomyModel:
+          type: boolean
+    ResourcesResponse:
+      type: object
+      properties:
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceDefinition'
+    MarketTickerPoint:
+      type: object
+      properties:
+        price:
+          type: number
+        time:
+          type: string
+          format: date-time
+    MarketTickerResponse:
+      type: object
+      properties:
+        resource:
+          type: integer
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketTickerPoint'
+    MarketDepthLevel:
+      type: object
+      properties:
+        price:
+          type: number
+        quantity:
+          type: integer
+        qty:
+          type: integer
+    MarketDepthResponse:
+      type: object
+      properties:
+        buys:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketDepthLevel'
+        sells:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketDepthLevel'
+    MarketOrderDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        resourceId:
+          type: integer
+        kind:
+          type: integer
+          enum: [0, 1]
+        price:
+          type: number
+        quality:
+          type: integer
+        quantity:
+          type: integer
+        remaining:
+          type: integer
+        companyId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+    MarketOrderListResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketOrderDTO'
     # --- Production ---
 
     ProductionJob:

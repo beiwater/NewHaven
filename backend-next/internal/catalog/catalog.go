@@ -21,6 +21,7 @@ type ResourceEntry struct {
 	ProducedAnHour     int         `json:"producedAnHour"`
 	UnitsSoldAnHour    int         `json:"unitsSoldAnHour"`
 	IsExchangeTradable bool        `json:"isExchangeTradable"`
+	IsResearch         bool        `json:"isResearch"`
 	HasEconomyModel    bool        `json:"hasEconomyModel"`
 	BasePrice          float64     `json:"basePrice"`
 }

@@ -300,6 +300,18 @@ func (s *Store) GetOrdersByCompany(_ context.Context, companyID int) ([]market.M
 	return result, nil
 }
 
+func (s *Store) GetOrdersByResource(_ context.Context, resourceID int) ([]market.MarketOrder, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var result []market.MarketOrder
+	for _, o := range s.orders {
+		if o.ResourceID == resourceID {
+			result = append(result, *o)
+		}
+	}
+	return result, nil
+}
+
 func (s *Store) SaveTrade(_ context.Context, t *market.Trade) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

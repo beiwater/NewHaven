@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app"
 	"github.com/newhaven/backend-next/internal/app/building"
 	"github.com/newhaven/backend-next/internal/app/company"
+	"github.com/newhaven/backend-next/internal/app/market"
 	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/app/warehouse"
 	"github.com/newhaven/backend-next/internal/catalog"
@@ -48,8 +49,11 @@ func main() {
 	}
 
 	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
+
+	marketSvc := market.NewService(st, resources, application.Clock)
+	marketHandler := httpapi.NewMarketHandler(marketSvc)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler)
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {

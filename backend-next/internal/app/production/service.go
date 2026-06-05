@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/storage"
@@ -117,6 +118,9 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 	if err != nil {
 		return nil, err
 	}
+	sort.Slice(jobs, func(i, j int) bool {
+		return jobs[i].ID < jobs[j].ID
+	})
 
 	dtos := make([]openapi.ProductionJobDTO, 0, len(jobs))
 	for _, j := range jobs {
