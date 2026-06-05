@@ -54,10 +54,11 @@ func main() {
 	marketSvc := market.NewService(st, st, st, resources, cfg.Game, application.Clock, application.IDGen)
 	marketHandler := httpapi.NewMarketHandler(marketSvc)
 
-	financeSvc := finance.NewService(st, st, application.Clock)
+	financeSvc := finance.NewService(st, st, application.Clock, application.IDGen, cfg.Game)
 	financeHandler := httpapi.NewFinanceHandler(financeSvc)
+	bondHandler := httpapi.NewBondHandler(financeSvc)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler, financeHandler, bondHandler)
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {

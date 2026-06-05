@@ -6,6 +6,7 @@ import (
 	"time"
 
 	appfinance "github.com/newhaven/backend-next/internal/app/finance"
+	"github.com/newhaven/backend-next/internal/config"
 	domainauth "github.com/newhaven/backend-next/internal/domain/auth"
 	domaincompany "github.com/newhaven/backend-next/internal/domain/company"
 	domainfinance "github.com/newhaven/backend-next/internal/domain/finance"
@@ -16,7 +17,9 @@ import (
 func newTestSvc() (*appfinance.Service, *memory.Store) {
 	store := memory.New()
 	clock := platform.NewFakeClock(time.Date(2026, 6, 7, 12, 0, 0, 0, time.UTC))
-	svc := appfinance.NewService(store, store, clock)
+	idgen := platform.NewIDGen()
+	cfg := &config.GameConfig{BondFaceValue: 5000, BondMinInterest: 0.5, BondMaxInterest: 2.0}
+	svc := appfinance.NewService(store, store, clock, idgen, cfg)
 	return svc, store
 }
 
@@ -227,5 +230,259 @@ func TestPastFinances_ComputesFromTimestamps(t *testing.T) {
 	}
 	if *(*resp.Series)[1].Net != -40 {
 		t.Errorf("expected day2 net -40, got %v", *(*resp.Series)[1].Net)
+	}
+}
+
+// --- Bond tests ---
+
+func TestListBonds_Empty(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := newTestSvc()
+	resp, err := svc.ListBonds(ctx, "")
+	if err != nil {
+		t.Fatalf("ListBonds: %v", err)
+	}
+	if resp.Bonds == nil || len(*resp.Bonds) != 0 {
+		t.Errorf("expected empty list, got %d", len(*resp.Bonds))
+	}
+}
+
+func TestListBonds_RatingFilter(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid := newTestCompany(t, store, 29, "filterbond", 50000)
+
+	_, err := svc.CreateBond(ctx, cid, 2, 1.0)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+
+	resp, err := svc.ListBonds(ctx, "AA- to A")
+	if err != nil {
+		t.Fatalf("ListBonds matching filter: %v", err)
+	}
+	if resp.Bonds == nil || len(*resp.Bonds) != 1 {
+		t.Fatalf("expected 1 filtered bond, got %d", len(*resp.Bonds))
+	}
+
+	resp, err = svc.ListBonds(ctx, "AAA to AA")
+	if err != nil {
+		t.Fatalf("ListBonds non-matching filter: %v", err)
+	}
+	if resp.Bonds == nil || len(*resp.Bonds) != 0 {
+		t.Fatalf("expected 0 filtered bonds, got %d", len(*resp.Bonds))
+	}
+}
+
+func TestCreateBond_Success(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid := newTestCompany(t, store, 30, "bondco", 50000)
+
+	resp, err := svc.CreateBond(ctx, cid, 10, 1.5) // 10 units at 1.5%
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+	if resp.Bond == nil {
+		t.Fatal("expected bond in response")
+	}
+	if *resp.Bond.Id == "" {
+		t.Error("expected non-empty bond ID")
+	}
+	if *resp.Bond.Amount != 10 {
+		t.Errorf("expected amount 10, got %d", *resp.Bond.Amount)
+	}
+	if *resp.Bond.Interest != 0.015 { // 1.5% stored as 0.015
+		t.Errorf("expected interest 0.015, got %f", *resp.Bond.Interest)
+	}
+	if *resp.Bond.IssuerCompanyId != cid {
+		t.Errorf("expected issuer %d, got %d", cid, *resp.Bond.IssuerCompanyId)
+	}
+	expectedDaily := float32(10 * 5000 * 1.5 / 100.0) // floor(750) = 750
+	if *resp.Bond.DailyInterest != expectedDaily {
+		t.Errorf("expected daily interest %.0f, got %f", expectedDaily, *resp.Bond.DailyInterest)
+	}
+
+	// Verify money was credited: 10 * 5000 = 50000
+	company, err := store.GetCompany(ctx, cid)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+	expectedMoney := 50000.0 + 10*5000.0
+	if company.Money != expectedMoney {
+		t.Errorf("expected money %.0f, got %.0f", expectedMoney, company.Money)
+	}
+
+	// Verify bond was persisted
+	bonds, err := store.GetActiveBonds(ctx)
+	if err != nil {
+		t.Fatalf("GetActiveBonds: %v", err)
+	}
+	if len(bonds) != 1 {
+		t.Fatalf("expected 1 active bond, got %d", len(bonds))
+	}
+	if bonds[0].Status != "active" {
+		t.Errorf("expected status active, got %s", bonds[0].Status)
+	}
+
+	// Verify bond_issue ledger entry
+	entries, err := store.GetLedgerEntries(ctx, cid, 10)
+	if err != nil {
+		t.Fatalf("GetLedgerEntries: %v", err)
+	}
+	found := false
+	for _, e := range entries {
+		if e.Kind == "bond_issue" && e.Direction == "in" {
+			found = true
+			if e.Amount != 50000 {
+				t.Errorf("expected ledger amount 50000, got %f", e.Amount)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("expected bond_issue ledger entry not found")
+	}
+}
+
+func TestCreateBond_InvalidAmount(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid := newTestCompany(t, store, 31, "bondco2", 50000)
+
+	_, err := svc.CreateBond(ctx, cid, 0, 1.5)
+	if err == nil {
+		t.Fatal("expected error for zero amount")
+	}
+
+	// Verify no bond and no money change
+	bonds, _ := store.GetActiveBonds(ctx)
+	if len(bonds) != 0 {
+		t.Error("expected no bonds on failed creation")
+	}
+}
+
+func TestCreateBond_InvalidInterestBounds(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid := newTestCompany(t, store, 32, "bondco3", 50000)
+
+	// Too low
+	_, err := svc.CreateBond(ctx, cid, 5, 0.1)
+	if err == nil {
+		t.Fatal("expected error for too-low interest")
+	}
+
+	// Too high
+	_, err = svc.CreateBond(ctx, cid, 5, 3.0)
+	if err == nil {
+		t.Fatal("expected error for too-high interest")
+	}
+
+	// Verify no bonds created
+	bonds, _ := store.GetActiveBonds(ctx)
+	if len(bonds) != 0 {
+		t.Error("expected no bonds on failed creation")
+	}
+}
+
+func TestCreateBond_CompanyNotFound(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := newTestSvc()
+
+	_, err := svc.CreateBond(ctx, 999999, 5, 1.5)
+	if err == nil {
+		t.Fatal("expected error for non-existent company")
+	}
+}
+
+func TestGetBond_Success(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid := newTestCompany(t, store, 33, "getbond", 50000)
+
+	created, err := svc.CreateBond(ctx, cid, 5, 1.2)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+
+	resp, err := svc.GetBond(ctx, *created.Bond.Id)
+	if err != nil {
+		t.Fatalf("GetBond: %v", err)
+	}
+	if resp.Bond == nil {
+		t.Fatal("expected bond")
+	}
+	if *resp.Bond.Id != *created.Bond.Id {
+		t.Errorf("expected ID %s, got %s", *created.Bond.Id, *resp.Bond.Id)
+	}
+}
+
+func TestGetBond_NotFound(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := newTestSvc()
+
+	_, err := svc.GetBond(ctx, "nonexistent-bond-id")
+	if err == nil {
+		t.Fatal("expected error for non-existent bond")
+	}
+}
+
+func TestOwnedBonds_ReturnsHoldings(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid := newTestCompany(t, store, 34, "owned", 50000)
+
+	// Create a bond and simulate a holding by directly creating a holding entry
+	created, err := svc.CreateBond(ctx, cid, 10, 1.0)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+
+	// Add a holding for this bond
+	_ = store.CreateBondHolding(ctx, &domainfinance.BondHolding{
+		BondID:      *created.Bond.Id,
+		CompanyID:   cid,
+		Quantity:    3,
+		PurchasedAt: "2026-06-07T12:00:00Z",
+	})
+
+	resp, err := svc.GetOwnedBonds(ctx, cid)
+	if err != nil {
+		t.Fatalf("GetOwnedBonds: %v", err)
+	}
+	if resp.Bonds == nil || len(*resp.Bonds) != 1 {
+		t.Fatalf("expected 1 owned bond, got %d", len(*resp.Bonds))
+	}
+	// The amount should be the holding quantity (3), not total (10)
+	if *(*resp.Bonds)[0].Amount != 3 {
+		t.Errorf("expected amount 3 (holding qty), got %d", *(*resp.Bonds)[0].Amount)
+	}
+}
+
+func TestSoldBonds_ReturnsIssued(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+	cid1 := newTestCompany(t, store, 35, "issuer1", 50000)
+	cid2 := newTestCompany(t, store, 36, "issuer2", 50000)
+
+	_, err := svc.CreateBond(ctx, cid1, 5, 1.0)
+	if err != nil {
+		t.Fatalf("CreateBond issuer1: %v", err)
+	}
+	_, err = svc.CreateBond(ctx, cid2, 3, 1.5)
+	if err != nil {
+		t.Fatalf("CreateBond issuer2: %v", err)
+	}
+
+	resp, err := svc.GetSoldBonds(ctx, cid1)
+	if err != nil {
+		t.Fatalf("GetSoldBonds: %v", err)
+	}
+	if resp.Bonds == nil || len(*resp.Bonds) != 1 {
+		t.Fatalf("expected 1 sold bond, got %d", len(*resp.Bonds))
+	}
+	if *(*resp.Bonds)[0].Amount != 5 {
+		t.Errorf("expected amount 5, got %d", *(*resp.Bonds)[0].Amount)
 	}
 }

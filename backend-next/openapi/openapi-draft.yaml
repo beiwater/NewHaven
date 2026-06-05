@@ -226,7 +226,136 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
+  # --- Bonds ---
+  /api/bonds/:
+    get:
+      tags: [Bonds]
+      summary: List all active bonds on market
+      operationId: listBonds
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: rating
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bond list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BondListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Bonds]
+      summary: Issue a new bond
+      operationId: createBond
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBondRequest'
+      responses:
+        "200":
+          description: Bond created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBondResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/bonds/{bondId}/:
+    get:
+      tags: [Bonds]
+      summary: Get bond detail
+      operationId: getBond
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bondId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bond detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBondResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Bond not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v2/companies/me/bonds/owned/:
+    get:
+      tags: [Bonds]
+      summary: Get my owned bonds
+      operationId: getOwnedBonds
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Owned bonds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BondListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v2/companies/me/bonds/sold/:
+    get:
+      tags: [Bonds]
+      summary: Get my issued bonds
+      operationId: getSoldBonds
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Issued bonds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BondListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v3/market-ticker/{resourceId}/:
     get:
       tags: [Market]
@@ -1267,3 +1396,68 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PastFinancePoint'
+
+    # --- Bonds ---
+
+    BondDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: integer
+        interest:
+          type: number
+        purchased_at:
+          type: string
+          format: date-time
+        missed_payments:
+          type: integer
+        interestCollected:
+          type: number
+        ratingWhenPurchased:
+          type: string
+        dailyInterest:
+          type: number
+        periodInterest:
+          type: number
+        issuerCompanyId:
+          type: integer
+        ownerCompanyId:
+          type: integer
+        callableAfter:
+          type: string
+          format: date-time
+        restructure_percentage:
+          type: number
+
+    BondListResponse:
+      type: object
+      properties:
+        bonds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BondDTO'
+
+    GetBondResponse:
+      type: object
+      properties:
+        bond:
+          $ref: '#/components/schemas/BondDTO'
+
+    CreateBondRequest:
+      type: object
+      required: [amount, interest]
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+        interest:
+          type: number
+          description: Interest percent (e.g. 1.5 means 1.5%)
+
+    CreateBondResponse:
+      type: object
+      properties:
+        bond:
+          $ref: '#/components/schemas/BondDTO'

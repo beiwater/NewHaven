@@ -7,7 +7,7 @@ import (
 	"github.com/newhaven/backend-next/internal/config"
 )
 
-func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler, marketHandler *MarketHandler, financeHandler *FinanceHandler) *chi.Mux {
+func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler, marketHandler *MarketHandler, financeHandler *FinanceHandler, bondHandler *BondHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack (outermost first)
@@ -26,6 +26,10 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.Post("/register", authHandler.handleRegister)
 		r.Post("/login", authHandler.handleLogin)
 	})
+	// Bond routes (authenticated)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/bonds/", bondHandler.handleListBonds)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/bonds/", bondHandler.handleCreateBond)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/bonds/{bondId}/", bondHandler.handleGetBond)
 
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
@@ -42,6 +46,8 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/start/", productionHandler.handleStartProduction)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/claim/{jobId}/", productionHandler.handleClaimProduction)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/claimable/", productionHandler.handleListClaimableJobs)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/bonds/owned/", bondHandler.handleGetOwnedBonds)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/bonds/sold/", bondHandler.handleGetSoldBonds)
 	})
 
 	// API v3 domain routes (authenticated)

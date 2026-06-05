@@ -5,6 +5,7 @@ package openapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -102,6 +103,28 @@ type BalanceSheetResponse struct {
 	Liabilities *float32 `json:"liabilities,omitempty"`
 }
 
+// BondDTO defines model for BondDTO.
+type BondDTO struct {
+	Amount                *int       `json:"amount,omitempty"`
+	CallableAfter         *time.Time `json:"callableAfter,omitempty"`
+	DailyInterest         *float32   `json:"dailyInterest,omitempty"`
+	Id                    *string    `json:"id,omitempty"`
+	Interest              *float32   `json:"interest,omitempty"`
+	InterestCollected     *float32   `json:"interestCollected,omitempty"`
+	IssuerCompanyId       *int       `json:"issuerCompanyId,omitempty"`
+	MissedPayments        *int       `json:"missed_payments,omitempty"`
+	OwnerCompanyId        *int       `json:"ownerCompanyId,omitempty"`
+	PeriodInterest        *float32   `json:"periodInterest,omitempty"`
+	PurchasedAt           *time.Time `json:"purchased_at,omitempty"`
+	RatingWhenPurchased   *string    `json:"ratingWhenPurchased,omitempty"`
+	RestructurePercentage *float32   `json:"restructure_percentage,omitempty"`
+}
+
+// BondListResponse defines model for BondListResponse.
+type BondListResponse struct {
+	Bonds *[]BondDTO `json:"bonds,omitempty"`
+}
+
 // BuildingDTO defines model for BuildingDTO.
 type BuildingDTO struct {
 	BuildingId *int    `json:"building_id,omitempty"`
@@ -185,6 +208,19 @@ type CompanySummary struct {
 	Name  *string  `json:"name,omitempty"`
 }
 
+// CreateBondRequest defines model for CreateBondRequest.
+type CreateBondRequest struct {
+	Amount int `json:"amount"`
+
+	// Interest Interest percent (e.g. 1.5 means 1.5%)
+	Interest float32 `json:"interest"`
+}
+
+// CreateBondResponse defines model for CreateBondResponse.
+type CreateBondResponse struct {
+	Bond *BondDTO `json:"bond,omitempty"`
+}
+
 // CreateOrderRequestFrontend defines model for CreateOrderRequestFrontend.
 type CreateOrderRequestFrontend struct {
 	Kind       CreateOrderRequestFrontendKind `json:"kind"`
@@ -211,6 +247,11 @@ type ErrorResponse struct {
 		Details *map[string]interface{} `json:"details,omitempty"`
 		Message *string                 `json:"message,omitempty"`
 	} `json:"error,omitempty"`
+}
+
+// GetBondResponse defines model for GetBondResponse.
+type GetBondResponse struct {
+	Bond *BondDTO `json:"bond,omitempty"`
 }
 
 // GetMyWarehouseData defines model for GetMyWarehouseData.
@@ -414,6 +455,14 @@ type WarehouseItem struct {
 // bearerAuthContextKey is the context key for BearerAuth security scheme
 type bearerAuthContextKey string
 
+// ListBondsParams defines parameters for ListBonds.
+type ListBondsParams struct {
+	Rating *string `form:"rating,omitempty" json:"rating,omitempty"`
+}
+
+// CreateBondJSONRequestBody defines body for CreateBond for application/json ContentType.
+type CreateBondJSONRequestBody = CreateBondRequest
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -431,6 +480,15 @@ type StartProductionJSONRequestBody = StartProductionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List all active bonds on market
+	// (GET /api/bonds/)
+	ListBonds(w http.ResponseWriter, r *http.Request, params ListBondsParams)
+	// Issue a new bond
+	// (POST /api/bonds/)
+	CreateBond(w http.ResponseWriter, r *http.Request)
+	// Get bond detail
+	// (GET /api/bonds/{bondId}/)
+	GetBond(w http.ResponseWriter, r *http.Request, bondId string)
 	// Login
 	// (POST /api/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -440,6 +498,12 @@ type ServerInterface interface {
 	// Balance sheet
 	// (GET /api/v2/companies/me/balance-sheet/)
 	GetBalanceSheet(w http.ResponseWriter, r *http.Request)
+	// Get my owned bonds
+	// (GET /api/v2/companies/me/bonds/owned/)
+	GetOwnedBonds(w http.ResponseWriter, r *http.Request)
+	// Get my issued bonds
+	// (GET /api/v2/companies/me/bonds/sold/)
+	GetSoldBonds(w http.ResponseWriter, r *http.Request)
 	// Cashflow statement
 	// (GET /api/v2/companies/me/cashflow-statement/)
 	GetCashflowStatement(w http.ResponseWriter, r *http.Request)
@@ -506,6 +570,24 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// List all active bonds on market
+// (GET /api/bonds/)
+func (_ Unimplemented) ListBonds(w http.ResponseWriter, r *http.Request, params ListBondsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Issue a new bond
+// (POST /api/bonds/)
+func (_ Unimplemented) CreateBond(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get bond detail
+// (GET /api/bonds/{bondId}/)
+func (_ Unimplemented) GetBond(w http.ResponseWriter, r *http.Request, bondId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Login
 // (POST /api/login)
 func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request) {
@@ -521,6 +603,18 @@ func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
 // Balance sheet
 // (GET /api/v2/companies/me/balance-sheet/)
 func (_ Unimplemented) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get my owned bonds
+// (GET /api/v2/companies/me/bonds/owned/)
+func (_ Unimplemented) GetOwnedBonds(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get my issued bonds
+// (GET /api/v2/companies/me/bonds/sold/)
+func (_ Unimplemented) GetSoldBonds(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -652,6 +746,97 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// ListBonds operation middleware
+func (siw *ServerInterfaceWrapper) ListBonds(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBondsParams
+
+	// ------------- Optional query parameter "rating" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "rating", r.URL.Query(), &params.Rating, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "rating"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "rating", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBonds(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBond operation middleware
+func (siw *ServerInterfaceWrapper) CreateBond(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBond(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBond operation middleware
+func (siw *ServerInterfaceWrapper) GetBond(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "bondId" -------------
+	var bondId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "bondId", chi.URLParam(r, "bondId"), &bondId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bondId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBond(w, r, bondId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -691,6 +876,46 @@ func (siw *ServerInterfaceWrapper) GetBalanceSheet(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetBalanceSheet(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOwnedBonds operation middleware
+func (siw *ServerInterfaceWrapper) GetOwnedBonds(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOwnedBonds(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSoldBonds operation middleware
+func (siw *ServerInterfaceWrapper) GetSoldBonds(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSoldBonds(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1280,6 +1505,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bonds/", wrapper.ListBonds)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/bonds/", wrapper.CreateBond)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/bonds/{bondId}/", wrapper.GetBond)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/login", wrapper.Login)
 	})
 	r.Group(func(r chi.Router) {
@@ -1287,6 +1521,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/balance-sheet/", wrapper.GetBalanceSheet)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/companies/me/bonds/owned/", wrapper.GetOwnedBonds)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/companies/me/bonds/sold/", wrapper.GetSoldBonds)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/cashflow-statement/", wrapper.GetCashflowStatement)

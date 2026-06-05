@@ -24,7 +24,7 @@ func TestGetMyWarehouse_NoToken_401(t *testing.T) {
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/warehouse/", nil)
 	w := httptest.NewRecorder()
@@ -56,7 +56,7 @@ func TestGetMyWarehouse_WithToken_200(t *testing.T) {
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil, nil)
 
 	// Register a user to get a valid token
 	registerBody := `{"username":"whuser","password":"secret123"}`
@@ -161,7 +161,7 @@ func TestGetMyWarehouse_ReturnsItemsArrayNotNull(t *testing.T) {
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil, nil)
 
 	// Register a user
 	registerBody := `{"username":"itemsuser","password":"secret123"}`

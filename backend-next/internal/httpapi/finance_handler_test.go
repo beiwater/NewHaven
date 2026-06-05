@@ -18,7 +18,9 @@ import (
 
 func newFinanceSvc(store *memory.Store) *finance.Service {
 	clock := platform.NewFakeClock(time.Date(2026, 6, 7, 12, 0, 0, 0, time.UTC))
-	return finance.NewService(store, store, clock)
+	idgen := platform.NewIDGen()
+	cfg := &config.GameConfig{BondFaceValue: 5000, BondMinInterest: 0.5, BondMaxInterest: 2.0}
+	return finance.NewService(store, store, clock, idgen, cfg)
 }
 
 func registerFinanceTestToken(t *testing.T, mux http.Handler, username string) string {
@@ -48,7 +50,7 @@ func TestFinanceRecentCashflow_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/cashflow/recent/", nil)
 	w := httptest.NewRecorder()
@@ -65,7 +67,7 @@ func TestFinanceRecentCashflow_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
 	token := registerFinanceTestToken(t, mux, "fin1")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/cashflow/recent/", nil)
@@ -102,7 +104,7 @@ func TestFinanceIncomeStatement_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
 	token := registerFinanceTestToken(t, mux, "fin2")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/income-statement/", nil)
@@ -139,7 +141,7 @@ func TestFinanceBalanceSheet_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
 	token := registerFinanceTestToken(t, mux, "fin3")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/balance-sheet/", nil)
@@ -173,7 +175,7 @@ func TestFinanceCashflowStatement_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
 	token := registerFinanceTestToken(t, mux, "fin4")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/cashflow-statement/", nil)
@@ -204,7 +206,7 @@ func TestFinancePastFinances_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
 	token := registerFinanceTestToken(t, mux, "fin5")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/past-finances/", nil)
