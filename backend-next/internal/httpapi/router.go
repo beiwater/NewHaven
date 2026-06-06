@@ -30,6 +30,8 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/bonds/", bondHandler.handleListBonds)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/bonds/", bondHandler.handleCreateBond)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/bonds/{bondId}/", bondHandler.handleGetBond)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/bonds/{bondId}/call/", bondHandler.handleCallBond)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/bonds/settle-interest/", bondHandler.handleSettleBondInterest)
 
 	// Player routes (authenticated)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/players/me/level/", playerHandler.handleLevel)
@@ -72,6 +74,7 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/buildings/{buildingId}/production-options/", productionHandler.handleProductionOptions)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/bonds/owned/", bondHandler.handleGetOwnedBonds)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/bonds/sold/", bondHandler.handleGetSoldBonds)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/bonds/{bondId}/buy/", bondHandler.handleBuyBond)
 	})
 
 	// API v3 domain routes (authenticated)

@@ -14,6 +14,7 @@ type ProfileResponse struct {
 	AuthCompany CompanyIdentity  `json:"authCompany"`
 	AuthUser    PlayerIdentity   `json:"authUser"`
 	LevelInfo   CompanyLevelInfo `json:"levelInfo"`
+	Unlocks     map[string]any   `json:"unlocks,omitempty"`
 	Preferences map[string]any   `json:"preferences"`
 }
 
@@ -53,6 +54,20 @@ func (s *Service) GetProfile(ctx context.Context, playerID, authenticatedCompany
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", errors.Join(ErrNotFound, err))
 	}
 	status := arrivalStoryStatus(c.Preferences)
+	unlocks := map[string]any{
+		"features": map[string]bool{},
+		"featureLevels": map[string]int{
+			"map": 1, "build": 1, "warehouse": 1, "leaderboard": 1,
+			"market": 2, "contracts": 3, "research": 4,
+			"executives": 5, "finance": 6,
+		},
+	}
+	features := unlocks["features"].(map[string]bool)
+	featureLevels := unlocks["featureLevels"].(map[string]int)
+	for f, lvl := range featureLevels {
+		features[f] = c.Level >= lvl
+	}
+
 	return &ProfileResponse{
 		AuthCompany: CompanyIdentity{
 			Company: c.Name, CompanyID: c.ID, Money: c.Money, Level: c.Level,
@@ -64,6 +79,7 @@ func (s *Service) GetProfile(ctx context.Context, playerID, authenticatedCompany
 			TutorialCompleted: status == "completed" || status == "skipped",
 		},
 		Preferences: cloneMap(c.Preferences),
+		Unlocks:     unlocks,
 	}, nil
 }
 

@@ -11,4 +11,6 @@ type BotService interface {
 	MatchAllOrders(ctx context.Context) error
 	// RefreshDailyOrders generates a new set of daily supply orders.
 	RefreshDailyOrders(ctx context.Context) error
+	// CleanupMarket removes stale/filled orders and refreshes daily orders.
+	CleanupMarket(ctx context.Context) error
 }

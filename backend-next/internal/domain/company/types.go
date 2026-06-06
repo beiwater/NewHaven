@@ -67,15 +67,16 @@ type Executive struct {
 	MgmtDiscount    float64 `json:"mgmtDiscount"`
 	Morale          int     `json:"morale,omitempty"`
 }
+
 // CompanyResponse is the public-facing company DTO.
 type CompanyResponse struct {
-	ID        int          `json:"id"`
-	Name      string       `json:"name"`
-	Money     float64      `json:"money"`
-	Level     int          `json:"level"`
-	XP        int64        `json:"xp"`
-	Buildings []Building   `json:"buildings"`
-	Inventory map[int]int  `json:"inventory"`
+	ID         int         `json:"id"`
+	Name       string      `json:"name"`
+	Money      float64     `json:"money"`
+	Level      int         `json:"level"`
+	XP         int64       `json:"xp"`
+	Buildings  []Building  `json:"buildings"`
+	Inventory  map[int]int `json:"inventory"`
 	Executives []Executive `json:"executives,omitempty"`
 }
 

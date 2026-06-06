@@ -154,6 +154,16 @@ func (s *Service) RefreshDailyOrders(_ context.Context) error {
 	return nil
 }
 
+// CleanupMarket removes stale orders (filled/cancelled/expired)
+// and refreshes daily orders.
+func (s *Service) CleanupMarket(_ context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// No-op for memory storage — orders are cleaned during matching/CancelOrder.
+	// This method exists as a hook for persistent storage implementations.
+	return nil
+}
+
 // estimateMidPrice estimates the mid-market price for a resource.
 func (s *Service) estimateMidPrice(ctx context.Context, resourceID int, rng *rand.Rand) float64 {
 	orders, err := s.market.GetOrdersByResource(ctx, resourceID)

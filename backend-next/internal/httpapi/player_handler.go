@@ -18,6 +18,71 @@ func NewPlayerHandler(companies storage.CompanyStorage) *PlayerHandler {
 	return &PlayerHandler{companies: companies}
 }
 
+// featureUnlockLevels defines which features unlock at which player level.
+var featureUnlockLevels = map[string]int{
+	"map":         1,
+	"build":       1,
+	"warehouse":   1,
+	"leaderboard": 1,
+	"market":      2,
+	"contracts":   3,
+	"research":    4,
+	"executives":  5,
+	"finance":     6,
+}
+
+// buildingUnlockLevels defines which building IDs unlock at which player level.
+var buildingUnlockLevels = map[int]int{
+	1:  1,  // Farm
+	2:  2,  // Barn
+	3:  2,  // Mill
+	4:  3,  // Kitchen
+	5:  4,  // Bakery
+	6:  5,  // Market Stall
+	7:  6,  // Cafe
+	8:  7,  // Food Truck
+	9:  8,  // Restaurant
+	10: 9,  // Trading Hub
+	11: 10, // Warehouse
+	12: 11, // Shop
+}
+
+func xpToNextLevel(level int) int {
+	if level < 1 {
+		return 100
+	}
+	return level * 100
+}
+
+func buildingSlotsForLevel(level int) int {
+	return 2 + level/2
+}
+
+// featureUnlocksAtLevel returns which features are unlocked and their unlock levels.
+func featureUnlocksAtLevel(level int) map[string]any {
+	features := make(map[string]bool)
+	featureLevels := make(map[string]int)
+	for f, lvl := range featureUnlockLevels {
+		featureLevels[f] = lvl
+		features[f] = level >= lvl
+	}
+	return map[string]any{
+		"features":      features,
+		"featureLevels": featureLevels,
+	}
+}
+
+// buildingUnlocksAtLevel returns which building IDs are unlocked at this level.
+func buildingUnlocksAtLevel(level int) []int {
+	var ids []int
+	for bid, lvl := range buildingUnlockLevels {
+		if lvl <= level {
+			ids = append(ids, bid)
+		}
+	}
+	return ids
+}
+
 // handleLevel returns the authenticated player's level info.
 func (h *PlayerHandler) handleLevel(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := CompanyIDFromCtx(r.Context())
@@ -33,10 +98,10 @@ func (h *PlayerHandler) handleLevel(w http.ResponseWriter, r *http.Request) {
 	writeSuccess(w, http.StatusOK, map[string]any{
 		"level":         c.Level,
 		"currentXp":     c.XP,
-		"xpToNextLevel": 1000, // fallback until formula is ported
-		"buildingSlots": 10,
+		"xpToNextLevel": xpToNextLevel(c.Level),
+		"buildingSlots": buildingSlotsForLevel(c.Level),
 		"buildingsUsed": len(c.Buildings),
-		"unlocks":       map[string]any{"features": map[string]any{}, "featureLevels": map[string]any{}},
+		"unlocks":       featureUnlocksAtLevel(c.Level),
 	})
 }
 

@@ -264,3 +264,175 @@ func (s *Service) GetSoldBonds(ctx context.Context, companyID int) (*openapi.Bon
 
 	return &openapi.BondListResponse{Bonds: &dtos}, nil
 }
+
+// BuyBond purchases a quantity of an existing bond on the secondary market.
+func (s *Service) BuyBond(ctx context.Context, companyID int, bondID string, amount int) (map[string]any, error) {
+	if amount <= 0 {
+		return nil, apperr.BadRequest("amount must be positive")
+	}
+
+	b, err := s.finance.GetBond(ctx, bondID)
+	if err != nil {
+		return nil, apperr.NotFoundf("bond %s not found", bondID)
+	}
+	if b.Status != "active" {
+		return nil, apperr.BadRequest("bond is not active")
+	}
+
+	company, err := s.companies.GetCompany(ctx, companyID)
+	if err != nil {
+		return nil, apperr.NotFoundf("company %d not found", companyID)
+	}
+
+	cost := b.FaceValue * float64(amount)
+	if company.Money < cost {
+		return nil, apperr.BadRequest("insufficient funds")
+	}
+
+	company.Money -= cost
+	if err := s.companies.UpdateCompany(ctx, company); err != nil {
+		return nil, apperr.Internalf("update company: %v", err)
+	}
+
+	now := s.clock.Now().UTC()
+	holding := &domainfinance.BondHolding{
+		BondID:      bondID,
+		CompanyID:   companyID,
+		Quantity:    amount,
+		PurchasedAt: now.Format(time.RFC3339),
+	}
+	if err := s.finance.CreateBondHolding(ctx, holding); err != nil {
+		return nil, apperr.Internalf("create holding: %v", err)
+	}
+
+	b.IssuedQuantity += amount
+	if err := s.finance.UpdateBond(ctx, b); err != nil {
+		return nil, apperr.Internalf("update bond: %v", err)
+	}
+
+	s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+		CompanyID: companyID,
+		Kind:      "bond_buy", Amount: cost, Direction: "out",
+		CreatedAt: now.Format(time.RFC3339),
+		Metadata:  map[string]any{"bond_id": bondID, "quantity": amount},
+	})
+
+	return map[string]any{"ok": true}, nil
+}
+
+// CallBond redeems a bond before maturity (issuer action).
+func (s *Service) CallBond(ctx context.Context, companyID int, bondID string, amount int) (map[string]any, error) {
+	if amount <= 0 {
+		return nil, apperr.BadRequest("amount must be positive")
+	}
+
+	b, err := s.finance.GetBond(ctx, bondID)
+	if err != nil {
+		return nil, apperr.NotFoundf("bond %s not found", bondID)
+	}
+	if b.IssuerCompanyID != companyID {
+		return nil, apperr.Forbidden("only the issuer can call this bond")
+	}
+	if b.Status != "active" {
+		return nil, apperr.BadRequest("bond is not active")
+	}
+
+	now := s.clock.Now().UTC()
+	holdings, err := s.finance.GetBondHoldings(ctx, bondID)
+	if err != nil {
+		return nil, apperr.Internalf("get holdings: %v", err)
+	}
+
+	totalPayback := 0.0
+	for _, h := range holdings {
+		payback := b.FaceValue * float64(h.Quantity)
+		totalPayback += payback
+
+		holder, err := s.companies.GetCompany(ctx, h.CompanyID)
+		if err != nil {
+			continue
+		}
+		holder.Money += payback
+		if err := s.companies.UpdateCompany(ctx, holder); err != nil {
+			continue
+		}
+
+		s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+			CompanyID: h.CompanyID,
+			Kind:      "bond_call", Amount: payback, Direction: "in",
+			CreatedAt: now.Format(time.RFC3339),
+		})
+	}
+
+	if totalPayback > 0 {
+		s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+			CompanyID: companyID,
+			Kind:      "bond_call", Amount: totalPayback, Direction: "out",
+			CreatedAt: now.Format(time.RFC3339),
+		})
+	}
+
+	b.Status = "called"
+	if err := s.finance.UpdateBond(ctx, b); err != nil {
+		return nil, apperr.Internalf("update bond: %v", err)
+	}
+
+	return map[string]any{"ok": true}, nil
+}
+
+// SettleBondInterest pays interest to all bond holders.
+func (s *Service) SettleBondInterest(ctx context.Context) (map[string]any, error) {
+	bonds, err := s.finance.GetActiveBonds(ctx)
+	if err != nil {
+		return nil, apperr.Internalf("get active bonds: %v", err)
+	}
+
+	now := s.clock.Now().UTC()
+	settledCount := 0
+
+	for _, b := range bonds {
+		b := b
+		holdings, err := s.finance.GetBondHoldings(ctx, b.ID)
+		if err != nil {
+			continue
+		}
+
+		for _, h := range holdings {
+			interest := b.FaceValue * float64(h.Quantity) * (b.InterestRate / 100)
+
+			holder, err := s.companies.GetCompany(ctx, h.CompanyID)
+			if err != nil {
+				continue
+			}
+			holder.Money += interest
+			if err := s.companies.UpdateCompany(ctx, holder); err != nil {
+				continue
+			}
+
+			s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+				CompanyID: h.CompanyID,
+				Kind:      "bond_interest_income", Amount: interest, Direction: "in",
+				CreatedAt: now.Format(time.RFC3339),
+			})
+			settledCount++
+		}
+
+		// Issuer pays interest.
+		issuer, err := s.companies.GetCompany(ctx, b.IssuerCompanyID)
+		if err != nil {
+			continue
+		}
+		totalInterest := b.FaceValue * float64(b.IssuedQuantity) * (b.InterestRate / 100)
+		issuer.Money -= totalInterest
+		if err := s.companies.UpdateCompany(ctx, issuer); err != nil {
+			continue
+		}
+		s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+			CompanyID: b.IssuerCompanyID,
+			Kind:      "bond_interest_expense", Amount: totalInterest, Direction: "out",
+			CreatedAt: now.Format(time.RFC3339),
+		})
+	}
+
+	return map[string]any{"ok": true, "settledCount": settledCount}, nil
+}

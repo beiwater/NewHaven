@@ -62,5 +62,10 @@ func (s *Scheduler) tick() {
 		slog.Warn("[scheduler] MatchAllOrders", "error", err)
 	}
 
+	// 4. Cleanup stale orders
+	if err := s.svc.CleanupMarket(ctx); err != nil {
+		slog.Warn("[scheduler] CleanupMarket", "error", err)
+	}
+
 	slog.Debug("[scheduler] tick end")
 }

@@ -62,7 +62,9 @@ func (h *ExecutiveHandler) handleSearchExecutives(w http.ResponseWriter, r *http
 		Scope string `json:"scope,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		req = struct{ Scope string `json:"scope,omitempty"` }{}
+		req = struct {
+			Scope string `json:"scope,omitempty"`
+		}{}
 	}
 	if req.Scope == "" {
 		req.Scope = "market"
