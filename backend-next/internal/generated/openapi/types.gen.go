@@ -176,6 +176,17 @@ type BuyBuildingResponse struct {
 	Cost     *float64     `json:"cost,omitempty"`
 }
 
+// CancelJobRequest defines model for CancelJobRequest.
+type CancelJobRequest struct {
+	JobId string `json:"jobId"`
+}
+
+// CancelJobResponse defines model for CancelJobResponse.
+type CancelJobResponse struct {
+	JobId  *string `json:"jobId,omitempty"`
+	Status *string `json:"status,omitempty"`
+}
+
 // CancelOrderResponse defines model for CancelOrderResponse.
 type CancelOrderResponse struct {
 	Id     *string `json:"id,omitempty"`
@@ -194,6 +205,13 @@ type CashflowStatementResponse struct {
 	Financing *float32 `json:"financing,omitempty"`
 	Investing *float32 `json:"investing,omitempty"`
 	Operating *float32 `json:"operating,omitempty"`
+}
+
+// ClaimAllResponse defines model for ClaimAllResponse.
+type ClaimAllResponse struct {
+	Claimed *[]interface{} `json:"claimed,omitempty"`
+	Errors  *[]string      `json:"errors,omitempty"`
+	Total   *int           `json:"total,omitempty"`
 }
 
 // ClaimProductionResponse defines model for ClaimProductionResponse.
@@ -439,6 +457,13 @@ type ProductionJobListResponse struct {
 	Jobs *[]ProductionJobDTO `json:"jobs,omitempty"`
 }
 
+// ProductionQueueResponse defines model for ProductionQueueResponse.
+type ProductionQueueResponse struct {
+	ByBuilding *map[string][]ProductionJobDTO `json:"byBuilding,omitempty"`
+	InUse      *int                           `json:"inUse,omitempty"`
+	MaxSlots   *int                           `json:"maxSlots,omitempty"`
+}
+
 // RecentCashflowResponse defines model for RecentCashflowResponse.
 type RecentCashflowResponse struct {
 	Data         *[]CashflowEntry `json:"data,omitempty"`
@@ -570,6 +595,9 @@ type CreateMarketOrderJSONRequestBody = CreateOrderRequestFrontend
 // TakeMarketOrderJSONRequestBody defines body for TakeMarketOrder for application/json ContentType.
 type TakeMarketOrderJSONRequestBody = TakeOrderRequest
 
+// CancelProductionJSONRequestBody defines body for CancelProduction for application/json ContentType.
+type CancelProductionJSONRequestBody = CancelJobRequest
+
 // StartProductionJSONRequestBody defines body for StartProduction for application/json ContentType.
 type StartProductionJSONRequestBody = StartProductionRequest
 
@@ -608,6 +636,9 @@ type ServerInterface interface {
 	// Place a building on the map
 	// (POST /api/v2/buildings/place/)
 	PlaceBuilding(w http.ResponseWriter, r *http.Request)
+	// List production options for a building
+	// (GET /api/v2/buildings/{buildingId}/production-options/)
+	GetProductionOptions(w http.ResponseWriter, r *http.Request, buildingId string)
 	// Balance sheet
 	// (GET /api/v2/companies/me/balance-sheet/)
 	GetBalanceSheet(w http.ResponseWriter, r *http.Request)
@@ -644,6 +675,12 @@ type ServerInterface interface {
 	// List my companies
 	// (GET /api/v2/players/me/companies/)
 	ListMyCompanies(w http.ResponseWriter, r *http.Request)
+	// Cancel a production job and refund inputs
+	// (POST /api/v2/production/cancel/)
+	CancelProduction(w http.ResponseWriter, r *http.Request)
+	// Claim all completed production jobs
+	// (POST /api/v2/production/claim-all/)
+	ClaimAllProduction(w http.ResponseWriter, r *http.Request)
 	// Claim produced resources from a production job
 	// (POST /api/v2/production/claim/{jobId}/)
 	ClaimProduction(w http.ResponseWriter, r *http.Request, jobId string)
@@ -653,6 +690,9 @@ type ServerInterface interface {
 	// List production jobs for my company
 	// (GET /api/v2/production/jobs/)
 	ListProductionJobs(w http.ResponseWriter, r *http.Request)
+	// Get production queue overview
+	// (GET /api/v2/production/queue/)
+	GetProductionQueue(w http.ResponseWriter, r *http.Request)
 	// Start a production job
 	// (POST /api/v2/production/start/)
 	StartProduction(w http.ResponseWriter, r *http.Request)
@@ -752,6 +792,12 @@ func (_ Unimplemented) PlaceBuilding(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// List production options for a building
+// (GET /api/v2/buildings/{buildingId}/production-options/)
+func (_ Unimplemented) GetProductionOptions(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Balance sheet
 // (GET /api/v2/companies/me/balance-sheet/)
 func (_ Unimplemented) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
@@ -824,6 +870,18 @@ func (_ Unimplemented) ListMyCompanies(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Cancel a production job and refund inputs
+// (POST /api/v2/production/cancel/)
+func (_ Unimplemented) CancelProduction(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Claim all completed production jobs
+// (POST /api/v2/production/claim-all/)
+func (_ Unimplemented) ClaimAllProduction(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Claim produced resources from a production job
 // (POST /api/v2/production/claim/{jobId}/)
 func (_ Unimplemented) ClaimProduction(w http.ResponseWriter, r *http.Request, jobId string) {
@@ -839,6 +897,12 @@ func (_ Unimplemented) ListClaimableJobs(w http.ResponseWriter, r *http.Request)
 // List production jobs for my company
 // (GET /api/v2/production/jobs/)
 func (_ Unimplemented) ListProductionJobs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get production queue overview
+// (GET /api/v2/production/queue/)
+func (_ Unimplemented) GetProductionQueue(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1155,6 +1219,38 @@ func (siw *ServerInterfaceWrapper) PlaceBuilding(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetProductionOptions operation middleware
+func (siw *ServerInterfaceWrapper) GetProductionOptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProductionOptions(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetBalanceSheet operation middleware
 func (siw *ServerInterfaceWrapper) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
 
@@ -1407,6 +1503,46 @@ func (siw *ServerInterfaceWrapper) ListMyCompanies(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// CancelProduction operation middleware
+func (siw *ServerInterfaceWrapper) CancelProduction(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelProduction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClaimAllProduction operation middleware
+func (siw *ServerInterfaceWrapper) ClaimAllProduction(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClaimAllProduction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ClaimProduction operation middleware
 func (siw *ServerInterfaceWrapper) ClaimProduction(w http.ResponseWriter, r *http.Request) {
 
@@ -1470,6 +1606,26 @@ func (siw *ServerInterfaceWrapper) ListProductionJobs(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListProductionJobs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetProductionQueue operation middleware
+func (siw *ServerInterfaceWrapper) GetProductionQueue(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProductionQueue(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1848,6 +2004,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/v2/buildings/place/", wrapper.PlaceBuilding)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/buildings/{buildingId}/production-options/", wrapper.GetProductionOptions)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/balance-sheet/", wrapper.GetBalanceSheet)
 	})
 	r.Group(func(r chi.Router) {
@@ -1884,6 +2043,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/players/me/companies/", wrapper.ListMyCompanies)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/production/cancel/", wrapper.CancelProduction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/production/claim-all/", wrapper.ClaimAllProduction)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/production/claim/{jobId}/", wrapper.ClaimProduction)
 	})
 	r.Group(func(r chi.Router) {
@@ -1891,6 +2056,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/production/jobs/", wrapper.ListProductionJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/production/queue/", wrapper.GetProductionQueue)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/production/start/", wrapper.StartProduction)

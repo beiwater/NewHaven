@@ -412,6 +412,16 @@ func (s *Store) UpdateJob(_ context.Context, j *production.ProductionJob) error 
 	return nil
 }
 
+func (s *Store) DeleteJob(_ context.Context, jobID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.jobs[jobID]; !ok {
+		return fmt.Errorf("job not found")
+	}
+	delete(s.jobs, jobID)
+	return nil
+}
+
 // --- FinanceStorage ---
 
 func (s *Store) AppendLedgerEntry(_ context.Context, e *finance.LedgerEntry) error {

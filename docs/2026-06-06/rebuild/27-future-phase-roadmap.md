@@ -44,9 +44,8 @@ Every future phase follows this control loop:
 
 ```text
 Codex defines scope and acceptance criteria
--> OMP performs bounded reconnaissance
--> Codex reviews and approves the plan
--> OMP implements the approved scope
+-> Codex performs bounded reconnaissance
+-> Codex implements the approved scope
 -> Codex reviews the diff and corrects issues
 -> tests, vet, build, contract checks, and relevant parity checks run
 -> phase document and Git checkpoint are created

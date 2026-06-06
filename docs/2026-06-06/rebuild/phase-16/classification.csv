@@ -53,11 +53,11 @@ legacy_path,method,handler_file,handler_func,frontend_callsite,migrated_path,dis
 /api/v2/production/jobs/,any,production.go,handleProductionJobs,production.api.ts:useProductionJobs,/api/v2/production/jobs/,migrated,production,shape+semantics,/api/v2/production/jobs/,prefix
 /api/v2/production/claim/,POST,production.go,handleClaimProduction,production.api.ts:useClaimProduction,/api/v2/production/claim/{jobId}/,migrated,production,shape+semantics,/api/v2/production/claim/{jobId}/,exact
 /api/v2/production/claimable/,any,production.go,handleClaimable,production.api.ts:useClaimableJobs,/api/v2/production/claimable/,migrated,production,shape+semantics,/api/v2/production/claimable/,prefix
-/api/v2/production/claim-all/,any,production.go,handleClaimAll,production.api.ts:useClaimAll,none,remaining-core,production,shape+semantics,none,prefix
-/api/v2/production/queue/,any,production_queue.go,handleProductionQueue,production.api.ts:useProductionQueue,none,remaining-core,production,shape,none,prefix
+/api/v2/production/claim-all/,any,production.go,handleClaimAll,production.api.ts:useClaimAll,/api/v2/production/claim-all/,migrated,production,shape+semantics,/api/v2/production/claim-all/,prefix
+/api/v2/production/queue/,any,production_queue.go,handleProductionQueue,production.api.ts:useProductionQueue,/api/v2/production/queue/,migrated,production,shape,/api/v2/production/queue/,prefix
 /api/v2/production/slots/add/,any,production_queue.go,handleAddSlot,none,none,remaining-core,production,shape+semantics,none,prefix
-/api/v2/production/cancel/,any,production_queue.go,handleCancelProduction,production.api.ts:useCancelJob,none,remaining-core,production,shape+semantics,none,prefix
-/api/bonds/settle-interest/,POST,bond.go,handleSettleBondInterest,none,none,remaining-core,bond,shape+semantics,none,exact
+/api/v2/production/cancel/,any,production_queue.go,handleCancelProduction,production.api.ts:useCancelJob,/api/v2/production/cancel/,migrated,production,shape+semantics,/api/v2/production/cancel/,prefix
+/api/bonds/settle-interest/,POST,bond.go,handleSettleBondInterest,none,none,deferred-plugin,bond,shape+semantics,none,exact
 /api/bonds/,any,bond.go,handleBonds,none,/api/bonds/+/api/bonds/{bondId}/,migrated,bond,shape+semantics,/api/bonds/,internal-switch
 /api/v2/companies/me/bonds/owned/,any,bond.go,handleBondsOwned,none,/api/v2/companies/me/bonds/owned/,migrated,bond,shape+semantics,/api/v2/companies/me/bonds/owned/,prefix
 /api/v2/companies/me/bonds/sold/,any,bond.go,handleBondsSold,none,/api/v2/companies/me/bonds/sold/,migrated,bond,shape+semantics,/api/v2/companies/me/bonds/sold/,prefix

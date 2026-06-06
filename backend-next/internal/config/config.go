@@ -33,6 +33,7 @@ type GameConfig struct {
 	AdminOverheadBase    float64 `json:"admin_overhead_base"`
 	BaseBuildingCost     float64 `json:"base_building_cost"`
 	WarehouseBaseCap     int     `json:"warehouse_base_cap"`
+	BaseProductionSlots  int     `json:"base_production_slots"`
 	WarehouseUpgradeCost float64 `json:"warehouse_upgrade_cost"`
 }
 
@@ -84,6 +85,7 @@ func defaultGameConfig() *GameConfig {
 		ProductionMod:        1.0,
 		AdminOverheadBase:    1.35,
 		BaseBuildingCost:     50000,
+		BaseProductionSlots:  3,
 		WarehouseBaseCap:     1000,
 		WarehouseUpgradeCost: 25000,
 	}

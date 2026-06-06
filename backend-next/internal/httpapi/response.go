@@ -9,9 +9,9 @@ import (
 
 // APIResponse is the standard success response.
 type APIResponse struct {
-	Data  any          `json:"data"`
-	Error *APIError    `json:"error"`
-	Meta  *APIMeta     `json:"meta,omitempty"`
+	Data  any       `json:"data"`
+	Error *APIError `json:"error"`
+	Meta  *APIMeta  `json:"meta,omitempty"`
 }
 
 // APIError is the standard error payload.

@@ -653,3 +653,139 @@ func TestClaimProduction_Success_200(t *testing.T) {
 		t.Errorf("expected positive xp, got %v", data["xp"])
 	}
 }
+
+// --- ProductionQueue handler tests ---
+
+func TestProductionQueue_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/queue/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}
+
+// --- ProductionOptions handler tests ---
+
+func TestProductionOptions_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/buildings/b1/production-options/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}
+
+// --- CancelProduction handler tests ---
+
+func TestCancelProduction_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/cancel/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}
+
+// --- ClaimAll handler tests ---
+
+func TestClaimAll_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim-all/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}

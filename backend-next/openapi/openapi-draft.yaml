@@ -393,6 +393,110 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 
+  /api/v2/production/queue/:
+    get:
+      tags: [Production]
+      summary: Get production queue overview
+      operationId: getProductionQueue
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Production queue overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionQueueResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/buildings/{buildingId}/production-options/:
+    get:
+      tags: [Production]
+      summary: List production options for a building
+      operationId: getProductionOptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Production options list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResourceDefinition'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/cancel/:
+    post:
+      tags: [Production]
+      summary: Cancel a production job and refund inputs
+      operationId: cancelProduction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelJobRequest'
+      responses:
+        "200":
+          description: Production job cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelJobResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/claim-all/:
+    post:
+      tags: [Production]
+      summary: Claim all completed production jobs
+      operationId: claimAllProduction
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: All claimable jobs claimed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimAllResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v3/resources/:
     get:
       tags: [Market]
@@ -1613,6 +1717,50 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClaimableJobDTO'
+
+    # --- Production Queue ---
+
+    ProductionQueueResponse:
+      type: object
+      properties:
+        byBuilding:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/ProductionJobDTO'
+        inUse:
+          type: integer
+        maxSlots:
+          type: integer
+
+    CancelJobRequest:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: string
+
+    CancelJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+
+    ClaimAllResponse:
+      type: object
+      properties:
+        claimed:
+          type: array
+          items: {}
+        errors:
+          type: array
+          items:
+            type: string
+        total:
+          type: integer
 
     # --- Finance ---
 

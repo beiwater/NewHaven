@@ -54,6 +54,7 @@ type ProductionStorage interface {
 	GetJobsByCompany(ctx context.Context, companyID int) ([]production.ProductionJob, error)
 	GetJobsByBuilding(ctx context.Context, buildingID string) ([]production.ProductionJob, error)
 	UpdateJob(ctx context.Context, j *production.ProductionJob) error
+	DeleteJob(ctx context.Context, jobID string) error
 }
 
 // FinanceStorage handles ledger and bond persistence.

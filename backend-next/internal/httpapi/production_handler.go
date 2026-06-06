@@ -104,3 +104,71 @@ func (h *ProductionHandler) handleListClaimableJobs(w http.ResponseWriter, r *ht
 
 	writeSuccess(w, 200, resp)
 }
+
+func (h *ProductionHandler) handleProductionQueue(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	resp, err := h.svc.ProductionQueue(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+func (h *ProductionHandler) handleProductionOptions(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	buildingID := chi.URLParam(r, "buildingId")
+	if buildingID == "" {
+		writeErr(w, 400, ErrorBadRequest, "buildingId required", nil)
+		return
+	}
+	resp, err := h.svc.ProductionOptions(r.Context(), companyID, buildingID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+func (h *ProductionHandler) handleCancelProduction(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	var req struct {
+		JobID string `json:"jobId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.JobID == "" {
+		writeErr(w, 400, ErrorBadRequest, "jobId required", nil)
+		return
+	}
+	resp, err := h.svc.CancelProductionJob(r.Context(), companyID, req.JobID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+func (h *ProductionHandler) handleClaimAll(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	resp, err := h.svc.ClaimAll(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
