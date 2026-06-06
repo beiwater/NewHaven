@@ -27,7 +27,7 @@ func newProductionSvc(store *memory.Store) *production.Service {
 	cfg := &config.GameConfig{ProductionMod: 1.0}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	return production.NewService(store, store, store, cfg,
+	return production.NewService(store, store, store, store, cfg,
 		make(map[int]*catalog.ResourceEntry),
 		make(map[int]*catalog.BuildingEntry),
 		clock, idgen)
@@ -297,7 +297,7 @@ func TestStartProduction_Success_200(t *testing.T) {
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	productionSvc := production.NewService(store, store, store, &config.GameConfig{ProductionMod: 1.0},
+	productionSvc := production.NewService(store, store, store, store, &config.GameConfig{ProductionMod: 1.0},
 		resources, buildings, clock, idgen)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)

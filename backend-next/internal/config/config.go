@@ -43,6 +43,9 @@ type GameConfig struct {
 	WarehouseUpgradeCost float64 `json:"warehouse_upgrade_cost"`
 	BaseOutput           float64 `json:"base_output"`
 	MaxBuildings         int     `json:"max_buildings"`
+	ResearchBaseCost   float64 `json:"research_base_cost"`
+	ResearchCostGrowth float64 `json:"research_cost_growth"`
+	ResearchSpeedBonus float64 `json:"research_speed_bonus"`
 }
 
 func Load() *Config {
@@ -126,6 +129,9 @@ func defaultGameConfig() *GameConfig {
 		WarehouseUpgradeCost: 25000,
 		BaseOutput:           100,
 		MaxBuildings:         20,
+		ResearchBaseCost:   1000,
+		ResearchCostGrowth: 1.2,
+		ResearchSpeedBonus: 0.002,
 	}
 }
 

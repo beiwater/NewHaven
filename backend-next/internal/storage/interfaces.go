@@ -76,11 +76,11 @@ type FinanceStorage interface {
 	GetCompanyBondHoldings(ctx context.Context, companyID int) ([]finance.BondHolding, error)
 }
 
-// ResearchStorage handles research persistence.
+// ResearchStorage handles research persistence for per-resource levels.
 type ResearchStorage interface {
-	GetProjects(ctx context.Context) ([]research.Project, error)
-	GetCompanyProgress(ctx context.Context, companyID int) ([]research.CompanyProgress, error)
-	SaveProgress(ctx context.Context, p *research.CompanyProgress) error
+	GetCompanyResearch(ctx context.Context, companyID int) ([]research.ResourceResearch, error)
+	GetResourceResearch(ctx context.Context, companyID int, resourceID int) (*research.ResourceResearch, error)
+	SaveResourceResearch(ctx context.Context, rr *research.ResourceResearch) error
 }
 
 // SocialStorage handles chat and notification persistence.

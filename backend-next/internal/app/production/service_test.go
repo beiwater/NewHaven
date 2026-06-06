@@ -34,7 +34,7 @@ func newTestService(t *testing.T, resources map[int]*catalog.ResourceEntry, buil
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	svc := production.NewService(store, store, store, cfg, resources, buildings, clock, idgen)
+	svc := production.NewService(store, store, store, store, cfg, resources, buildings, clock, idgen)
 	return svc, store
 }
 

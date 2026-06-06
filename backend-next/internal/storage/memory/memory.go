@@ -38,8 +38,7 @@ type Store struct {
 	ledger     []finance.LedgerEntry
 	bonds      map[string]*finance.Bond
 	holdings   []finance.BondHolding
-	research   []research.Project
-	progress   []research.CompanyProgress
+	companyResearch map[string]*research.ResourceResearch
 	messages   []social.Message
 	notifs     []social.Notification
 	warehouses map[int]*warehouse.Warehouse
@@ -57,6 +56,7 @@ func New() *Store {
 		jobs:       make(map[string]*production.ProductionJob),
 		bonds:      make(map[string]*finance.Bond),
 		warehouses: make(map[int]*warehouse.Warehouse),
+		companyResearch: make(map[string]*research.ResourceResearch),
 		nextID:     1,
 		snapshotPath: envOrDefault("SIM_API_SNAPSHOT_PATH", "data/snapshot.json"),
 	}
@@ -143,8 +143,13 @@ func (s *Store) collectSnapshot() *storage.GameSnapshot {
 	snap.Trades = append([]market.Trade(nil), s.trades...)
 	snap.Ledger = append([]finance.LedgerEntry(nil), s.ledger...)
 	snap.Holdings = append([]finance.BondHolding(nil), s.holdings...)
-	snap.Research = append([]research.Project(nil), s.research...)
-	snap.Progress = append([]research.CompanyProgress(nil), s.progress...)
+	if s.companyResearch != nil {
+		rrCopy := make(map[string]research.ResourceResearch, len(s.companyResearch))
+		for k, v := range s.companyResearch {
+			rrCopy[k] = *v
+		}
+		snap.CompanyResearch = rrCopy
+	}
 	snap.Messages = append([]social.Message(nil), s.messages...)
 	snap.Notifs = append([]social.Notification(nil), s.notifs...)
 	snap.NextID = s.nextID
@@ -202,15 +207,14 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	} else {
 		s.holdings = nil
 	}
-	if snap.Research != nil {
-		s.research = snap.Research
+	if snap.CompanyResearch != nil {
+		s.companyResearch = make(map[string]*research.ResourceResearch, len(snap.CompanyResearch))
+		for k, v := range snap.CompanyResearch {
+			v := v
+			s.companyResearch[k] = &v
+		}
 	} else {
-		s.research = nil
-	}
-	if snap.Progress != nil {
-		s.progress = snap.Progress
-	} else {
-		s.progress = nil
+		s.companyResearch = make(map[string]*research.ResourceResearch)
 	}
 	if snap.Messages != nil {
 		s.messages = snap.Messages
@@ -747,28 +751,37 @@ func (s *Store) GetCompanyBondHoldings(_ context.Context, companyID int) ([]fina
 
 // --- ResearchStorage ---
 
-func (s *Store) GetProjects(_ context.Context) ([]research.Project, error) {
+func (s *Store) GetCompanyResearch(_ context.Context, companyID int) ([]research.ResourceResearch, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.research, nil
-}
-
-func (s *Store) GetCompanyProgress(_ context.Context, companyID int) ([]research.CompanyProgress, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	var result []research.CompanyProgress
-	for _, p := range s.progress {
-		if p.CompanyID == companyID {
-			result = append(result, p)
+	var result []research.ResourceResearch
+	prefix := fmt.Sprintf("%d:", companyID)
+	for k, v := range s.companyResearch {
+		if strings.HasPrefix(k, prefix) {
+			result = append(result, *v)
 		}
+	}
+	if result == nil {
+		result = []research.ResourceResearch{}
 	}
 	return result, nil
 }
 
-func (s *Store) SaveProgress(_ context.Context, p *research.CompanyProgress) error {
+func (s *Store) GetResourceResearch(_ context.Context, companyID int, resourceID int) (*research.ResourceResearch, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	key := fmt.Sprintf("%d:%d", companyID, resourceID)
+	if rr, ok := s.companyResearch[key]; ok {
+		return rr, nil
+	}
+	return nil, nil
+}
+
+func (s *Store) SaveResourceResearch(_ context.Context, rr *research.ResourceResearch) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.progress = append(s.progress, *p)
+	key := fmt.Sprintf("%d:%d", rr.CompanyID, rr.ResourceID)
+	s.companyResearch[key] = rr
 	return nil
 }
 

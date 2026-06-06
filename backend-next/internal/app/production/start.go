@@ -93,7 +93,15 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	if resEntry.ProducedPerHourRaw <= 0 {
 		return nil, apperr.Validationf("invalid production rate for resource %d", req.ResourceId)
 	}
-	duration := formula.DurationSeconds(req.Quantity, resEntry.ProducedPerHourRaw, level, prodMod)
+
+	// Apply research speed bonus (if any) to reduce production duration.
+	researchLevel := 0
+	if rr, err := s.research.GetResourceResearch(ctx, companyID, req.ResourceId); err == nil && rr != nil {
+		researchLevel = rr.Level
+	}
+	effectiveMod := prodMod * formula.ResearchSpeedBonus(researchLevel)
+
+	duration := formula.DurationSeconds(req.Quantity, resEntry.ProducedPerHourRaw, level, effectiveMod)
 	durationSeconds := int(duration)
 
 	// Duration cap: 48h validation.

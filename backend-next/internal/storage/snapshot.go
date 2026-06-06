@@ -23,8 +23,7 @@ type GameSnapshot struct {
 	Ledger      []finance.LedgerEntry                `json:"ledger"`
 	Bonds       map[string]*finance.Bond             `json:"bonds"`
 	Holdings    []finance.BondHolding                `json:"holdings"`
-	Research    []research.Project                   `json:"research"`
-	Progress    []research.CompanyProgress           `json:"companyProgress"`
+	CompanyResearch map[string]research.ResourceResearch `json:"companyResearch"` // key: "companyID:resourceID"
 	Messages    []social.Message                     `json:"messages"`
 	Notifs      []social.Notification                `json:"notifications"`
 	Warehouses  map[int]*warehouse.Warehouse         `json:"warehouses"`

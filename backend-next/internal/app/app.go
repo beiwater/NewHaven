@@ -10,6 +10,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app/finance"
 	"github.com/newhaven/backend-next/internal/app/market"
 	"github.com/newhaven/backend-next/internal/app/production"
+	"github.com/newhaven/backend-next/internal/app/research"
 	"github.com/newhaven/backend-next/internal/app/warehouse"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
@@ -39,6 +40,7 @@ type App struct {
 	BuildingService   *building.Service
 	ProductionService *production.Service
 	MarketService     *market.Service
+	ResearchService   *research.Service
 	FinanceService    *finance.Service
 
 	// Scheduler dependencies
@@ -87,18 +89,20 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	// Building
 	buildingSvc := building.NewService(st, buildings, cfg.Game, clock, idgen)
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
-
 	// Production
-	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, clock, idgen)
+	productionSvc := production.NewService(st, st, st, st, cfg.Game, resources, buildings, clock, idgen)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+
+	// Research
+	researchSvc := research.NewService(st, st, resources, cfg.Game, logger)
+	researchHandler := httpapi.NewResearchHandler(researchSvc)
 
 	// Finance
 	financeSvc := finance.NewService(st, st, clock, idgen, cfg.Game)
 	financeHandler := httpapi.NewFinanceHandler(financeSvc)
 	bondHandler := httpapi.NewBondHandler(financeSvc)
-	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	playerHandler := httpapi.NewPlayerHandler(st)
 	contractHandler := httpapi.NewContractHandler()
-	researchHandler := httpapi.NewResearchHandler(st, st)
 	executiveHandler := httpapi.NewExecutiveHandler(st)
 	leaderboardHandler := httpapi.NewLeaderboardHandler()
 	socialHandler := httpapi.NewSocialHandler(st)
@@ -142,6 +146,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		ProductionService: productionSvc,
 		MarketService:     marketSvc,
 		FinanceService:    financeSvc,
+		ResearchService:   researchSvc,
 
 		PostgresStore: pgStore,
 		SaveAll:       saveAll,

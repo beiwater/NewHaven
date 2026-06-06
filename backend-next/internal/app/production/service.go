@@ -20,10 +20,11 @@ const MaxDurationSeconds = 48 * 3600
 
 // Service is the production application use case.
 type Service struct {
-	mu sync.Mutex
+	mu         sync.Mutex
 	production storage.ProductionStorage
 	companies  storage.CompanyStorage
 	finance    storage.FinanceStorage
+	research   storage.ResearchStorage
 	cfg        *config.GameConfig
 	resources  map[int]*catalog.ResourceEntry
 	buildings  map[int]*catalog.BuildingEntry
@@ -36,6 +37,7 @@ func NewService(
 	production storage.ProductionStorage,
 	companies storage.CompanyStorage,
 	finance storage.FinanceStorage,
+	research storage.ResearchStorage,
 	cfg *config.GameConfig,
 	resources map[int]*catalog.ResourceEntry,
 	buildings map[int]*catalog.BuildingEntry,
@@ -46,6 +48,7 @@ func NewService(
 		production: production,
 		companies:  companies,
 		finance:    finance,
+		research:   research,
 		cfg:        cfg,
 		resources:  resources,
 		buildings:  buildings,

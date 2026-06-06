@@ -596,3 +596,69 @@ func TestUnitsSoldPerHour_LowPrice(t *testing.T) {
 		t.Errorf("UnitsSoldPerHour below-cost price = %g, want 0", got)
 	}
 }
+
+// --- Research Formulas ---
+
+func TestResearchFormulas(t *testing.T) {
+	t.Run("ResearchBaseCost", func(t *testing.T) {
+		tests := []struct {
+			tier     int
+			baseCost float64
+			want     float64
+		}{
+			{tier: 1, baseCost: 1000, want: 1000},
+			{tier: 2, baseCost: 1000, want: 2000},
+			{tier: 3, baseCost: 1000, want: 4000},
+			{tier: 4, baseCost: 1000, want: 8000},
+		}
+		for _, tc := range tests {
+			got := formula.ResearchBaseCost(tc.tier, tc.baseCost)
+			if got != tc.want {
+				t.Errorf("ResearchBaseCost(tier=%d, baseCost=%g) = %g, want %g", tc.tier, tc.baseCost, got, tc.want)
+			}
+		}
+	})
+
+	t.Run("ResearchLevelCost", func(t *testing.T) {
+		tests := []struct {
+			baseCost float64
+			level    int
+			want     float64
+			approx   bool
+		}{
+			{baseCost: 1000, level: 1, want: 1000},
+			{baseCost: 1000, level: 2, want: 1200},
+			{baseCost: 1000, level: 3, want: 1440},
+			{baseCost: 1000, level: 10, want: 5159.78, approx: true},
+		}
+		for _, tc := range tests {
+			got := formula.ResearchLevelCost(tc.baseCost, tc.level)
+			if tc.approx {
+				if math.Abs(got-tc.want) > 0.01 {
+					t.Errorf("ResearchLevelCost(baseCost=%g, level=%d) = %g, want ~%g", tc.baseCost, tc.level, got, tc.want)
+				}
+			} else {
+				if got != tc.want {
+					t.Errorf("ResearchLevelCost(baseCost=%g, level=%d) = %g, want %g", tc.baseCost, tc.level, got, tc.want)
+				}
+			}
+		}
+	})
+
+	t.Run("ResearchSpeedBonus", func(t *testing.T) {
+		tests := []struct {
+			level int
+			want  float64
+		}{
+			{level: 0, want: 1.0},
+			{level: 50, want: 1.1},
+			{level: 100, want: 1.2},
+		}
+		for _, tc := range tests {
+			got := formula.ResearchSpeedBonus(tc.level)
+			if got != tc.want {
+				t.Errorf("ResearchSpeedBonus(level=%d) = %g, want %g", tc.level, got, tc.want)
+			}
+		}
+	})
+}
