@@ -152,6 +152,28 @@ func (h *BuildingHandler) handleDemolishBuilding(w http.ResponseWriter, r *http.
 	writeSuccess(w, 200, resp)
 }
 
+// handleStashBuilding stashes a placed building back into inventory.
+func (h *BuildingHandler) handleStashBuilding(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	var req struct {
+		BuildingID string `json:"buildingId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.BuildingID == "" {
+		writeErr(w, http.StatusBadRequest, ErrorValidation, "buildingId is required", nil)
+		return
+	}
+	resp, err := h.svc.StashBuilding(r.Context(), companyID, req.BuildingID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, http.StatusOK, resp)
+}
+
 // handleUpgradeBuilding upgrades a building to the next level.
 func (h *BuildingHandler) handleUpgradeBuilding(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := CompanyIDFromCtx(r.Context())

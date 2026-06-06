@@ -99,3 +99,14 @@ export function useDemolishBuilding() {
     },
   })
 }
+
+export function useStashBuilding() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (buildingId: string) =>
+      api.post<Record<string, unknown>>('/api/v2/buildings/stash/', { buildingId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['buildings'] })
+    },
+  })
+}

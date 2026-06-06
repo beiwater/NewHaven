@@ -57,8 +57,9 @@ function GameCanvas() {
   const level = companyData?.levelInfo?.level ?? 1
   const currentMapIdRaw = useUIStore((s) => s.currentMapId)
   const setCurrentMapId = useUIStore((s) => s.setCurrentMapId)
-  const currentMapId = normalizedMapId(currentMapIdRaw, level)
-  const currentMap = MAPS[currentMapId]
+  // Trust the store value. Only fall back to harbor if stored map ID is invalid.
+  const currentMapId = MAPS[currentMapIdRaw] ? currentMapIdRaw : 'harbor'
+  const currentMap = MAPS[currentMapId]!
   const selectedBuildingId = useUIStore((s) => s.selectedBuildingId)
   const selectBuilding = useUIStore((s) => s.selectBuilding)
   const placementBuildingId = useUIStore((s) => s.placementBuildingId)

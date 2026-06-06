@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
-import { useMoveBuilding, useDemolishBuilding, useUpgradeBuilding } from '@/api/buildings.api'
+import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding } from '@/api/buildings.api'
 import { useUIStore } from '@/store/ui.store'
 import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
@@ -90,6 +90,7 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
   const moveBuilding = useMoveBuilding()
   const upgradeBuilding = useUpgradeBuilding()
   const demolishBuilding = useDemolishBuilding()
+  const stashBuilding = useStashBuilding()
   const startBuildingMove = useUIStore((s) => s.startBuildingMove)
   const setActiveView = useUIStore((s) => s.setActiveView)
 
@@ -392,6 +393,28 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
               Cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Stash Building */}
+      {building.placed !== false && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-blue-200/40">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            <div>
+              <div className="text-[10px] text-slate-600 uppercase tracking-wider">Stash</div>
+              <div className="text-[10px] text-slate-400">Return to inventory</div>
+            </div>
+          </div>
+          <button
+            onClick={() => stashBuilding.mutate(building.id)}
+            disabled={stashBuilding.isPending}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-md transition-colors disabled:opacity-50"
+          >
+            {stashBuilding.isPending ? 'Stashing...' : '收纳'}
+          </button>
         </div>
       )}
 

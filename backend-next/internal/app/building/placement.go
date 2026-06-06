@@ -176,3 +176,43 @@ func (s *Service) DemolishBuilding(ctx context.Context, companyID int, req *open
 	}
 	return nil, apperr.NotFoundf("building %s not found", req.BuildingId)
 }
+
+// StashBuilding removes a building from the map but keeps it in inventory.
+func (s *Service) StashBuilding(ctx context.Context, companyID int, buildingID string) (map[string]any, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	company, err := s.companies.GetCompany(ctx, companyID)
+	if err != nil {
+		return nil, apperr.WrapMsg(apperr.KindNotFound, "no company found for player", err)
+	}
+
+	for i, b := range company.Buildings {
+		if b.ID != buildingID {
+			continue
+		}
+		if b.MapID == "" {
+			return nil, apperr.BadRequest("building is already stashed")
+		}
+
+		origMapID := company.Buildings[i].MapID
+		origSlotID := company.Buildings[i].SlotID
+		origX := company.Buildings[i].X
+		origY := company.Buildings[i].Y
+
+		company.Buildings[i].MapID = ""
+		company.Buildings[i].SlotID = ""
+		company.Buildings[i].X = 0
+		company.Buildings[i].Y = 0
+
+		if err := s.companies.UpdateCompany(ctx, company); err != nil {
+			company.Buildings[i].MapID = origMapID
+			company.Buildings[i].SlotID = origSlotID
+			company.Buildings[i].X = origX
+			company.Buildings[i].Y = origY
+			return nil, apperr.Internalf("save company: %v", err)
+		}
+
+		return map[string]any{"ok": true, "buildingId": buildingID, "status": "stashed"}, nil
+	}
+	return nil, apperr.NotFoundf("building %s not found", buildingID)
+}

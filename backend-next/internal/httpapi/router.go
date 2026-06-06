@@ -81,6 +81,7 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/place/", h.Building.handlePlaceBuilding)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/move/", h.Building.handleMoveBuilding)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/demolish/", h.Building.handleDemolishBuilding)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/stash/", h.Building.handleStashBuilding)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/buildings/", h.Building.handleListMyBuildingsV2)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/start/", h.Production.handleStartProduction)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/claim/{jobId}/", h.Production.handleClaimProduction)
