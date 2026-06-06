@@ -39,6 +39,23 @@ export class ApiError extends Error {
   }
 }
 
+interface ApiEnvelope<T> {
+  data: T
+  error: {
+    code?: string
+    message?: string
+    details?: unknown
+  } | null
+  meta?: unknown
+}
+
+function isApiEnvelope<T>(payload: unknown): payload is ApiEnvelope<T> {
+  return typeof payload === 'object'
+    && payload !== null
+    && 'data' in payload
+    && 'error' in payload
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -59,14 +76,25 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
   })
 
+  const text = await res.text().catch(() => '')
+  let payload: unknown
+  try {
+    payload = text ? JSON.parse(text) : null
+  } catch {
+    payload = text
+  }
+
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
     let message = text || res.statusText
-    try {
-      const payload = JSON.parse(text) as { error?: string; message?: string }
-      message = payload.error ?? payload.message ?? message
-    } catch {
-      // Keep the raw response text when the backend does not return JSON.
+    if (isApiEnvelope<unknown>(payload)) {
+      message = payload.error?.message ?? message
+    } else if (typeof payload === 'object' && payload !== null) {
+      const errorPayload = payload as { error?: unknown; message?: unknown }
+      if (typeof errorPayload.error === 'string') {
+        message = errorPayload.error
+      } else if (typeof errorPayload.message === 'string') {
+        message = errorPayload.message
+      }
     }
     if (res.status === 401) {
       clearAuth()
@@ -77,7 +105,13 @@ async function request<T>(
     throw new ApiError(res.status, message)
   }
 
-  return res.json()
+  if (isApiEnvelope<T>(payload)) {
+    if (payload.error) {
+      throw new ApiError(res.status, payload.error.message ?? payload.error.code ?? 'API request failed')
+    }
+    return payload.data
+  }
+  return payload as T
 }
 
 export const api = {
