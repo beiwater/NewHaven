@@ -34,7 +34,7 @@ export function BuildingPanel() {
   return (
     <div className="right-panel flex flex-col bg-amber-50 border-l-2 border-amber-700/30 overflow-y-auto">
       {selected ? (
-        <BuildingCard building={selected} onClose={() => selectBuilding(null)} />
+        <BuildingCard building={selected} hasFreeSlots={openMapPlots > buildings.length} onClose={() => selectBuilding(null)} />
       ) : (
         <>
           <div className="p-3 border-b border-amber-200/60 flex items-center justify-between">

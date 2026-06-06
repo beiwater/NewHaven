@@ -141,7 +141,7 @@ function GameCanvas() {
 
     const init = async () => {
       try {
-        const firstBg = await loadImage(MAPS.harbor.background)
+        const firstBg = await loadImage(currentMap.background ?? MAPS.harbor.background)
         if (destroyed) return
         app = await createGameApp(container)
         appRef.current = app

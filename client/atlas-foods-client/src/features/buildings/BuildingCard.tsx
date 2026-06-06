@@ -73,10 +73,10 @@ function collectableAmount(job: ProductionJob, now: number): number {
 
 interface BuildingCardProps {
   building: Building
+  hasFreeSlots: boolean
   onClose: () => void
 }
-
-export function BuildingCard({ building, onClose }: BuildingCardProps) {
+export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardProps) {
   const [selectedResourceId, setSelectedResourceId] = useState<number | null>(null)
   const [amount, setAmount] = useState('10')
   const [showDemolishConfirm, setShowDemolishConfirm] = useState(false)
@@ -355,8 +355,8 @@ export function BuildingCard({ building, onClose }: BuildingCardProps) {
         </div>
         <button
           onClick={handleMove}
-          disabled={moveBuilding.isPending}
-          className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 disabled:bg-blue-50 text-blue-800 text-xs font-bold rounded-md transition-colors"
+          disabled={moveBuilding.isPending || !hasFreeSlots}
+          className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 disabled:bg-blue-50 text-blue-800 text-xs font-bold rounded-md transition-colors disabled:opacity-50"
         >
           {moveBuilding.isPending ? 'Moving...' : 'Move'}
         </button>

@@ -108,7 +108,7 @@ export const MAPS: Record<MapId, MapDefinition> = {
   desert: {
     id: 'desert',
     name: '沙漠绿洲',
-    background: '/assets/backgrounds/map_harbor_v1.png',
+    background: '/assets/backgrounds/map_background_v1.png',
     unlockLevel: 10,
     slots: [
       { id: 'desert-plot-01', mapId: 'desert', px: 150, py: 150, unlockOrder: 1 },
