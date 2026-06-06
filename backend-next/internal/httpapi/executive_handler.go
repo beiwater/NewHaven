@@ -4,39 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/newhaven/backend-next/internal/domain/company"
+	"github.com/newhaven/backend-next/internal/storage"
 )
 
 // ExecutiveHandler handles executive/HR endpoints.
 type ExecutiveHandler struct {
+	companies storage.CompanyStorage
 	clock     func() time.Time
-	recruited map[int][]map[string]any
 }
 
 // NewExecutiveHandler creates a new ExecutiveHandler.
-func NewExecutiveHandler() *ExecutiveHandler {
+func NewExecutiveHandler(companies storage.CompanyStorage) *ExecutiveHandler {
 	return &ExecutiveHandler{
+		companies: companies,
 		clock:     time.Now,
-		recruited: make(map[int][]map[string]any),
 	}
-}
-
-// executiveData represents a simplified executive for API responses.
-type executiveData struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	Title           string  `json:"title"`
-	Level           int     `json:"level"`
-	Rarity          string  `json:"rarity"`
-	Stage           string  `json:"stage"`
-	Salary          float64 `json:"salary"`
-	ProductionBonus float64 `json:"productionBonus"`
-	SalesBonus      float64 `json:"salesBonus"`
-	MgmtDiscount    float64 `json:"mgmtDiscount"`
-	Morale          int     `json:"morale,omitempty"`
 }
 
 var executiveNames = []string{
@@ -63,56 +52,56 @@ var rarityWeights = []struct {
 
 // handleSearchExecutives searches/refreshes the executive market.
 func (h *ExecutiveHandler) handleSearchExecutives(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
 	var req struct {
-		Scope string `json:"scope,omitempty"` // "mine" to list owned executives
+		Scope string `json:"scope,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// Empty body is fine - default to market search.
-		req = struct {
-			Scope string `json:"scope,omitempty"`
-		}{}
+		req = struct{ Scope string `json:"scope,omitempty"` }{}
+	}
+	if req.Scope == "" {
+		req.Scope = "market"
 	}
 
 	if req.Scope == "mine" {
-		companyID, ok := CompanyIDFromCtx(r.Context())
-		if !ok {
-			writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+		c, err := h.companies.GetCompany(r.Context(), companyID)
+		if err != nil {
+			writeAppErr(w, err)
 			return
 		}
-		list := h.recruited[companyID]
-		if list == nil {
-			list = []map[string]any{}
-		}
 		writeSuccess(w, http.StatusOK, map[string]any{
-			"executives": list,
-			"total":      len(list),
+			"executives": c.Executives,
+			"total":      len(c.Executives),
 		})
 		return
 	}
 
-	// Generate a set of market executives.
+	// Generate market executives (consistent for the current hour).
 	count := 6
+	now := h.clock()
+	seed := now.Unix() / 3600
+	rng := rand.New(rand.NewSource(seed))
+
 	execs := make([]map[string]any, 0, count)
-	rng := h.clock().UnixNano()
 	for i := 0; i < count; i++ {
-		rng = (rng*1103515245 + 12345) & 0x7fffffff
-		nameIdx := int(rng) % len(executiveNames)
-		titleIdx := (int(rng) / len(executiveNames)) % len(executiveTitles)
-		level := (int(rng) % 10) + 1
-
-		rarity := pickRarity(int(rng / 100))
-		salary := salaryAtLevel(level)
-		stage := stageAtLevel(level)
-
-		id := fmt.Sprintf("exec-%d-%d", i, h.clock().UnixMilli())
+		nameIdx := rng.Intn(len(executiveNames))
+		titleIdx := rng.Intn(len(executiveTitles))
+		level := rng.Intn(10) + 1
+		rarity := pickRarity(rng.Intn(100))
+		id := fmt.Sprintf("exec-market-%d-%d", i, now.UnixMilli())
 		execs = append(execs, map[string]any{
 			"id":              id,
 			"name":            executiveNames[nameIdx],
 			"title":           executiveTitles[titleIdx],
 			"level":           level,
 			"rarity":          rarity,
-			"stage":           stage,
-			"salary":          salary,
+			"stage":           stageAtLevel(level),
+			"salary":          salaryAtLevel(level),
 			"productionBonus": productionBonusAtLevel(level),
 			"salesBonus":      salesBonusAtLevel(level),
 			"mgmtDiscount":    mgmtDiscountAtLevel(level),
@@ -128,6 +117,11 @@ func (h *ExecutiveHandler) handleSearchExecutives(w http.ResponseWriter, r *http
 
 // handleRecruitExecutive recruits an executive from the market.
 func (h *ExecutiveHandler) handleRecruitExecutive(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
 	var req struct {
 		ExecutiveID string `json:"executiveId"`
 	}
@@ -136,14 +130,40 @@ func (h *ExecutiveHandler) handleRecruitExecutive(w http.ResponseWriter, r *http
 		return
 	}
 
-	companyID, ok := CompanyIDFromCtx(r.Context())
-	if !ok {
-		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+	c, err := h.companies.GetCompany(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
 		return
 	}
 
-	exec := generateExecutiveData(req.ExecutiveID, h.clock().UnixMilli())
-	h.recruited[companyID] = append(h.recruited[companyID], exec)
+	// Build the executive from the market data (reconstruct via ID seed).
+	now := h.clock()
+	seed := now.Unix() / 3600
+	rng := rand.New(rand.NewSource(seed))
+	nameIdx := rng.Intn(len(executiveNames))
+	titleIdx := rng.Intn(len(executiveTitles))
+	level := rng.Intn(10) + 1
+	rarity := pickRarity(rng.Intn(100))
+
+	exec := company.Executive{
+		ID:              req.ExecutiveID,
+		Name:            executiveNames[nameIdx],
+		Title:           executiveTitles[titleIdx],
+		Level:           level,
+		Rarity:          rarity,
+		Stage:           stageAtLevel(level),
+		Salary:          salaryAtLevel(level),
+		ProductionBonus: productionBonusAtLevel(level),
+		SalesBonus:      salesBonusAtLevel(level),
+		MgmtDiscount:    mgmtDiscountAtLevel(level),
+		Morale:          100,
+	}
+
+	c.Executives = append(c.Executives, exec)
+	if err := h.companies.UpdateCompany(r.Context(), c); err != nil {
+		writeAppErr(w, err)
+		return
+	}
 
 	writeSuccess(w, http.StatusOK, map[string]any{
 		"ok":        true,
@@ -153,75 +173,78 @@ func (h *ExecutiveHandler) handleRecruitExecutive(w http.ResponseWriter, r *http
 
 // handleTrainExecutive levels up an executive.
 func (h *ExecutiveHandler) handleTrainExecutive(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
 	executiveID := chi.URLParam(r, "executiveId")
 	if executiveID == "" {
 		writeErr(w, http.StatusBadRequest, ErrorValidation, "executiveId is required", nil)
 		return
 	}
 
+	c, err := h.companies.GetCompany(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+
+	for i := range c.Executives {
+		if c.Executives[i].ID == executiveID {
+			c.Executives[i].Level++
+			newLvl := c.Executives[i].Level
+			c.Executives[i].Stage = stageAtLevel(newLvl)
+			c.Executives[i].Salary = salaryAtLevel(newLvl)
+			c.Executives[i].ProductionBonus = productionBonusAtLevel(newLvl)
+			c.Executives[i].SalesBonus = salesBonusAtLevel(newLvl)
+			c.Executives[i].MgmtDiscount = mgmtDiscountAtLevel(newLvl)
+
+			if err := h.companies.UpdateCompany(r.Context(), c); err != nil {
+				writeAppErr(w, err)
+				return
+			}
+			writeSuccess(w, http.StatusOK, map[string]any{
+				"ok":        true,
+				"executive": c.Executives[i],
+			})
+			return
+		}
+	}
+	writeErr(w, http.StatusNotFound, ErrorNotFound, "executive not found", nil)
+}
+
+// handleGetExecutiveDetail returns details for a single executive.
+func (h *ExecutiveHandler) handleGetExecutiveDetail(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := CompanyIDFromCtx(r.Context())
 	if !ok {
 		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
 		return
 	}
-
-	execs := h.recruited[companyID]
-	var exec map[string]any
-	for _, e := range execs {
-		if e["id"] == executiveID {
-			exec = e
-			break
-		}
-	}
-	if exec == nil {
-		writeErr(w, http.StatusNotFound, ErrorNotFound, "executive not found", nil)
-		return
-	}
-
-	// Increment level and recalculate bonuses.
-	level := int(exec["level"].(float64)) + 1
-	exec["level"] = level
-	exec["stage"] = stageAtLevel(level)
-	exec["salary"] = salaryAtLevel(level)
-	exec["productionBonus"] = productionBonusAtLevel(level)
-	exec["salesBonus"] = salesBonusAtLevel(level)
-	exec["mgmtDiscount"] = mgmtDiscountAtLevel(level)
-
-	writeSuccess(w, http.StatusOK, map[string]any{
-		"ok":        true,
-		"executive": exec,
-	})
-}
-
-// handleGetExecutiveDetail returns details for a single executive.
-func (h *ExecutiveHandler) handleGetExecutiveDetail(w http.ResponseWriter, r *http.Request) {
 	executiveID := chi.URLParam(r, "id")
 	if executiveID == "" {
 		writeErr(w, http.StatusBadRequest, ErrorValidation, "executive id is required", nil)
 		return
 	}
 
-	companyID, ok := CompanyIDFromCtx(r.Context())
-	if !ok {
-		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+	c, err := h.companies.GetCompany(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
 		return
 	}
 
-	execs := h.recruited[companyID]
-	for _, exec := range execs {
-		if exec["id"] == executiveID {
+	for _, exec := range c.Executives {
+		if exec.ID == executiveID {
 			writeSuccess(w, http.StatusOK, exec)
 			return
 		}
 	}
-
 	writeErr(w, http.StatusNotFound, ErrorNotFound, "executive not found", nil)
 }
 
 // --- Helper functions matching frontend executive formulas ---
 
 func productionBonusAtLevel(level int) float64 {
-	// Lv1 base: 2%, increment decays by 0.12 per level.
 	pct := 2.0
 	inc := 2.0
 	for i := 1; i < level; i++ {
@@ -235,7 +258,6 @@ func productionBonusAtLevel(level int) float64 {
 }
 
 func salesBonusAtLevel(level int) float64 {
-	// Lv1 base: 4%, decays slower.
 	pct := 4.0
 	inc := 4.0
 	for i := 1; i < level; i++ {
@@ -249,7 +271,6 @@ func salesBonusAtLevel(level int) float64 {
 }
 
 func mgmtDiscountAtLevel(level int) float64 {
-	// Lv1 base: 2%, decays moderately.
 	pct := 2.0
 	inc := 2.0
 	for i := 1; i < level; i++ {
@@ -267,19 +288,18 @@ func salaryAtLevel(level int) float64 {
 }
 
 func stageAtLevel(level int) string {
-	if level >= 10 {
+	switch {
+	case level >= 10:
 		return "Executive VP"
-	}
-	if level >= 8 {
+	case level >= 8:
 		return "Director"
-	}
-	if level >= 6 {
+	case level >= 6:
 		return "Senior Manager"
-	}
-	if level >= 4 {
+	case level >= 4:
 		return "Manager"
+	default:
+		return "Associate"
 	}
-	return "Associate"
 }
 
 func pickRarity(seed int) string {
@@ -296,30 +316,4 @@ func pickRarity(seed int) string {
 		}
 	}
 	return "Common"
-}
-
-// generateExecutiveData creates an executive map from an ID and seed.
-func generateExecutiveData(id string, seed int64) map[string]any {
-	rng := seed
-	rng = (rng*1103515245 + 12345) & 0x7fffffff
-	nameIdx := int(rng) % len(executiveNames)
-	titleIdx := (int(rng) / len(executiveNames)) % len(executiveTitles)
-	level := (int(rng) % 10) + 1
-
-	rarity := pickRarity(int(rng / 100))
-	salary := salaryAtLevel(level)
-	stage := stageAtLevel(level)
-
-	return map[string]any{
-		"id":              id,
-		"name":            executiveNames[nameIdx],
-		"title":           executiveTitles[titleIdx],
-		"level":           level,
-		"rarity":          rarity,
-		"stage":           stage,
-		"salary":          salary,
-		"productionBonus": productionBonusAtLevel(level),
-		"salesBonus":      salesBonusAtLevel(level),
-		"mgmtDiscount":    mgmtDiscountAtLevel(level),
-	}
 }

@@ -62,7 +62,7 @@ func main() {
 	playerHandler := httpapi.NewPlayerHandler(st)
 	contractHandler := httpapi.NewContractHandler()
 	researchHandler := httpapi.NewResearchHandler(st, st)
-	executiveHandler := httpapi.NewExecutiveHandler()
+	executiveHandler := httpapi.NewExecutiveHandler(st)
 	leaderboardHandler := httpapi.NewLeaderboardHandler()
 	// Scheduler for bot economy and background tasks
 	sched := scheduler.New(marketSvc)
