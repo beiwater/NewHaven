@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { ProductionJob, ProductionQueue, ResourceDefinition } from '@/game/types'
+import type { ProductionQueue, ResourceDefinition } from '@/game/types'
+import { normalizeProductionJobList } from './compat'
 
 // Actual API: /api/v2/production/jobs/ returns ProductionJob[] directly
 export function useProductionJobs() {
   return useQuery({
     queryKey: ['productionJobs'],
-    queryFn: () => api.get<ProductionJob[]>('/api/v2/production/jobs/'),
+    queryFn: async () => normalizeProductionJobList(await api.get<unknown>('/api/v2/production/jobs/')),
     refetchInterval: 10_000,
   })
 }
@@ -24,7 +25,7 @@ export function useProductionQueue() {
 export function useClaimableJobs() {
   return useQuery({
     queryKey: ['claimableJobs'],
-    queryFn: () => api.get<ProductionJob[]>('/api/v2/production/claimable/'),
+    queryFn: async () => normalizeProductionJobList(await api.get<unknown>('/api/v2/production/claimable/')),
     refetchInterval: 10_000,
   })
 }

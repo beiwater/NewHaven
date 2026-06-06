@@ -4,6 +4,7 @@ const BASE = ''
 
 const AUTH_KEY = 'atlas_auth_token'
 const COMPANY_KEY = 'atlas_company_id'
+const NEW_ACCOUNT_KEY = 'atlas_new_account'
 export const AUTH_CHANGED_EVENT = 'atlas-auth-changed'
 
 function getToken(): string | null {
@@ -14,20 +15,34 @@ function getCompanyId(): string {
   return localStorage.getItem(COMPANY_KEY) ?? DEFAULT_COMPANY_ID
 }
 
-export function setAuth(token: string, companyId: string): void {
+export function setAuth(token: string, companyId: string, newAccount = false): void {
   localStorage.setItem(AUTH_KEY, token)
   localStorage.setItem(COMPANY_KEY, companyId)
+  if (newAccount) {
+    sessionStorage.setItem(NEW_ACCOUNT_KEY, 'true')
+  } else {
+    sessionStorage.removeItem(NEW_ACCOUNT_KEY)
+  }
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, { detail: { authenticated: true } }))
 }
 
 export function clearAuth(): void {
   localStorage.removeItem(AUTH_KEY)
   localStorage.removeItem(COMPANY_KEY)
+  sessionStorage.removeItem(NEW_ACCOUNT_KEY)
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, { detail: { authenticated: false } }))
 }
 
 export function isAuthenticated(): boolean {
   return !!getToken()
+}
+
+export function isNewAccountSession(): boolean {
+  return sessionStorage.getItem(NEW_ACCOUNT_KEY) === 'true'
+}
+
+export function finishNewAccountSession(): void {
+  sessionStorage.removeItem(NEW_ACCOUNT_KEY)
 }
 
 export class ApiError extends Error {

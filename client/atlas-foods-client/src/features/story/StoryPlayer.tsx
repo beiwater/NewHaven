@@ -14,12 +14,15 @@ const CLOUD_2 = '/assets/story/effects/cloud_soft_2.png'
 
 interface StoryPlayerProps {
   story: StoryDefinition
+  initialStepId?: string
   onComplete: () => void
+  onProgress: (stepId: string) => void
+  onSkip: () => void
 }
 
-export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
+export function StoryPlayer({ story, initialStepId, onComplete, onProgress, onSkip }: StoryPlayerProps) {
   const { t } = useTranslation()
-  const [currentStepId, setCurrentStepId] = useState(story.firstStepId)
+  const [currentStepId, setCurrentStepId] = useState(initialStepId ?? story.firstStepId)
 
   const stepMap = useMemo(() => {
     return new Map(story.steps.map((step) => [step.id, step]))
@@ -47,6 +50,7 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
     if (showChoices) return
     if (step.next) {
       setCurrentStepId(step.next)
+      onProgress(step.next)
     } else {
       onComplete()
     }
@@ -55,6 +59,7 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
   const choose = (next: string) => {
     audio.playSfx('ui_confirm', { volume: 0.4 })
     setCurrentStepId(next)
+    onProgress(next)
   }
 
   const textDisplay = st(step.id, step.text)
@@ -66,6 +71,9 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
       aria-label={story.title}
       onClick={advance}
     >
+      <button type="button" className="story-skip-button" onClick={(event) => { event.stopPropagation(); onSkip() }}>
+        Skip story
+      </button>
       {!isBlack && (
         <>
           <img className="story-bg" src={HARBOR_BG} alt="" draggable={false} />
@@ -91,7 +99,7 @@ export function StoryPlayer({ story, onComplete }: StoryPlayerProps) {
       )}
 
       {isBlack ? (
-        <BlackScreenStep step={step} text={textDisplay} />
+        <BlackScreenStep step={step} text={textDisplay} onAdvance={advance} />
       ) : (
         <DialoguePanel
           step={step}
@@ -128,18 +136,24 @@ function getCecilPortraitSrc(portrait: StoryStep['portrait']) {
   return CECIL_FORMAL
 }
 
-function BlackScreenStep({ step, text }: { step: StoryStep; text: string }) {
+function BlackScreenStep({ step, text, onAdvance }: { step: StoryStep; text: string; onAdvance: () => void }) {
   if (step.kind === 'title') {
     return (
-      <div className="story-black-title">
+      <div className="story-black-content">
         <h1 className="story-black-title-text">{text}</h1>
+        <button type="button" className="story-black-next" onClick={(event) => { event.stopPropagation(); onAdvance() }}>
+          Continue
+        </button>
       </div>
     )
   }
   return (
-    <p key={step.id} className="story-black-narration">
-      {text}
-    </p>
+    <div className="story-black-content">
+      <p key={step.id} className="story-black-narration">{text}</p>
+      <button type="button" className="story-black-next" onClick={(event) => { event.stopPropagation(); onAdvance() }}>
+        Continue
+      </button>
+    </div>
   )
 }
 

@@ -35,6 +35,7 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 		inUse++
 		// Convert to DTO
 		jobID := j.ID
+		buildingID := j.BuildingID
 		resourceID := j.ResourceID
 		quantity := j.Quantity
 		targetQty := j.TargetQuantity
@@ -44,6 +45,7 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 		status := openapi.ProductionJobDTOStatus(j.Status)
 		dto := openapi.ProductionJobDTO{
 			Id:              &jobID,
+			BuildingId:      &buildingID,
 			ResourceId:      &resourceID,
 			Quantity:        &quantity,
 			TargetQuantity:  &targetQty,

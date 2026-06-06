@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useCompany, useSavePreferences } from '@/api/company.api'
+import { useCompany, useUpdateStoryProgress, type StoryProgress } from '@/api/company.api'
 import { useUIStore } from '@/store/ui.store'
 import { StoryPlayer } from '@/features/story/StoryPlayer'
 import { chapter1ArrivalStory } from '@/features/story/chapter1Arrival.story'
@@ -10,12 +10,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function StoryGate({ children }: { children: ReactNode }) {
   const { data: companyData, isLoading } = useCompany()
-  const savePreferences = useSavePreferences()
-  const [completedThisSession, setCompletedThisSession] = useState(false)
-  const storyProgress = companyData?.preferences?.storyProgress
-  const chapterCompleted =
-    completedThisSession ||
-    (isRecord(storyProgress) && storyProgress.chapter1Arrival === 'completed')
+  const updateProgress = useUpdateStoryProgress()
+  const [closedThisSession, setClosedThisSession] = useState(false)
+  const storyProgress = readStoryProgress(companyData?.preferences?.storyProgress)
+  const shouldShowStory = !closedThisSession &&
+    (storyProgress?.status === 'not_started' || storyProgress?.status === 'in_progress')
 
   if (isLoading && !companyData) {
     return (
@@ -25,24 +24,44 @@ export function StoryGate({ children }: { children: ReactNode }) {
     )
   }
 
-  if (!chapterCompleted) {
+  const closeStory = (status: 'completed' | 'skipped') => {
+    setClosedThisSession(true)
+    useUIStore.getState().setActiveView('map')
+    updateProgress.mutate({
+      storyId: chapter1ArrivalStory.id,
+      stepId: storyProgress?.stepId ?? chapter1ArrivalStory.firstStepId,
+      status,
+    })
+  }
+
+  if (shouldShowStory) {
     return (
       <StoryPlayer
         story={chapter1ArrivalStory}
-        onComplete={() => {
-          const currentProgress = isRecord(storyProgress) ? storyProgress : {}
-          setCompletedThisSession(true)
-          useUIStore.getState().setActiveView('map')
-          savePreferences.mutate({
-            storyProgress: {
-              ...currentProgress,
-              chapter1Arrival: 'completed',
-            },
-          })
-        }}
+        initialStepId={storyProgress?.stepId}
+        onProgress={(stepId) => updateProgress.mutate({
+          storyId: chapter1ArrivalStory.id,
+          stepId,
+          status: 'in_progress',
+        })}
+        onComplete={() => closeStory('completed')}
+        onSkip={() => closeStory('skipped')}
       />
     )
   }
 
   return <>{children}</>
+}
+
+function readStoryProgress(value: unknown): StoryProgress | undefined {
+  if (!isRecord(value) || !isRecord(value.chapter1Arrival)) return undefined
+  const status = value.chapter1Arrival.status
+  const stepId = value.chapter1Arrival.stepId
+  if (
+    (status === 'not_started' || status === 'in_progress' || status === 'completed' || status === 'skipped') &&
+    typeof stepId === 'string'
+  ) {
+    return { status, stepId }
+  }
+  return undefined
 }

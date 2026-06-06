@@ -130,6 +130,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 
 	// Build response DTOs.
 	jobID := job.ID
+	buildingID := job.BuildingID
 	resourceID := job.ResourceID
 	quantity := job.Quantity
 	targetQty := job.TargetQuantity
@@ -141,6 +142,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 
 	jobDTO := &openapi.ProductionJobDTO{
 		Id:              &jobID,
+		BuildingId:      &buildingID,
 		ResourceId:      &resourceID,
 		Quantity:        &quantity,
 		TargetQuantity:  &targetQty,
@@ -151,7 +153,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		Status:          &status,
 	}
 
-	buildingID := building.ID
+	buildingID = building.ID
 	busy := true
 	buildingStatus := &openapi.BuildingProductionStatus{
 		Id:    &buildingID,

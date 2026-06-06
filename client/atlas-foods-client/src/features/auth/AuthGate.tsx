@@ -17,7 +17,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const login = useLogin()
   const [locale, setLocaleState] = useState(getStoredLocale())
   const register = useRegister()
-  const [authenticated, setAuthenticated] = useState(isAuthenticated())
+  // Always begin at the login screen. A stored token is used only after the
+  // user explicitly signs in during this browser session.
+  const [authenticated, setAuthenticated] = useState(false)
 
   useEffect(() => {
     const syncAuth = () => setAuthenticated(isAuthenticated())

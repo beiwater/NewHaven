@@ -51,6 +51,52 @@ paths:
         "401":
           description: Unauthorized
 
+  /api/v3/companies/{companyId}/:
+    get:
+      tags: [Companies]
+      summary: Get the authenticated owner's company profile
+      operationId: getCompanyProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company profile including account preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyProfileResponse'
+        "403":
+          description: Company profile belongs to another account
+
+  /api/v2/companies/me/story-progress/:
+    patch:
+      tags: [Companies]
+      summary: Save the authenticated company's current story position
+      operationId: updateStoryProgress
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryProgressRequest'
+      responses:
+        "200":
+          description: Saved story position
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryProgress'
+        "400":
+          description: Invalid story position
+
   /api/v2/companies/me/warehouse/:
     get:
       tags: [Warehouse]
@@ -1157,6 +1203,45 @@ components:
         level:
           type: integer
 
+    CompanyProfileResponse:
+      type: object
+      required: [authCompany, authUser, levelInfo, preferences]
+      properties:
+        authCompany:
+          type: object
+          additionalProperties: true
+        authUser:
+          type: object
+          additionalProperties: true
+        levelInfo:
+          type: object
+          additionalProperties: true
+        preferences:
+          type: object
+          additionalProperties: true
+
+    StoryProgressRequest:
+      type: object
+      required: [storyId, stepId, status]
+      properties:
+        storyId:
+          type: string
+        stepId:
+          type: string
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, skipped]
+
+    StoryProgress:
+      type: object
+      required: [status, stepId]
+      properties:
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, skipped]
+        stepId:
+          type: string
+
     Building:
       type: object
       properties:
@@ -1671,6 +1756,8 @@ components:
       type: object
       properties:
         id:
+          type: string
+        building_id:
           type: string
         resource_id:
           type: integer

@@ -22,12 +22,12 @@ var (
 
 // Service is the auth application use case.
 type Service struct {
-	players storage.PlayerStorage
+	players   storage.PlayerStorage
 	companies storage.CompanyStorage
-	clock    platform.Clock
-	idgen    *platform.IDGen
-	logger   *platform.Logger
-	jwtKey   string
+	clock     platform.Clock
+	idgen     *platform.IDGen
+	logger    *platform.Logger
+	jwtKey    string
 }
 
 func NewService(
@@ -77,13 +77,14 @@ func (s *Service) Register(ctx context.Context, req *domain.RegisterRequest) (*d
 	}
 
 	c := &company.Company{
-		PlayerID:  player.ID,
-		Name:      companyName,
-		Money:     100000, // starting capital
-		Level:     1,
-		XP:        0,
-		Inventory: make(map[int]int),
-		CreatedAt: now,
+		PlayerID:    player.ID,
+		Name:        companyName,
+		Money:       100000, // starting capital
+		Level:       1,
+		XP:          0,
+		Preferences: company.NewPlayerPreferences(),
+		Inventory:   make(map[int]int),
+		CreatedAt:   now,
 	}
 
 	if err := s.companies.CreateCompany(ctx, c); err != nil {
@@ -165,10 +166,29 @@ func (s *Service) DevBootstrap(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("dev bootstrap: %w", err)
 	}
+	devCompany, err := s.companies.GetCompany(ctx, resp.CompanyID)
+	if err != nil {
+		return fmt.Errorf("dev bootstrap company: %w", err)
+	}
+	devCompany.Preferences = completedArrivalPreferences()
+	if err := s.companies.UpdateCompany(ctx, devCompany); err != nil {
+		return fmt.Errorf("dev bootstrap preferences: %w", err)
+	}
 
 	s.logger.Info("dev bootstrap complete",
 		"player_id", resp.PlayerID,
 		"company_id", resp.CompanyID,
 	)
 	return nil
+}
+
+func completedArrivalPreferences() map[string]any {
+	return map[string]any{
+		"storyProgress": map[string]any{
+			company.ArrivalStoryID: map[string]any{
+				"status": "completed",
+				"stepId": company.ArrivalStoryFirstStep,
+			},
+		},
+	}
 }

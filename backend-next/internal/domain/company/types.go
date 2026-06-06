@@ -1,5 +1,16 @@
 package company
 
+const (
+	ArrivalStoryID        = "chapter1Arrival"
+	ArrivalStoryFirstStep = "chapter-title"
+)
+
+// StoryProgress records the server-authoritative position of a story.
+type StoryProgress struct {
+	Status string `json:"status"`
+	StepID string `json:"stepId"`
+}
+
 // Company represents a player's company.
 type Company struct {
 	ID             int            `json:"id"`
@@ -13,6 +24,18 @@ type Company struct {
 	Inventory      map[int]int    `json:"inventory,omitempty"`
 	WarehouseLevel int            `json:"warehouse_level"`
 	CreatedAt      string         `json:"created_at"`
+}
+
+// NewPlayerPreferences returns preferences for a newly registered account.
+func NewPlayerPreferences() map[string]any {
+	return map[string]any{
+		"storyProgress": map[string]any{
+			ArrivalStoryID: map[string]any{
+				"status": "not_started",
+				"stepId": ArrivalStoryFirstStep,
+			},
+		},
+	}
 }
 
 // Building represents a building placed on a map.

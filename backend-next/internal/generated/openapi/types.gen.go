@@ -438,6 +438,7 @@ type PlaceBuildingResponse struct {
 
 // ProductionJobDTO defines model for ProductionJobDTO.
 type ProductionJobDTO struct {
+	BuildingId      *string                 `json:"building_id,omitempty"`
 	ClaimableAmount *int                    `json:"claimable_amount,omitempty"`
 	ClaimedAmount   *int                    `json:"claimed_amount,omitempty"`
 	DurationSeconds *float32                `json:"duration_seconds,omitempty"`

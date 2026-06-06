@@ -122,6 +122,7 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 	dtos := make([]openapi.ProductionJobDTO, 0, len(jobs))
 	for _, j := range jobs {
 		id := j.ID
+		buildingID := j.BuildingID
 		resourceID := j.ResourceID
 		quantity := j.Quantity
 		targetQuantity := j.TargetQuantity
@@ -133,6 +134,7 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 
 		dtos = append(dtos, openapi.ProductionJobDTO{
 			Id:              &id,
+			BuildingId:      &buildingID,
 			ResourceId:      &resourceID,
 			Quantity:        &quantity,
 			TargetQuantity:  &targetQuantity,
