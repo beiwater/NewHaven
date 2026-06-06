@@ -16,6 +16,8 @@ import (
 // It validates the building/resource, deducts required input inventory,
 // calculates duration, creates a running production job, and returns the result.
 func (s *Service) StartProduction(ctx context.Context, companyID int, req *openapi.StartProductionRequest) (*openapi.StartProductionResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)

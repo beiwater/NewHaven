@@ -122,6 +122,22 @@ func (s *Service) matchNewSellOrder(ctx context.Context, order *domainmarket.Mar
 // Called under s.mu. Mutates both orders in-place.
 // At least one of newBuyOrder/newSellOrder must be non-nil (the newly created order).
 func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarket.MarketOrder, existingSell *domainmarket.MarketOrder, newSellOrder *domainmarket.MarketOrder, existingBuy *domainmarket.MarketOrder) {
+	var undo []func()
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			for i := len(undo) - 1; i >= 0; i-- {
+				undo[i]()
+			}
+			panic(r)
+		}
+		if err != nil {
+			for i := len(undo) - 1; i >= 0; i-- {
+				undo[i]()
+			}
+		}
+	}()
+
 	// Determine which orders participate.
 	var buyOrder, sellOrder *domainmarket.MarketOrder
 	var buyerID, sellerID int
@@ -150,23 +166,31 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 	// -- Buyer side --
 
 	// Buyer inventory.
-	if err := s.companies.UpdateInventory(ctx, buyerID, buyOrder.ResourceID, fill); err != nil {
+	if err = s.companies.UpdateInventory(ctx, buyerID, buyOrder.ResourceID, fill); err != nil {
 		return
 	}
+	undo = append(undo, func() {
+		_ = s.companies.UpdateInventory(ctx, buyerID, buyOrder.ResourceID, -fill)
+	})
 
 	// Refund buyer excess limit: fill * (buyOrder.Price - execPrice) if buy.Price > execPrice.
 	if buyOrder.Price > execPrice {
-		buyerCompany, err := s.companies.GetCompany(ctx, buyerID)
-		if err != nil {
+		buyerCompany, cErr := s.companies.GetCompany(ctx, buyerID)
+		if cErr != nil {
+			err = cErr
 			return
 		}
 		// Refund the reserved excess. The buyer had already reserved buyOrder.Price * quantity.
 		// For this fill, only execPrice * fill was spent, so refund (buyOrder.Price - execPrice) * fill.
 		excessRefund := (buyOrder.Price - execPrice) * float64(fill)
 		buyerCompany.Money += excessRefund
-		if err := s.companies.UpdateCompany(ctx, buyerCompany); err != nil {
+		if err = s.companies.UpdateCompany(ctx, buyerCompany); err != nil {
 			return
 		}
+		undo = append(undo, func() {
+			buyerCompany.Money -= excessRefund
+			_ = s.companies.UpdateCompany(ctx, buyerCompany)
+		})
 		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
 			CompanyID: buyerID,
 			Kind:      "market_buy_refund",
@@ -182,15 +206,20 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 
 	// -- Seller side --
 
-	sellerCompany, err := s.companies.GetCompany(ctx, sellerID)
-	if err != nil {
+	sellerCompany, sErr := s.companies.GetCompany(ctx, sellerID)
+	if sErr != nil {
+		err = sErr
 		return
 	}
 	revenue := float64(fill) * execPrice
 	sellerCompany.Money += revenue - fee
-	if err := s.companies.UpdateCompany(ctx, sellerCompany); err != nil {
+	if err = s.companies.UpdateCompany(ctx, sellerCompany); err != nil {
 		return
 	}
+	undo = append(undo, func() {
+		sellerCompany.Money -= revenue - fee
+		_ = s.companies.UpdateCompany(ctx, sellerCompany)
+	})
 
 	if fee > 0 {
 		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
@@ -219,25 +248,39 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 
 	// -- Update orders --
 
+	oldBuyFilled := buyOrder.FilledQuantity
+	oldBuyStatus := buyOrder.Status
 	buyOrder.FilledQuantity += fill
 	if buyOrder.Remaining() == 0 {
 		buyOrder.Status = domainmarket.StatusFilled
 	} else {
 		buyOrder.Status = domainmarket.StatusPartial
 	}
-	if err := s.market.UpdateOrder(ctx, buyOrder); err != nil {
+	if err = s.market.UpdateOrder(ctx, buyOrder); err != nil {
 		return
 	}
+	undo = append(undo, func() {
+		buyOrder.FilledQuantity = oldBuyFilled
+		buyOrder.Status = oldBuyStatus
+		_ = s.market.UpdateOrder(ctx, buyOrder)
+	})
 
+	oldSellFilled := sellOrder.FilledQuantity
+	oldSellStatus := sellOrder.Status
 	sellOrder.FilledQuantity += fill
 	if sellOrder.Remaining() == 0 {
 		sellOrder.Status = domainmarket.StatusFilled
 	} else {
 		sellOrder.Status = domainmarket.StatusPartial
 	}
-	if err := s.market.UpdateOrder(ctx, sellOrder); err != nil {
+	if err = s.market.UpdateOrder(ctx, sellOrder); err != nil {
 		return
 	}
+	undo = append(undo, func() {
+		sellOrder.FilledQuantity = oldSellFilled
+		sellOrder.Status = oldSellStatus
+		_ = s.market.UpdateOrder(ctx, sellOrder)
+	})
 
 	// -- Record trade --
 
@@ -253,7 +296,7 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 		SellerFee:   fee,
 		CreatedAt:   now.Format(time.RFC3339),
 	}
-	if err := s.market.SaveTrade(ctx, trade); err != nil {
+	if err = s.market.SaveTrade(ctx, trade); err != nil {
 		return
 	}
 

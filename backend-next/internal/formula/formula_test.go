@@ -413,3 +413,133 @@ func TestGroupOf(t *testing.T) {
 		}
 	}
 }
+
+func TestFormulaGolden(t *testing.T) {
+	// Known inputs — chosen to produce one distinct, checkable value per formula.
+	type inputs struct {
+		amount        int
+		price         float64
+		feeRate       float64
+		baseOutput    float64
+		speedBonus    float64
+		level         int
+		baseLabor     float64
+		laborIdx      float64
+		baseEnergy    float64
+		energyIdx     float64
+		baseMaint     float64
+		baseMgmt      float64
+		sweetSpot     int
+		revenue       float64
+		taxRate       float64
+		upgradeBase   float64
+		faceVal       float64
+		ratePct       float64
+		sat           float64
+		satK          float64
+		eventMul      float64
+		qty           int
+		prodRate      int
+		prodMod       float64
+		output        float64
+		qtyPerUnit    float64
+		unitPrice     float64
+		matIdx        float64
+		buildingVal   float64
+		alreadySold   int
+	}
+
+	in := inputs{
+		amount:      100,
+		price:       23.0,
+		feeRate:     0.04,
+		baseOutput:  500,
+		speedBonus:  0,
+		level:       1,
+		baseLabor:   500,
+		laborIdx:    1.0,
+		baseEnergy:  300,
+		energyIdx:   1.0,
+		baseMaint:   200,
+		baseMgmt:    500,
+		sweetSpot:   7,
+		revenue:     1000,
+		taxRate:     0.1,
+		upgradeBase: 10000,
+		faceVal:     5000,
+		ratePct:     1.2,
+		sat:         1.0,
+		satK:        0.15,
+		eventMul:    1.0,
+		qty:         10,
+		prodRate:    500,
+		prodMod:     1.0,
+		output:      10,
+		qtyPerUnit:  2,
+		unitPrice:   5,
+		matIdx:      1.0,
+		buildingVal: 500000,
+		alreadySold: 0,
+	}
+
+	expected := map[string]float64{
+		"ExchangeFee(100, 23, 0.04)":           92.0,
+		"OutputPerHour(500, 0, 1)":             500.0,
+		"DurationSeconds(10, 500, 1, 1.0)":     72.0,
+		"DailyBondInterest(100, 5000, 1.2)":    6000.0,
+		"MaxIssuableBonds(500000, 5000, 0)":    100.0,
+		"LaborCostPerHour(500, 1.0, 1)":        500.0,
+		"EnergyCostPerHour(300, 1.0, 1)":       300.0,
+		"MaintenanceCostPerHour(200, 1)":       200.0,
+		"ManagementCostPerHour(500, 1, 7)":     500.0,
+		"TaxCost(1000, 0.1)":                   100.0,
+		"UpgradeCost(10000, 1)":                10000.0,
+		"TotalBuildingCost(10000, 1)":          10000.0,
+		"InputCost(10, 2, 5, 1.0)":             100.0,
+		"SaturationPriceMultiplier(1.0, 0.15)": 1.0,
+		"EffectivePrice(100, 1.0, 1.0)":        100.0,
+	}
+
+	for key, want := range expected {
+		t.Run(key, func(t *testing.T) {
+			var got float64
+			switch key {
+			case "ExchangeFee(100, 23, 0.04)":
+				got = formula.ExchangeFee(in.amount, in.price, in.feeRate)
+			case "OutputPerHour(500, 0, 1)":
+				got = formula.OutputPerHour(in.baseOutput, in.speedBonus, in.level)
+			case "DurationSeconds(10, 500, 1, 1.0)":
+				got = formula.DurationSeconds(in.qty, in.prodRate, in.level, in.prodMod)
+			case "DailyBondInterest(100, 5000, 1.2)":
+				got = formula.DailyBondInterest(in.amount, in.faceVal, in.ratePct)
+			case "MaxIssuableBonds(500000, 5000, 0)":
+				got = float64(formula.MaxIssuableBonds(in.buildingVal, in.faceVal, in.alreadySold))
+			case "LaborCostPerHour(500, 1.0, 1)":
+				got = formula.LaborCostPerHour(in.baseLabor, in.laborIdx, in.level)
+			case "EnergyCostPerHour(300, 1.0, 1)":
+				got = formula.EnergyCostPerHour(in.baseEnergy, in.energyIdx, in.level)
+			case "MaintenanceCostPerHour(200, 1)":
+				got = formula.MaintenanceCostPerHour(in.baseMaint, in.level)
+			case "ManagementCostPerHour(500, 1, 7)":
+				got = formula.ManagementCostPerHour(in.baseMgmt, in.level, in.sweetSpot)
+			case "TaxCost(1000, 0.1)":
+				got = formula.TaxCost(in.revenue, in.taxRate)
+			case "UpgradeCost(10000, 1)":
+				got = formula.UpgradeCost(in.upgradeBase, in.level)
+			case "TotalBuildingCost(10000, 1)":
+				got = formula.TotalBuildingCost(in.upgradeBase, in.level)
+			case "InputCost(10, 2, 5, 1.0)":
+				got = formula.InputCost(in.output, in.qtyPerUnit, in.unitPrice, in.matIdx)
+			case "SaturationPriceMultiplier(1.0, 0.15)":
+				got = formula.SaturationPriceMultiplier(in.sat, in.satK)
+			case "EffectivePrice(100, 1.0, 1.0)":
+				got = formula.EffectivePrice(100, in.sat, in.eventMul)
+			default:
+				t.Fatalf("unknown formula key: %s", key)
+			}
+			if got != want {
+				t.Errorf("%s = %g; want %g", key, got, want)
+			}
+		})
+	}
+}

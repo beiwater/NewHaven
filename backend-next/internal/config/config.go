@@ -38,6 +38,8 @@ type GameConfig struct {
 	WarehouseBaseCap     int     `json:"warehouse_base_cap"`
 	BaseProductionSlots  int     `json:"base_production_slots"`
 	WarehouseUpgradeCost float64 `json:"warehouse_upgrade_cost"`
+	BaseOutput           float64 `json:"base_output"`
+	MaxBuildings         int     `json:"max_buildings"`
 }
 
 func Load() *Config {
@@ -50,15 +52,31 @@ func Load() *Config {
 	}
 }
 
-// Validate rejects production configurations that would allow token forgery.
+// Validate validates the configuration, collecting all errors via errors.Join.
 func (c *Config) Validate() error {
+	var errs []error
 	if c.JWTSigningKey == "" {
-		return errors.New("SIM_API_JWT_SECRET is required")
+		errs = append(errs, errors.New("SIM_API_JWT_SECRET is required"))
 	}
 	if !c.DevMode && c.JWTSigningKey == DevJWTSigningKey {
-		return errors.New("SIM_API_JWT_SECRET must be changed when dev mode is disabled")
+		errs = append(errs, errors.New("SIM_API_JWT_SECRET must be changed when dev mode is disabled"))
 	}
-	return nil
+	// Game config validation
+	if c.Game != nil {
+		if c.Game.ExchangeFeePct < 0 || c.Game.ExchangeFeePct > 100 {
+			errs = append(errs, errors.New("exchange_fee_pct must be between 0 and 100"))
+		}
+		if c.Game.BondMinInterest < 0 {
+			errs = append(errs, errors.New("bond_min_interest must be >= 0"))
+		}
+		if c.Game.BaseOutput <= 0 {
+			errs = append(errs, errors.New("base_output must be positive"))
+		}
+		if c.Game.MaxBuildings <= 0 {
+			errs = append(errs, errors.New("max_buildings must be > 0"))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func FindProjectRoot() string {
@@ -102,6 +120,8 @@ func defaultGameConfig() *GameConfig {
 		BaseProductionSlots:  3,
 		WarehouseBaseCap:     1000,
 		WarehouseUpgradeCost: 25000,
+		BaseOutput:           100,
+		MaxBuildings:         20,
 	}
 }
 

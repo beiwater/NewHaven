@@ -32,3 +32,14 @@ func (h *CompanyHandler) handleListMyCompanies(w http.ResponseWriter, r *http.Re
 
 	writeSuccess(w, 200, resp)
 }
+
+// handleCompleteTutorial marks the company's tutorial as complete.
+func (h *CompanyHandler) handleCompleteTutorial(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	_ = companyID // stub: will call service later
+	writeSuccess(w, 200, map[string]any{"ok": true})
+}

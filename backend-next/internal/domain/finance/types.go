@@ -8,7 +8,7 @@ type LedgerEntry struct {
 	Amount       float64        `json:"amount"`
 	Direction    string         `json:"direction"` // "in" or "out"
 	BalanceAfter float64        `json:"balance_after"`
-	Metadata     map[string]any `json:"metadata,omitempty"`
+	Metadata     map[string]any `json:"metadata,omitempty"` // content depends on transaction kind; too varied across kinds for a fixed struct, safe to remain map[string]any
 	CreatedAt    string         `json:"created_at"`
 }
 
@@ -21,6 +21,7 @@ type Bond struct {
 	TotalQuantity   int     `json:"total_quantity"`
 	IssuedQuantity  int     `json:"issued_quantity"`
 	Status          string  `json:"status"` // "active", "called", "defaulted"
+	LastSettledAt   string  `json:"last_settled_at,omitempty"`
 	CreatedAt       string  `json:"created_at"`
 }
 

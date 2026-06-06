@@ -344,6 +344,23 @@ func TestCreateOrder_NoToken_401(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
 	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
+	}
 }
 
 func TestCreateOrder_InvalidJSON_400(t *testing.T) {
@@ -418,6 +435,23 @@ func TestMarketCancel_NoToken_401(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
 	}
 }
 
@@ -518,6 +552,23 @@ func TestTakeOrder_NoToken_401(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
 	}
 }
 

@@ -19,7 +19,7 @@ type Company struct {
 	Money          float64        `json:"money"`
 	Level          int            `json:"level"`
 	XP             int64          `json:"xp"`
-	Preferences    map[string]any `json:"preferences,omitempty"`
+	Preferences    map[string]any `json:"preferences,omitempty"` // dynamic keys (story IDs); structure is too dynamic for a fixed struct, safe to remain map[string]any
 	Buildings      []Building     `json:"buildings,omitempty"`
 	Inventory      map[int]int    `json:"inventory,omitempty"`
 	Executives     []Executive    `json:"executives,omitempty"`

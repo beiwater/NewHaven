@@ -13,6 +13,8 @@ import (
 // ProductionQueue returns the production queue overview grouped by building.
 // Returns byBuilding (map of buildingID -> jobs), inUse (count), maxSlots (total capacity).
 func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.ProductionQueueResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
@@ -77,6 +79,8 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 
 // ProductionOptions returns what resources a building can produce.
 func (s *Service) ProductionOptions(ctx context.Context, companyID int, buildingID string) ([]openapi.ResourceDefinition, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
@@ -140,6 +144,8 @@ func (s *Service) ProductionOptions(ctx context.Context, companyID int, building
 
 // CancelProductionJob cancels a running production job and refunds 50% of inputs.
 func (s *Service) CancelProductionJob(ctx context.Context, companyID int, jobID string) (*openapi.CancelJobResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	job, err := s.production.GetJob(ctx, jobID)
 	if err != nil {
 		return nil, apperr.NotFoundf("job %s not found", jobID)
@@ -182,6 +188,8 @@ func (s *Service) CancelProductionJob(ctx context.Context, companyID int, jobID 
 // ClaimAll claims all claimable jobs for the company.
 // Returns partial success semantics: claimed array, errors array, total count.
 func (s *Service) ClaimAll(ctx context.Context, companyID int) (*openapi.ClaimAllResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if err := s.refreshJobStatuses(ctx, companyID); err != nil {
 		return nil, apperr.Internalf("refresh claimable jobs: %v", err)
 	}
@@ -197,7 +205,7 @@ func (s *Service) ClaimAll(ctx context.Context, companyID int) (*openapi.ClaimAl
 		if j.ClaimableAmount <= 0 || j.Status == proddmn.StatusClaimed {
 			continue
 		}
-		resp, err := s.ClaimProduction(ctx, companyID, j.ID)
+		resp, err := s.claimProductionLocked(ctx, companyID, j.ID)
 		if err != nil {
 			errs = append(errs, err.Error())
 			continue

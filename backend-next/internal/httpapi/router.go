@@ -74,7 +74,9 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Delete("/market-order/cancel/{orderId}/", h.Market.handleCancelOrder)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/market-order/take/", h.Market.handleTakeOrder)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/players/me/companies/", h.Company.handleListMyCompanies)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/players/{playerId}/preferences/", h.Player.handleSavePreferences)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Patch("/companies/me/story-progress/", h.Company.handleUpdateStoryProgress)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/companies/me/tutorial/", h.Company.handleCompleteTutorial)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/jobs/", h.Production.handleListProductionJobs)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/buildings/market/", h.Building.handleBuildingMarket)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/buy/", h.Building.handleBuyBuilding)
@@ -98,6 +100,7 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	// API v3 domain routes (authenticated)
 	r.Route("/api/v3", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/{companyId}/", h.Company.handleGetCompanyProfile)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/{companyId}/buildings/", h.Building.handleListCompanyBuildings)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/buildings/", h.Building.handleListMyBuildings)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/resources/", h.Market.handleResources)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/past-finances/", h.Finance.handlePastFinances)

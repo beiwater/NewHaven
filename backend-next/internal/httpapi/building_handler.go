@@ -2,10 +2,10 @@ package httpapi
 
 import (
 	"encoding/json"
-	"net/http"
-
 	"github.com/go-chi/chi/v5"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
+	"net/http"
+	"strconv"
 
 	"github.com/newhaven/backend-next/internal/app/building"
 )
@@ -42,6 +42,23 @@ func (h *BuildingHandler) handleListMyBuildings(w http.ResponseWriter, r *http.R
 // TODO: migrate BuildingDTO to camelCase for v2 frontend compatibility.
 func (h *BuildingHandler) handleListMyBuildingsV2(w http.ResponseWriter, r *http.Request) {
 	h.handleListMyBuildings(w, r)
+}
+
+// handleListCompanyBuildings returns buildings for a specific company (by companyId).
+func (h *BuildingHandler) handleListCompanyBuildings(w http.ResponseWriter, r *http.Request) {
+	companyID, err := strconv.Atoi(chi.URLParam(r, "companyId"))
+	if err != nil {
+		writeErr(w, 400, ErrorValidation, "invalid company id", nil)
+		return
+	}
+
+	resp, err := h.svc.ListMyBuildings(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+
+	writeSuccess(w, 200, resp)
 }
 
 // handleBuildingMarket returns the building market list wrapped in the standard envelope.

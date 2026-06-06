@@ -14,7 +14,7 @@ export function useBuildings() {
 export function useCompanyBuildings(companyId: number | null) {
   return useQuery({
     queryKey: ['company-buildings', companyId],
-    queryFn: async () => normalizeBuildingList(await api.get<unknown>(`/api/v2/companies/${companyId}/buildings/`)),
+    queryFn: async () => normalizeBuildingList(await api.get<unknown>(`/api/v3/companies/${companyId}/buildings/`)),
     enabled: companyId !== null,
     staleTime: 30_000,
   })

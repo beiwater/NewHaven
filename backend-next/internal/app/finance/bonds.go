@@ -2,6 +2,7 @@ package finance
 
 import (
 	"context"
+	"math"
 	"sort"
 	"time"
 
@@ -392,13 +393,19 @@ func (s *Service) SettleBondInterest(ctx context.Context) (map[string]any, error
 
 	for _, b := range bonds {
 		b := b
+		// Skip if already settled within the last 24 hours.
+		if b.LastSettledAt != "" {
+			if t, err := time.Parse(time.RFC3339, b.LastSettledAt); err == nil && now.Sub(t) < 24*time.Hour {
+				continue
+			}
+		}
 		holdings, err := s.finance.GetBondHoldings(ctx, b.ID)
 		if err != nil {
 			continue
 		}
 
 		for _, h := range holdings {
-			interest := b.FaceValue * float64(h.Quantity) * (b.InterestRate / 100)
+			interest := math.Floor(b.FaceValue * float64(h.Quantity) * b.InterestRate)
 
 			holder, err := s.companies.GetCompany(ctx, h.CompanyID)
 			if err != nil {
@@ -422,7 +429,7 @@ func (s *Service) SettleBondInterest(ctx context.Context) (map[string]any, error
 		if err != nil {
 			continue
 		}
-		totalInterest := b.FaceValue * float64(b.IssuedQuantity) * (b.InterestRate / 100)
+		totalInterest := math.Floor(b.FaceValue * float64(b.IssuedQuantity) * b.InterestRate)
 		issuer.Money -= totalInterest
 		if err := s.companies.UpdateCompany(ctx, issuer); err != nil {
 			continue
@@ -432,6 +439,12 @@ func (s *Service) SettleBondInterest(ctx context.Context) (map[string]any, error
 			Kind:      "bond_interest_expense", Amount: totalInterest, Direction: "out",
 			CreatedAt: now.Format(time.RFC3339),
 		})
+
+		// Persist the settlement timestamp for idempotency.
+		b.LastSettledAt = now.Format(time.RFC3339)
+		if err := s.finance.UpdateBond(ctx, &b); err != nil {
+			continue
+		}
 	}
 
 	return map[string]any{"ok": true, "settledCount": settledCount}, nil

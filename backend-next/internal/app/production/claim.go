@@ -15,6 +15,14 @@ import (
 // It validates ownership, checks claimable amount, adds output to inventory,
 // awards incremental XP, and appends a finance ledger entry.
 func (s *Service) ClaimProduction(ctx context.Context, companyID int, jobID string) (*openapi.ClaimProductionResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.claimProductionLocked(ctx, companyID, jobID)
+}
+
+// claimProductionLocked is the internal implementation of ClaimProduction.
+// Caller MUST hold s.mu.
+func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobID string) (*openapi.ClaimProductionResponse, error) {
 	// Refresh job statuses so time-based computations are current.
 	if err := s.refreshJobStatuses(ctx, companyID); err != nil {
 		return nil, apperr.Internalf("refresh statuses: %v", err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
@@ -19,6 +20,7 @@ const MaxDurationSeconds = 48 * 3600
 
 // Service is the production application use case.
 type Service struct {
+	mu sync.Mutex
 	production storage.ProductionStorage
 	companies  storage.CompanyStorage
 	finance    storage.FinanceStorage
@@ -106,6 +108,8 @@ func (s *Service) refreshJobStatuses(ctx context.Context, companyID int) error {
 // ListProductionJobs returns all production jobs for the given company,
 // with their status refreshed against the current clock.
 func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*openapi.ProductionJobListResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// Refresh computed fields before returning.
 	if err := s.refreshJobStatuses(ctx, companyID); err != nil {
 		return nil, err
@@ -153,6 +157,8 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 
 // ListClaimableJobs returns jobs with claimable amount > 0 for the given company.
 func (s *Service) ListClaimableJobs(ctx context.Context, companyID int) (*openapi.ClaimableJobListResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// Refresh statuses so claimable amounts are current.
 	if err := s.refreshJobStatuses(ctx, companyID); err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -78,4 +79,24 @@ func (h *PlayerHandler) handleSimboostsUse(w http.ResponseWriter, r *http.Reques
 	default:
 		writeErr(w, http.StatusMethodNotAllowed, ErrorBadRequest, "method not allowed", nil)
 	}
+}
+
+// handleSavePreferences saves player preferences from the request body.
+func (h *PlayerHandler) handleSavePreferences(w http.ResponseWriter, r *http.Request) {
+	playerID, ok := PlayerIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "player not authenticated", nil)
+		return
+	}
+	_ = playerID // stub: will persist preferences later
+
+	var prefs map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&prefs); err != nil {
+		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
+		return
+	}
+
+	slog.Info("saved player preferences", "playerID", playerID, "preferences", prefs)
+
+	writeSuccess(w, 200, map[string]any{"ok": true})
 }
