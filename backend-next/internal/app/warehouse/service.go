@@ -3,6 +3,7 @@ package warehouse
 import (
 	"context"
 	"errors"
+	"github.com/newhaven/backend-next/internal/apperr"
 
 	domain "github.com/newhaven/backend-next/internal/domain/warehouse"
 	"github.com/newhaven/backend-next/internal/generated/openapi"
@@ -33,12 +34,12 @@ func (s *Service) GetMyWarehouse(ctx context.Context, companyID int) (*openapi.G
 	// Verify company exists first
 	_, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
-		return nil, errors.Join(ErrNotFound, err)
+		return nil, apperr.WrapMsg(apperr.KindNotFound, "warehouse not found", errors.Join(ErrNotFound, err))
 	}
 
 	w, err := s.warehouses.GetWarehouse(ctx, companyID)
 	if err != nil {
-		return nil, errors.Join(ErrNotFound, err)
+		return nil, apperr.WrapMsg(apperr.KindNotFound, "warehouse not found", errors.Join(ErrNotFound, err))
 	}
 
 	return toWarehouseData(w), nil

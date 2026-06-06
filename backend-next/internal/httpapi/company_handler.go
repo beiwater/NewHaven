@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/newhaven/backend-next/internal/app/company"
@@ -27,11 +26,7 @@ func (h *CompanyHandler) handleListMyCompanies(w http.ResponseWriter, r *http.Re
 
 	resp, err := h.svc.ListMyCompanies(r.Context(), playerID)
 	if err != nil {
-		if errors.Is(err, company.ErrNotFound) {
-			writeErr(w, 404, ErrorNotFound, "no company found for player", nil)
-			return
-		}
-		writeErr(w, 500, ErrorInternal, "failed to list companies", nil)
+		writeAppErr(w, err)
 		return
 	}
 

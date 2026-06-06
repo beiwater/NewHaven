@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/newhaven/backend-next/internal/app/warehouse"
@@ -27,11 +26,7 @@ func (h *WarehouseHandler) handleGetMyWarehouse(w http.ResponseWriter, r *http.R
 
 	resp, err := h.svc.GetMyWarehouse(r.Context(), companyID)
 	if err != nil {
-		if errors.Is(err, warehouse.ErrNotFound) {
-			writeErr(w, 404, ErrorNotFound, "warehouse not found", nil)
-			return
-		}
-		writeErr(w, 500, ErrorInternal, "failed to get warehouse", nil)
+		writeAppErr(w, err)
 		return
 	}
 

@@ -26,7 +26,7 @@ func (h *BuildingHandler) handleListMyBuildings(w http.ResponseWriter, r *http.R
 
 	resp, err := h.svc.ListMyBuildings(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to list buildings", nil)
+		writeAppErr(w, err)
 		return
 	}
 

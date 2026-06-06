@@ -23,7 +23,7 @@ func NewBondHandler(svc *appfinance.Service) *BondHandler {
 func (h *BondHandler) handleListBonds(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.svc.ListBonds(r.Context(), r.URL.Query().Get("rating"))
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to list bonds", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -39,7 +39,7 @@ func (h *BondHandler) handleGetBond(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.GetBond(r.Context(), bondID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "bond not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -69,9 +69,7 @@ func (h *BondHandler) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.CreateBond(r.Context(), companyID, req.Amount, req.Interest)
 	if err != nil {
-		code := ErrorBadRequest
-		msg := err.Error()
-		writeErr(w, 400, code, msg, nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -87,7 +85,7 @@ func (h *BondHandler) handleGetOwnedBonds(w http.ResponseWriter, r *http.Request
 
 	resp, err := h.svc.GetOwnedBonds(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to get owned bonds", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -103,7 +101,7 @@ func (h *BondHandler) handleGetSoldBonds(w http.ResponseWriter, r *http.Request)
 
 	resp, err := h.svc.GetSoldBonds(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to get sold bonds", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)

@@ -3,6 +3,7 @@ package company
 import (
 	"context"
 	"errors"
+	"github.com/newhaven/backend-next/internal/apperr"
 
 	"github.com/newhaven/backend-next/internal/domain/company"
 	"github.com/newhaven/backend-next/internal/generated/openapi"
@@ -27,7 +28,7 @@ func NewService(companies storage.CompanyStorage, logger *platform.Logger) *Serv
 func (s *Service) ListMyCompanies(ctx context.Context, playerID int) (*openapi.MyCompaniesResponse, error) {
 	c, err := s.companies.GetCompanyByPlayerID(ctx, playerID)
 	if err != nil {
-		return nil, errors.Join(ErrNotFound, err)
+		return nil, apperr.WrapMsg(apperr.KindNotFound, "no company found for player", errors.Join(ErrNotFound, err))
 	}
 
 	return &openapi.MyCompaniesResponse{
