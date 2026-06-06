@@ -66,9 +66,7 @@ function GameCanvas() {
   const movingBuildingId = useUIStore((s) => s.movingBuildingId)
   const clearBuildingMove = useUIStore((s) => s.clearBuildingMove)
 
-  useEffect(() => {
-    if (currentMapIdRaw !== currentMapId) setCurrentMapId(currentMapId)
-  }, [currentMapId, currentMapIdRaw, setCurrentMapId])
+
 
   const buildings = useMemo(
     () => Array.isArray(buildingsData) ? buildingsData.filter((b) => b.placed !== false && buildingMapId(b) === currentMapId) : [],
