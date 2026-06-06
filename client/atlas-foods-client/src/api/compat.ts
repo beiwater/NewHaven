@@ -83,3 +83,21 @@ export function camelBuildingResponse(value: unknown): JsonRecord & { building: 
     building: normalizeBuilding(raw.building),
   }
 }
+
+export function normalizeWarehouseData(value: unknown): { inventory: Array<{ resourceId: number; quantity: number; quality?: number }>; capacity: number; used: number } {
+  const raw = record(value)
+  const itemsRaw = Array.isArray(raw.items ?? raw.inventory) ? (raw.items ?? raw.inventory) : []
+  const inventory = itemsRaw.map((item: unknown) => {
+    const i = record(item)
+    return {
+      resourceId: number(i.resourceId ?? i.resource_id),
+      quantity: number(i.quantity ?? i.amount ?? i.Amount),
+      quality: i.quality !== undefined ? number(i.quality) : undefined,
+    }
+  })
+  return {
+    inventory,
+    capacity: number(raw.capacity),
+    used: number(raw.used ?? raw.used_capacity ?? raw.usedCapacity),
+  }
+}

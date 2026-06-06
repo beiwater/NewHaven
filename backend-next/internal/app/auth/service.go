@@ -170,9 +170,12 @@ func (s *Service) DevBootstrap(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("dev bootstrap company: %w", err)
 	}
+	devCompany.Level = 100
+	devCompany.XP = 1000000000
+	devCompany.Money = 1000000000
 	devCompany.Preferences = completedArrivalPreferences()
 	if err := s.companies.UpdateCompany(ctx, devCompany); err != nil {
-		return fmt.Errorf("dev bootstrap preferences: %w", err)
+		return fmt.Errorf("dev bootstrap update: %w", err)
 	}
 
 	s.logger.Info("dev bootstrap complete",

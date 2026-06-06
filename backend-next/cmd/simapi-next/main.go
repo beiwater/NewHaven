@@ -19,6 +19,7 @@ import (
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
+	"github.com/newhaven/backend-next/internal/scheduler"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
 
@@ -58,7 +59,15 @@ func main() {
 	financeHandler := httpapi.NewFinanceHandler(financeSvc)
 	bondHandler := httpapi.NewBondHandler(financeSvc)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler, financeHandler, bondHandler)
+	playerHandler := httpapi.NewPlayerHandler(st)
+	contractHandler := httpapi.NewContractHandler()
+	researchHandler := httpapi.NewResearchHandler(st, st)
+	executiveHandler := httpapi.NewExecutiveHandler()
+	leaderboardHandler := httpapi.NewLeaderboardHandler()
+	// Scheduler for bot economy and background tasks
+	sched := scheduler.New(marketSvc)
+	socialHandler := httpapi.NewSocialHandler(st)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler, financeHandler, bondHandler, playerHandler, socialHandler, contractHandler, researchHandler, executiveHandler, leaderboardHandler)
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {
@@ -73,6 +82,9 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	// Start background scheduler
+	sched.Start()
 
 	go func() {
 		slog.Info("simapi-next starting", "addr", cfg.Addr)

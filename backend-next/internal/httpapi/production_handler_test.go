@@ -43,7 +43,7 @@ func TestListProductionJobs_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/jobs/", nil)
 	w := httptest.NewRecorder()
@@ -75,7 +75,7 @@ func TestListProductionJobs_WithToken_200(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register a user to get a valid token
 	registerBody := `{"username":"produser","password":"secret123"}`
@@ -152,7 +152,7 @@ func TestListProductionJobs_EmptyJobsIsArray_200(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	registerBody := `{"username":"emptyjobs","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(registerBody))
@@ -227,7 +227,7 @@ func TestStartProduction_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	body := `{"building_id":"bld-1","resource_id":3,"quantity":10}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/start/", strings.NewReader(body))
@@ -250,7 +250,7 @@ func TestStartProduction_InvalidBody_400(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register to get token
 	regBody := `{"username":"startinv","password":"secret123"}`
@@ -302,7 +302,7 @@ func TestStartProduction_Success_200(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register to get token
 	regBody := `{"username":"startsuccess","password":"secret123"}`
@@ -429,7 +429,7 @@ func TestClaimProduction_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim/some-job/", nil)
 	w := httptest.NewRecorder()
@@ -450,7 +450,7 @@ func TestClaimProduction_NoToken_Claimable(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/claimable/", nil)
 	w := httptest.NewRecorder()
@@ -471,7 +471,7 @@ func TestClaimClaimable_Empty_200(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register user
 	regBody := `{"username":"cl-empt","password":"secret123"}`
@@ -536,7 +536,7 @@ func TestClaimProduction_InvalidJobId_400(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register to get token
 	regBody := `{"username":"cl-inv","password":"secret123"}`
@@ -577,7 +577,7 @@ func TestClaimProduction_Success_200(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register user
 	regBody := `{"username":"cl-succ","password":"secret123"}`
@@ -666,7 +666,7 @@ func TestProductionQueue_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/queue/", nil)
 	w := httptest.NewRecorder()
@@ -700,7 +700,7 @@ func TestProductionOptions_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/buildings/b1/production-options/", nil)
 	w := httptest.NewRecorder()
@@ -734,7 +734,7 @@ func TestCancelProduction_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/cancel/", nil)
 	w := httptest.NewRecorder()
@@ -768,7 +768,7 @@ func TestClaimAll_NoToken_401(t *testing.T) {
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim-all/", nil)
 	w := httptest.NewRecorder()

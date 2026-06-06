@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from './client'
+import { normalizeWarehouseData } from './compat'
 
 export interface WarehouseData {
   inventory: Array<{ resourceId: number; quantity: number; quality?: number }>
@@ -10,6 +11,6 @@ export interface WarehouseData {
 export function useWarehouse() {
   return useQuery({
     queryKey: ['warehouse'],
-    queryFn: () => api.get<WarehouseData>('/api/v2/companies/me/warehouse/'),
+    queryFn: async () => normalizeWarehouseData(await api.get<unknown>('/api/v2/companies/me/warehouse/')),
   })
 }

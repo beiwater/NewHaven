@@ -7,7 +7,7 @@ import (
 	"github.com/newhaven/backend-next/internal/config"
 )
 
-func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler, marketHandler *MarketHandler, financeHandler *FinanceHandler, bondHandler *BondHandler) *chi.Mux {
+func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *CompanyHandler, warehouseHandler *WarehouseHandler, buildingHandler *BuildingHandler, productionHandler *ProductionHandler, marketHandler *MarketHandler, financeHandler *FinanceHandler, bondHandler *BondHandler, playerHandler *PlayerHandler, socialHandler *SocialHandler, contractHandler *ContractHandler, researchHandler *ResearchHandler, executiveHandler *ExecutiveHandler, leaderboardHandler *LeaderboardHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack (outermost first)
@@ -31,6 +31,18 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/bonds/", bondHandler.handleCreateBond)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/bonds/{bondId}/", bondHandler.handleGetBond)
 
+	// Player routes (authenticated)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/players/me/level/", playerHandler.handleLevel)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/players/simboosts/", playerHandler.handleSimboostTypes)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/players/simboosts-use/", playerHandler.handleSimboostsUse)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/players/simboosts-use/", playerHandler.handleSimboostsUse)
+
+	// Social routes (authenticated)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/messages/", socialHandler.handleMessages)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/message/", socialHandler.handleV2Message)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/message/{messageId}/read/", socialHandler.handleMarkRead)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chatroom/", socialHandler.handleChatroom)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/contacts/", socialHandler.handleContacts)
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", warehouseHandler.handleGetMyWarehouse)
@@ -78,6 +90,37 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/{buildingId}/upgrade/", buildingHandler.handleUpgradeBuilding)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/{buildingId}/busy/", productionHandler.handleStartProductionV1)
 	})
+
+	// Contract / daily orders routes (authenticated)
+	r.Route("/api/v2/orders", func(r chi.Router) {
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/daily/", contractHandler.handleListDailyOrders)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/daily/complete/", contractHandler.handleCompleteDailyOrder)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/daily/claim/", contractHandler.handleClaimDailyOrder)
+	})
+	// Government contract routes (authenticated)
+	r.Route("/api/v3/government-orders", func(r chi.Router) {
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/", contractHandler.handleListGovContracts)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/bid/", contractHandler.handleBidContract)
+	})
+
+	// Research routes (authenticated)
+	r.Route("/api/v2/research", func(r chi.Router) {
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/", researchHandler.handleListResearch)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/progress/", researchHandler.handleResearchProgress)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/start/", researchHandler.handleStartResearch)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/complete/{projectId}/", researchHandler.handleCompleteResearch)
+	})
+
+	// Executive routes (authenticated)
+	r.Route("/api/v2/executives", func(r chi.Router) {
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/search/", executiveHandler.handleSearchExecutives)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/recruit/", executiveHandler.handleRecruitExecutive)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/train/{executiveId}/", executiveHandler.handleTrainExecutive)
+	})
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v3/executives/{id}/", executiveHandler.handleGetExecutiveDetail)
+
+	// Leaderboard routes (authenticated)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/leaderboard/", leaderboardHandler.handleLeaderboard)
 
 	return r
 }

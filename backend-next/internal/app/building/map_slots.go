@@ -160,6 +160,10 @@ func validateMapPlacement(buildings []domain.Building, movingID string, level in
 		if movingID != "" && b.ID == movingID {
 			continue
 		}
+		// Skip buildings that aren't actually placed on any map.
+		if b.MapID == "" && b.SlotID == "" {
+			continue
+		}
 		buildingMapID, buildingSlotID := buildingMapSlot(b)
 		if buildingMapID == slot.mapID && buildingSlotID == slot.slotID {
 			return "", "", 0, 0, fmt.Errorf("map position already occupied")

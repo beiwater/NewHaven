@@ -55,7 +55,7 @@ func TestMarketResources_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/resources/", nil)
 	w := httptest.NewRecorder()
@@ -72,7 +72,7 @@ func TestMarketResources_WithToken_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	regBody := `{"username":"resuser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -128,7 +128,7 @@ func TestMarketTicker_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/market-ticker/1/", nil)
 	w := httptest.NewRecorder()
@@ -145,7 +145,7 @@ func TestMarketTicker_WithToken_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	regBody := `{"username":"tickeruser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -196,7 +196,7 @@ func TestMarketTicker_InvalidResource_400(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "tickerbad")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/market-ticker/not-a-number/", nil)
@@ -215,7 +215,7 @@ func TestMarketDepth_WithToken_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	regBody := `{"username":"depthuser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -266,7 +266,7 @@ func TestMarketDepth_InvalidQuality_400(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "depthbad")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/market-depth/1/-1/", nil)
@@ -285,7 +285,7 @@ func TestMarketOrders_WithToken_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	regBody := `{"username":"orduser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -335,7 +335,7 @@ func TestCreateOrder_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/", nil)
 	w := httptest.NewRecorder()
@@ -352,7 +352,7 @@ func TestCreateOrder_InvalidJSON_400(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "crbadjson")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/",
@@ -373,7 +373,7 @@ func TestCreateOrder_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "cr succ")
 
 	body := `{"resourceId":1,"kind":1,"quality":0,"quantity":5,"price":10.0}`
@@ -410,7 +410,7 @@ func TestMarketCancel_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v2/market-order/cancel/nonexistent/", nil)
 	w := httptest.NewRecorder()
@@ -427,7 +427,7 @@ func TestMarketCancel_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "cn succ")
 
 	// First create an order so we have something to cancel.
@@ -489,7 +489,7 @@ func TestMarketCancel_MissingOrder_404(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "cn miss")
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v2/market-order/cancel/doesnotexist/", nil)
@@ -510,7 +510,7 @@ func TestTakeOrder_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/", nil)
 	w := httptest.NewRecorder()
@@ -527,7 +527,7 @@ func TestTakeOrder_InvalidBody_400(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "tkbadbody")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
@@ -548,7 +548,7 @@ func TestTakeOrder_InvalidPayload_400(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "tkbadpayload")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
@@ -569,7 +569,7 @@ func TestTakeOrder_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil, nil, nil, nil, nil, nil, nil)
 	token := registerMarketTestToken(t, mux, "tk succ")
 
 	body := `{"resource":1,"quantity":5,"quality":0,"maxPrice":100.0}`

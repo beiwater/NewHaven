@@ -51,7 +51,7 @@ func TestListBonds_NoToken_401(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/bonds/", nil)
 	w := httptest.NewRecorder()
@@ -69,7 +69,7 @@ func TestListBonds_WithToken_200(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "listbondsuser")
 
@@ -106,7 +106,7 @@ func TestCreateBond_InvalidJSON_400(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "createbondinvalidjson")
 
@@ -129,7 +129,7 @@ func TestCreateBond_InvalidPayload_400(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "createbondinvalidpay")
 
@@ -152,7 +152,7 @@ func TestCreateBond_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "createbondsuccess")
 
@@ -191,7 +191,7 @@ func TestGetBond_NotFound_404(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "getbondnotfound")
 
@@ -212,7 +212,7 @@ func TestGetBond_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "getbondsuccess")
 
@@ -251,7 +251,7 @@ func TestGetOwnedBonds_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "ownedbonds")
 
@@ -272,7 +272,7 @@ func TestGetSoldBonds_Success_200(t *testing.T) {
 	a := app.New(cfg, store)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler, nil, nil, nil, nil, nil, nil)
 
 	token := registerBondTestToken(t, mux, "soldbonds")
 

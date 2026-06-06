@@ -24,7 +24,7 @@ func TestListMyCompanies_NoToken_401(t *testing.T) {
 	companyHandler := httpapi.NewCompanyHandler(companySvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/players/me/companies/", nil)
 	w := httptest.NewRecorder()
@@ -56,7 +56,7 @@ func TestListMyCompanies_WithToken_200(t *testing.T) {
 	companyHandler := httpapi.NewCompanyHandler(companySvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// First, register a user to get a valid token
 	registerBody := `{"username":"testuser","password":"secret123"}`
@@ -136,7 +136,7 @@ func TestListMyCompanies_ReturnsEnvelope(t *testing.T) {
 	companyHandler := httpapi.NewCompanyHandler(companySvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Register and login
 	registerBody := `{"username":"envtest","password":"secret123"}`
