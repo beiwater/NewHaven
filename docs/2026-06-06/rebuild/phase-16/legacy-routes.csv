@@ -1,0 +1,107 @@
+legacy_path,method,method_ambiguity,handler_file,handler_func,frontend_callsite,migrated_path,disposition,dependency_group,verification_requirement,backend_next_owner,notes
+/healthz,GET,exact,health.go,(anonymous),none,/healthz,migrated,infrastructure,status-200,/healthz,
+/readyz,GET,exact,health.go,(anonymous),none,/readyz,migrated,infrastructure,status-200,/readyz,
+/api/register,POST,exact,auth.go,handleRegister,company.api.ts:useRegister,/api/register,migrated,auth,shape+semantics,/api/register,Frontend POST body differs slightly
+/api/login,POST,exact,auth.go,handleLogin,company.api.ts:useLogin,/api/login,migrated,auth,shape+semantics,/api/login,Frontend expects token/companyId in response
+/api/csrf/,any,prefix,company.go,handleCSRF,none,none,retire-candidate,auth,none,none,Backend-next uses JWT-only; no CSRF needed
+/api/v2/players/me/companies/,any,prefix,company.go,handlePlayersMeCompanies,none,/api/v2/players/me/companies/,migrated,company,shape+semantics,/api/v2/players/me/companies/,Frontend does not call directly
+/api/v2/players/,any,prefix,company.go,handlePlayersByID,save_preferences uses /api/v2/players/{id}/preferences/,none,remaining-core,company,shape,none,Frontend calls preference path via this prefix; also general player lookup
+/api/v2/companies/me/buildings/,any,prefix,company.go,handleCompaniesMeBuildings,buildings.api.ts:useBuildings,none,remaining-core,buildings,shape,none,Frontend expects Building[] response; only v3 has buildings endpoint in backend-next
+/api/v2/companies/me/administration-overhead/,any,prefix,company.go,handleAdminOverhead,none,none,remaining-core,company,shape,none,Not called by frontend directly
+/api/v3/companies/,any,internal-switch,company.go,handleV3Companies,company.api.ts:useCompany /api/v3/companies/{id}/,none,remaining-core,company,shape,none,Frontend calls with path param; legacy does path routing
+/api/v2/companies/,any,internal-switch,company.go,handleV2Companies,useCompanyBuildings /api/v2/companies/{id}/buildings/,none,remaining-core,company,shape,none,Frontend uses for other-company building views
+/api/v2/companies/me/warehouse/,any,prefix,company.go,handleWarehouse,inventory.api.ts:useWarehouse,/api/v2/companies/me/warehouse/,migrated,warehouse,shape+semantics,/api/v2/companies/me/warehouse/,
+/api/v2/companies/me/tutorial/,POST,exact,company.go,handleCompleteTutorial,company.api.ts:useCompleteTutorial,none,remaining-core,company,shape,none,Simple POST to mark tutorial complete
+/api/v2/companies/me/auctions/,any,prefix,company.go,handleMyAuctions,none,none,remaining-core,auction,shape+semantics,none,
+/api/v2/auctions/,any,internal-switch,company.go,handleAuctions,none,none,remaining-core,auction,shape+semantics,none,"GET list/detail, POST bid"
+/api/v2/executives/search/,POST,exact,company.go,handleExecSearch,executives.api.ts:useExecutiveSearch+useMyExecutives,none,deferred-plugin,executives,shape,none,Frontend calls with optional scope body
+/api/v2/executives/recruit/,POST,exact,company.go,handleExecRecruit,executives.api.ts:useRecruitExecutive,none,deferred-plugin,executives,shape,none,
+/api/v2/executives/train/,POST,exact,company.go,handleExecTrain,executives.api.ts:useTrainExecutive,none,deferred-plugin,executives,shape,none,Frontend calls /api/v2/executives/train/{id}/
+/api/v3/executives/poach/,POST,exact,company.go,handleExecPoach,none,none,deferred-plugin,executives,none,none,Verification not applicable; explanatory notes needed for migration
+/api/v3/executives/offers/,any,internal-switch,company.go,handleExecOffers,none,none,deferred-plugin,executives,none,none,"switch GET,POST"
+/api/v3/executives/,GET,exact,company.go,handleV3ExecutiveByID,executives.api.ts:useExecutiveDetail,none,deferred-plugin,executives,shape,none,Frontend calls /api/v3/executives/{id}/
+/api/v2/companies/me/income-statement/,any,prefix,financial.go,handleIncomeStatement,financial.api.ts:useIncomeStatement,/api/v2/companies/me/income-statement/,migrated,finance,shape+semantics,/api/v2/companies/me/income-statement/,
+/api/v2/companies/me/balance-sheet/,any,prefix,financial.go,handleBalanceSheet,financial.api.ts:useBalanceSheet,/api/v2/companies/me/balance-sheet/,migrated,finance,shape+semantics,/api/v2/companies/me/balance-sheet/,
+/api/v2/companies/me/cashflow-statement/,any,prefix,financial.go,handleCashflowStatement,financial.api.ts:useCashflowStatement,/api/v2/companies/me/cashflow-statement/,migrated,finance,shape+semantics,/api/v2/companies/me/cashflow-statement/,
+/api/v2/companies/me/cashflow/recent/,any,prefix,financial.go,handleRecentCashflow,financial.api.ts:useRecentCashflow,/api/v2/companies/me/cashflow/recent/,migrated,finance,shape+semantics,/api/v2/companies/me/cashflow/recent/,
+/api/v2/companies/me/past-finances-overview/,any,prefix,financial.go,handlePastFinancesOverview,none,none,remaining-core,finance,shape,none,
+/api/v3/companies/me/past-finances/,any,prefix,financial.go,handlePastFinances,financial.api.ts:usePastFinances,/api/v3/companies/me/past-finances/,migrated,finance,shape+semantics,/api/v3/companies/me/past-finances/,
+/api/v2/companies/me/achievements/,any,prefix,player.go,handleAchievements,none,none,remaining-core,progression,shape,none,
+/api/v2/no-cache/companies/me/achievements/,any,prefix,player.go,handleNoCacheAchievements,none,none,remaining-core,progression,shape,none,
+/api/v2/no-cache/companies/achievements/,DELETE,exact,player.go,handleDeleteAchievements,none,none,remaining-core,progression,none,none,Verification not applicable; explanatory notes needed for migration
+/api/v2/players/simboosts-use/,any,internal-switch,player.go,handleSimboostsUse,powerup.api.ts:useActivePowerup+useActivatePowerup,none,remaining-core,progression,shape+semantics,none,"switch GET,POST"
+/api/v2/players/simboosts/,any,prefix,player.go,handleSimboostTypes,powerup.api.ts:usePowerupTypes,none,remaining-core,progression,shape,none,
+/api/v2/players/unlocked-hqs/,any,prefix,player.go,handleUnlockedHQs,none,none,remaining-core,progression,shape,none,
+/api/v2/players/devices/,any,prefix,player.go,handlePlayerDevices,none,none,retire-candidate,progression,none,none,Device tracking; may be unused
+/api/v2/players/me/level/,any,prefix,player.go,handleLevel,company.api.ts:usePlayerLevel,none,remaining-core,progression,shape,none,
+/api/v2/players/me/xp/,POST,exact,player.go,handlePlayerAddXP,none,none,remaining-core,progression,shape+semantics,none,
+/api/v2/players/me/level-rewards/,any,prefix,player.go,handlePlayerLevelRewards,none,none,remaining-core,progression,shape,none,
+/api/v2/players/me/offline-income/,any,prefix,player.go,handleOfflineIncome,none,none,remaining-core,progression,shape,none,
+/api/v3/market-ticker/,any,prefix,market.go,handleMarketTicker,market.api.ts:useMarketTicker,/api/v3/market-ticker/{resourceId}/,migrated,market,shape+semantics+side-effects,/api/v3/market-ticker/{resourceId}/,Side effect: calls RunBotMarketCycle before returning data; critical migration concern
+/api/v3/market/,any,prefix,market.go,handleMarketOrderbook,market.api.ts:useMarketOrders,/api/v3/market/{resourceId}/{quality}/,migrated,market,shape+semantics+side-effects,/api/v3/market/{resourceId}/{quality}/,Side effect: calls RunBotMarketCycle before returning data
+/api/v2/market-order/,any,prefix,market.go,handleCreateOrder,market.api.ts:useCreateOrder,/api/v2/market-order/,migrated,market,shape+semantics,/api/v2/market-order/,
+/api/v2/market-order/cancel/,DELETE,exact,market.go,handleCancelOrder,market.api.ts:useCancelOrder,/api/v2/market-order/cancel/{orderId}/,migrated,market,shape+semantics,/api/v2/market-order/cancel/{orderId}/,
+/api/market/buy/orders/,POST,exact,market.go,handleMarketBuyOrders,none,none,remaining-core,market,shape,none,Not called by current frontend
+/api/v2/market-order/take/,any,prefix,market.go,handleTakeOrder,market.api.ts:useTakeOrder,/api/v2/market-order/take/,migrated,market,shape+semantics,/api/v2/market-order/take/,
+/api/v2/weather/,any,prefix,market.go,handleWeather,none,none,remaining-core,market,shape,none,Weather data for retail calculations
+/api/v3/market-depth/,any,prefix,market.go,handleMarketDepth,market.api.ts:useMarketDepth,/api/v3/market-depth/{resourceId}/{quality}/,migrated,market,shape+semantics+side-effects,/api/v3/market-depth/{resourceId}/{quality}/,Side effect: calls RunBotMarketCycle before returning data
+/api/v2/production-modifiers/,any,prefix,market.go,handleProductionModifiers,none,none,remaining-core,production,shape,none,Modifier data for production UIs
+/api/v3/resources/,any,prefix,market.go,handleResources,market.api.ts:useResources,/api/v3/resources/,migrated,resources,shape,/api/v3/resources/,
+/api/v3/resources-info/,any,prefix,market.go,handleResourceInfo,none,none,remaining-core,resources,shape,none,
+/api/v1/buildings/,any,internal-switch,production.go,handleV1Buildings,buildings.api.ts:useUpgradeBuilding+production.api.ts:useStartProduction,none,remaining-core,buildings,shape+semantics,none,V1 building lifecycle; upgrade+busy paths dispatched internally
+/api/v2/buildings/,any,internal-switch,production.go,handleV2Buildings,production.api.ts:useProductionOptions,none,remaining-core,production,shape,none,V2 building sub-routes (production-options)
+/api/v2/production/jobs/,any,prefix,production.go,handleProductionJobs,production.api.ts:useProductionJobs,/api/v2/production/jobs/,migrated,production,shape+semantics,/api/v2/production/jobs/,
+/api/v2/production/claim/,POST,exact,production.go,handleClaimProduction,production.api.ts:useClaimProduction,/api/v2/production/claim/{jobId}/,migrated,production,shape+semantics,/api/v2/production/claim/{jobId}/,Legacy path parsed inside; backend-next has path param
+/api/v2/production/claimable/,any,prefix,production.go,handleClaimable,production.api.ts:useClaimableJobs,/api/v2/production/claimable/,migrated,production,shape+semantics,/api/v2/production/claimable/,
+/api/v2/production/claim-all/,any,prefix,production.go,handleClaimAll,production.api.ts:useClaimAll,none,remaining-core,production,shape+semantics,none,No backend-next equivalent
+/api/v2/production/queue/,any,prefix,production_queue.go,handleProductionQueue,production.api.ts:useProductionQueue,none,remaining-core,production,shape,none,
+/api/v2/production/slots/add/,any,prefix,production_queue.go,handleAddSlot,none,none,remaining-core,production,shape+semantics,none,
+/api/v2/production/cancel/,any,prefix,production_queue.go,handleCancelProduction,production.api.ts:useCancelJob,none,remaining-core,production,shape+semantics,none,Frontend POSTs {jobId}
+/api/bonds/settle-interest/,POST,exact,bond.go,handleSettleBondInterest,none,none,remaining-core,bond,shape+semantics,none,Scheduler responsibility; handled by backend-next scheduler too
+/api/bonds/,any,internal-switch,bond.go,handleBonds,none,/api/bonds/+/api/bonds/{bondId}/,migrated,bond,shape+semantics,/api/bonds/,"Backend-next splits into list/create/detail; legacy switch GET,PATCH,PUT"
+/api/v2/companies/me/bonds/owned/,any,prefix,bond.go,handleBondsOwned,none,/api/v2/companies/me/bonds/owned/,migrated,bond,shape+semantics,/api/v2/companies/me/bonds/owned/,
+/api/v2/companies/me/bonds/sold/,any,prefix,bond.go,handleBondsSold,none,/api/v2/companies/me/bonds/sold/,migrated,bond,shape+semantics,/api/v2/companies/me/bonds/sold/,
+/api/v3/government-orders/,any,prefix,government.go,handleGovernmentOrders,contracts.api.ts:useGovContracts,none,deferred-plugin,government,shape,none,
+/api/v3/government-orders/bid/,POST,exact,government.go,handleGovernmentBid,contracts.api.ts:useBidContract,none,deferred-plugin,government,shape+semantics,none,
+/api/v3/government-orders/award/,POST,exact,government.go,handleGovernmentAward,none,none,deferred-plugin,government,shape+semantics,none,
+/api/v3/government-orders/deliver/,POST,exact,government.go,handleGovernmentDeliver,none,none,deferred-plugin,government,shape+semantics,none,
+/api/v3/government-orders/resolve-defaults/,POST,exact,government.go,handleGovernmentResolveDefaults,none,none,deferred-plugin,government,shape+semantics,none,
+/api/messages/,any,internal-switch,message.go,handleMessages,chat.api.ts:useMessages,none,remaining-core,social,shape+semantics,none,"switch GET,PATCH"
+/api/messages_by_company/,any,prefix,message.go,handleMessagesByCompany,none,none,remaining-core,social,shape,none,
+/api/v2/message/,any,internal-switch,message.go,handleV2Message,chat.api.ts:useSendMessage,none,remaining-core,social,shape+semantics,none,"switch GET,POST"
+/api/v2/chatroom/,any,internal-switch,message.go,handleChatroom,chat.api.ts:useChatroom,none,remaining-core,social,shape,none,GET or PATCH
+/api/v2/contacts/,any,prefix,message.go,handleContacts,chat.api.ts:useContacts,none,remaining-core,social,shape,none,
+/api/v2/newspaper/articles-by-author/,any,prefix,message.go,handleNewspaperArticles,none,none,remaining-core,social,shape,none,
+/api/v2/newspaper/articles/,any,internal-switch,message.go,handleNewspaperArticleList,none,none,remaining-core,social,shape,none,"switch GET,POST"
+/api/v2/newspaper/publishing-costs/,any,prefix,message.go,handleNewspaperPublishingCosts,none,none,remaining-core,social,shape,none,
+/api/v2/recipes/,any,prefix,recipe.go,handleRecipes,none,none,remaining-core,recipes,shape,none,
+/api/dev/ledger/,any,prefix,dev.go,handleDevLedger,none,none,dev-only,dev,shape,none,
+/api/dev/formulas/production/,any,prefix,dev.go,handleDevFormulasProduction,none,none,dev-only,dev,shape,none,
+/api/dev/formulas/retail/,any,prefix,dev.go,handleDevFormulasRetail,none,none,dev-only,dev,shape,none,
+/api/dev/formulas/retail-season-weather/,any,prefix,dev.go,handleDevFormulasRetailSeasonWeather,none,none,dev-only,dev,shape,none,
+/api/v4/,any,internal-switch,dev.go,handleV4,none,none,dev-only,dev,shape,none,resources-retail-info + payment-packages stubs
+/api/v3/contracts-incoming/,any,prefix,dev.go,handleContractsIncoming,none,none,remaining-core,contracts,shape,none,Returns same data as contracts-history-incoming
+/api/v3/contracts-outgoing/me/,any,prefix,dev.go,handleContractsOutgoing,none,none,remaining-core,contracts,shape,none,Returns same data as contracts-history-outgoing
+/api/v2/contracts-history-incoming/,any,prefix,dev.go,handleContractsHistoryIncoming,none,none,remaining-core,contracts,shape,none,Duplicate of contracts-incoming
+/api/v2/contracts-history-outgoing/,any,prefix,dev.go,handleContractsHistoryOutgoing,none,none,remaining-core,contracts,shape,none,Duplicate of contracts-outgoing
+/api/v2/warehouse-contracts-summary/,any,prefix,dev.go,handleWarehouseContractsSummary,none,none,remaining-core,contracts,shape,none,Always returns 0/0 stub
+/api/v2/research/,any,prefix,dev.go,handleResearch,research.api.ts:useResearch,none,deferred-plugin,research,shape,none,
+/api/v2/research/start/,POST,exact,dev.go,handleStartResearch,research.api.ts:useStartResearch,none,deferred-plugin,research,shape+semantics,none,
+/api/v2/research/progress/,any,prefix,dev.go,handleResearchProgress,research.api.ts:useResearchProgress,none,deferred-plugin,research,shape,none,
+/api/dev/time/,any,internal-switch,dev.go,handleDevTime,none,none,dev-only,dev,shape,none,GET/POST/DELETE time manipulation
+/api/v2/research/complete/,POST,exact,dev.go,handleCompleteResearch,research.api.ts:useCompleteResearch,none,deferred-plugin,research,shape+semantics,none,
+/api/v2/aerospace/projects/,any,prefix,aerospace.go,handleAerospaceProjects,none,none,deferred-plugin,aerospace,shape,none,
+/api/v2/aerospace/projects/create/,POST,exact,aerospace.go,handleAerospaceCreateProject,none,none,deferred-plugin,aerospace,shape+semantics,none,
+/api/v2/aerospace/launches/,any,prefix,aerospace.go,handleAerospaceLaunches,none,none,deferred-plugin,aerospace,shape,none,
+/api/v2/aerospace/launch/,POST,exact,aerospace.go,handleAerospaceLaunch,none,none,deferred-plugin,aerospace,shape+semantics,none,
+/api/v2/aerospace/components/,any,prefix,aerospace.go,handleAerospaceComponents,none,none,deferred-plugin,aerospace,shape,none,
+/api/v2/leaderboard/,GET,exact,leaderboard.go,handleLeaderboard,leaderboard.api.ts:useLeaderboard,none,remaining-core,leaderboard,shape+semantics,none,Frontend passes sort/page/limit query params
+/api/v2/buildings/market/,any,prefix,building_shop.go,handleBuildingMarket,none,none,remaining-core,buildings,shape,none,
+/api/v2/buildings/buy/,any,prefix,building_shop.go,handleBuyBuilding,buildings.api.ts:useBuyBuilding,none,remaining-core,buildings,shape+semantics,none,
+/api/v2/buildings/place/,any,prefix,building_shop.go,handlePlaceBuilding,buildings.api.ts:usePlaceBuilding,none,remaining-core,buildings,shape+semantics,none,
+/api/v2/buildings/move/,any,prefix,building_shop.go,handleMoveBuilding,buildings.api.ts:useMoveBuilding,none,remaining-core,buildings,shape+semantics,none,
+/api/v2/buildings/demolish/,any,prefix,building_shop.go,handleDemolishBuilding,buildings.api.ts:useDemolishBuilding,none,remaining-core,buildings,shape+semantics,none,
+/api/v2/companies/me/warehouse/upgrade/,any,prefix,building_shop.go,handleWarehouseUpgrade,none,none,remaining-core,warehouse,shape+semantics,none,
+/api/v2/orders/daily/,GET,exact,order.go,handleDailyOrders,contracts.api.ts:useDailyOrders,none,remaining-core,daily-orders,shape,none,
+/api/v2/orders/daily/complete/,POST,exact,order.go,handleCompleteOrder,contracts.api.ts:useCompleteDailyOrder,none,remaining-core,daily-orders,shape+semantics,none,
+/api/v2/orders/daily/claim/,POST,exact,order.go,handleClaimOrder,contracts.api.ts:useClaimDailyOrder,none,remaining-core,daily-orders,shape+semantics,none,

@@ -1,0 +1,38 @@
+data_group,legacy_owner,backend_next_owner,storage_interface,domain_types_file,disposition,dependency_group,verification_requirement,notes
+Players/Accounts,GameState.Players + model.Player,auth.Player,PlayerStorage (CreatePlayer/GetPlayerByID/GetPlayerByUsername),auth/types.go,migrated,auth,shape+semantics,Full coverage in both; legacy uses full GameState snapshot
+AuthSessions,No legacy equivalent (JWT stateless),Planned (auth_sessions table),None yet,None,new-only,auth,none,Backend-next design doc plans auth_sessions for token revocation
+Companies,GameState.Companies + model.Company,company.Company,CompanyStorage (CreateCompany/GetCompany/UpdateCompany),company/types.go,migrated,company,shape+semantics,Both sides; backend-next Company includes Buildings and Inventory inline
+BotCompanies,GameState.BotCompanies,No separate storage,None,None,retire-candidate,company,shape,Legacy persists separate bot_companies; no BN equivalent needed for MVP
+Buildings,model.Company.PlacedBuildings (opaque []map),company.Building + company.Company.Buildings,CompanyStorage (SaveBuilding/RemoveBuilding/GetBuildings),company/types.go,migrated,buildings,shape+semantics,BN has typed Building struct vs legacy opaque map
+Inventory/Warehouse,model.Company.Inventory (map[int]int),warehouse.Warehouse + warehouse.Item,CompanyStorage (UpdateInventory) + WarehouseStorage (GetWarehouse),warehouse/types.go,migrated,warehouse,shape+semantics,BN splits into inline Company.Inventory + separate Warehouse
+ProductionJobs,GameState.ProductionJobs,production.ProductionJob,ProductionStorage (CreateJob/GetJob/GetJobsByCompany/GetJobsByBuilding/UpdateJob),production/types.go,migrated,production,shape+semantics,Both sides typed; BN adds Slot and ProductionOption DTOs
+MarketOrders/OrderBook,GameState.Orders,market.MarketOrder,MarketStorage (CreateOrder/GetOrder/UpdateOrder/GetOpenOrders/GetOrdersByCompany/GetOrdersByResource),market/types.go,migrated,market,shape+semantics,Full coverage in both; BN adds OrderSide/OrderStatus enums
+Trades,GameState.Trades,market.Trade,MarketStorage (SaveTrade/GetTrades),market/types.go,migrated,market,shape+semantics,Both sides typed; BN adds buyer/seller fees
+Tickers,GameState.MarketTicks (opaque map),market.Ticker,MarketStorage (GetTicker/UpdateTicker/GetTickers),market/types.go,migrated,market,shape+semantics,BN has structured Ticker vs legacy opaque map
+Finance/Ledger,GameState.Ledger,finance.LedgerEntry,FinanceStorage (AppendLedgerEntry/GetLedgerEntries),finance/types.go,migrated,finance,shape+semantics,Both sides append-only; BN includes BalanceAfter
+Bonds,GameState.Bonds,finance.Bond,FinanceStorage (CreateBond/GetBond/UpdateBond/GetActiveBonds/GetBondsByIssuer),finance/types.go,migrated,bond,shape+semantics,BN separates bond from holdings
+BondHoldings,No separate type (embedded in Bond),finance.BondHolding,FinanceStorage (CreateBondHolding/GetBondHoldings/GetCompanyBondHoldings),finance/types.go,new-only,bond,shape+semantics,New domain type; legacy tracked ownership inside Bond model
+Research/Projects,GameState.ResearchProjects,research.Project + research.CompanyProgress,ResearchStorage (GetProjects/GetCompanyProgress/SaveProgress),research/types.go,deferred-plugin,research,shape+semantics,Splits into Project (catalog) and CompanyProgress (tracking)
+Executives,GameState.Executives (in-memory),Planned (executive tables),None yet,None,deferred-plugin,executives,shape,Legacy in-memory JSON blob; design doc plans structured tables
+Messages/Chat,GameState.Messages,social.Message,SocialStorage (SaveMessage/GetMessages),social/types.go,migrated,social,shape+semantics,Both sides typed; BN adds Channel field
+Notifications,GameState.Notifications,social.Notification,SocialStorage (CreateNotification/GetNotifications/MarkNotificationRead),social/types.go,migrated,social,shape+semantics,BN adds read tracking with MarkNotificationRead
+GovernmentContracts,GameState.GovernmentContracts,Planned (government_orders table),None yet,None,deferred-plugin,government,shape+semantics,Legacy persists government_contracts; BN plans structured tables
+DailyOrders,GameState.DailyOrders + model.Order,None yet,None,None,remaining-core,daily-orders,shape,Legacy persists daily_orders + date; no BN storage yet
+Auctions,GameState.Auctions + model.Auction,None yet,None,None,remaining-core,auctions,shape,Legacy persists auctions; no BN storage yet
+Achievements/PlayerProgress,GameState.Achievements (opaque []map),None yet,None,None,remaining-core,progression,shape,Legacy persists as opaque map; no BN equivalents yet
+Preferences,GameState.PlayerPreferences + model.Company.Preferences,company.Company.Preferences,Embedded in CompanyStorage,company/types.go,migrated,company,shape+semantics,Inline in Company struct in both versions
+MarketCompetitionState,GameState.MarketPressure/DailyTradeVolume/etc,None yet,None,None,remaining-core,market,shape,Legacy ~13 market competition fields; no BN storage
+UnlockedRecipes,GameState.UnlockedRecipes (map[int]bool),None yet,None,None,remaining-core,production,shape,Legacy global + per-company; no BN storage
+ResearchedQuality,GameState.ResearchedQuality (map[int]int),None yet,None,None,remaining-core,production,shape,Legacy global + per-company; no BN storage
+XP/Rank,GameState.XP + model.Company.XP,company.Company.XP (int64),Embedded in CompanyStorage,company/types.go,migrated,progression,shape+semantics,Both sides per-company XP/Level
+BoostState,GameState.BoostType/BoostEndsAt/BoostMultiplier,None yet,None,None,remaining-core,progression,shape,Legacy 3 boost fields; no BN storage yet
+CSRFToken,GameState.CSRFToken,None yet,None,None,retire-candidate,auth,none,BN uses JWT; no CSRF storage needed
+SimulatedAt/TimeState,GameState.SimulatedAt/LastActiveAt,None yet,None,None,dev-only,system,none,Legacy testing state; not relevant for production
+AntiCheatState,Service.AC (in-memory),No storage,None,None,deferred-plugin,system,none,Legacy in-memory only; no BN equivalent
+AMLState,Service.AML (in-memory),No storage,None,None,deferred-plugin,system,none,Legacy in-memory only; no BN equivalent
+ScriptDetector,Service.SD (in-memory),No storage,None,None,deferred-plugin,system,none,Legacy in-memory only; no BN equivalent
+PluginContracts,GameState.ContractsIn/ContractsOut,None yet,None,None,remaining-core,contracts,shape,Opaque plugin contract state persisted by legacy
+StaticData/Catalog,data.StaticData (JSON),building.CatalogEntry + building.ResourceCatalogEntry,None (static),building/types.go,migrated,buildings,shape,Static catalog loaded at startup; BN has typed entries
+GameStateSnapshot,Full GameState snapshot (JSONB),None,None,None,retire-candidate,storage,none,Legacy persists for crash recovery; BN is entity-level
+FinancialStatement,No legacy equivalent,finance.FinancialStatement,None yet,finance/types.go,new-only,finance,shape,New derived reporting type; not yet stored
+DevBootstrapConfig,No legacy equivalent,system.DevBootstrapConfig,None yet,system/types.go,new-only,system,none,Dev-only auto-setup config; not stored

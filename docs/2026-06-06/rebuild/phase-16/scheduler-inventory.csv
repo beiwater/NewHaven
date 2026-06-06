@@ -1,0 +1,17 @@
+step,order_number,method_name,domain,called_from_handler,responsible_owner,disposition,dependency_group,verification_requirement,notes
+1,1,SettleAllBonds,scheduler,no,legacy-only,remaining-core,bond,shape+semantics,Bond interest processing; BN has bond service but scheduler not wired
+2,2,AwardGovernmentContracts,scheduler,no,deferred-plugin,deferred-plugin,government,shape+semantics,Deferred plugin
+3,3,ResolveGovernmentDefaults,scheduler,no,deferred-plugin,deferred-plugin,government,shape+semantics,Deferred plugin
+4,4,RunBotMarketCycle,scheduler,/api/v3/market-ticker/+/api/v3/market/+/api/v3/market-depth/,migrated-to-bn,migrated,market,shape+semantics+side-effects,Core matching engine; called from both tick and 3 handler routes
+5,5a,ResourcesWithMarket,scheduler,no,migrated-to-bn,migrated,market,shape+semantics,Prerequisite for CheckMarketLock; 2 calls in same stage
+5,5b,CheckMarketLock,scheduler,no,migrated-to-bn,migrated,market,shape+semantics,Per-resource lock; called per resource ID from ResourcesWithMarket
+6,6,CleanupOrders,scheduler,no,migrated-to-bn,migrated,market,shape+semantics,Remove zero-filled orders
+7,7,RunAllProductionJobs,scheduler,no,legacy-only,remaining-core,production,shape+semantics,BN production service exists but scheduler loop not wired
+8,8,RefreshDailyOrders,scheduler,no,legacy-only,remaining-core,daily-orders,shape+semantics,
+9,9,SaveAll,scheduler,no,legacy-only,remaining-core,storage,none,Persistent state save; BN is entity-level
+--,--,ResetDailyMarket,service,no,legacy-only,remaining-core,market,none,Declared in GameService interface but NEVER called
+--,--,RunBotMarketCycle,handler,/api/v3/market-ticker/,migrated-to-bn,migrated,market,shape+semantics+side-effects,
+--,--,RunBotMarketCycle,handler,/api/v3/market/,migrated-to-bn,migrated,market,shape+semantics+side-effects,
+--,--,RunBotMarketCycle,handler,/api/v3/market-depth/,migrated-to-bn,migrated,market,shape+semantics+side-effects,
+--,--,AwardGovernmentContracts,handler,/api/v3/government-orders/award/,deferred-plugin,deferred-plugin,government,shape+semantics,
+--,--,ResolveGovernmentDefaults,handler,/api/v3/government-orders/resolve-defaults/,deferred-plugin,deferred-plugin,government,shape+semantics,
