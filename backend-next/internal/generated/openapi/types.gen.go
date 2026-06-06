@@ -508,6 +508,13 @@ type StartProductionResponse struct {
 	Job      *ProductionJobDTO         `json:"job,omitempty"`
 }
 
+// StartProductionV1Request defines model for StartProductionV1Request.
+type StartProductionV1Request struct {
+	Amount                   int  `json:"amount"`
+	EstimatedSecondsToFinish *int `json:"estimatedSecondsToFinish,omitempty"`
+	Kind                     int  `json:"kind"`
+}
+
 // TakeOrderRequest defines model for TakeOrderRequest.
 type TakeOrderRequest struct {
 	MaxPrice  float32 `json:"maxPrice"`
@@ -577,6 +584,9 @@ type LoginJSONRequestBody = LoginRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
+// StartBuildingProductionV1JSONRequestBody defines body for StartBuildingProductionV1 for application/json ContentType.
+type StartBuildingProductionV1JSONRequestBody = StartProductionV1Request
+
 // BuyBuildingJSONRequestBody defines body for BuyBuilding for application/json ContentType.
 type BuyBuildingJSONRequestBody = BuyBuildingRequest
 
@@ -618,6 +628,9 @@ type ServerInterface interface {
 	// Register
 	// (POST /api/register)
 	Register(w http.ResponseWriter, r *http.Request)
+	// Start production through the legacy frontend compatibility route
+	// (POST /api/v1/buildings/{buildingId}/busy/)
+	StartBuildingProductionV1(w http.ResponseWriter, r *http.Request, buildingId string)
 	// Upgrade a building
 	// (POST /api/v1/buildings/{buildingId}/upgrade/)
 	UpgradeBuilding(w http.ResponseWriter, r *http.Request, buildingId string)
@@ -753,6 +766,12 @@ func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request) {
 // Register
 // (POST /api/register)
 func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Start production through the legacy frontend compatibility route
+// (POST /api/v1/buildings/{buildingId}/busy/)
+func (_ Unimplemented) StartBuildingProductionV1(w http.ResponseWriter, r *http.Request, buildingId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1078,6 +1097,38 @@ func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Register(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartBuildingProductionV1 operation middleware
+func (siw *ServerInterfaceWrapper) StartBuildingProductionV1(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartBuildingProductionV1(w, r, buildingId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1984,6 +2035,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/register", wrapper.Register)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/buildings/{buildingId}/busy/", wrapper.StartBuildingProductionV1)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/buildings/{buildingId}/upgrade/", wrapper.UpgradeBuilding)

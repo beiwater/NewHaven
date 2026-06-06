@@ -65,6 +65,41 @@ func (h *ProductionHandler) handleStartProduction(w http.ResponseWriter, r *http
 	writeSuccess(w, 200, resp)
 }
 
+// handleStartProductionV1 keeps the current frontend busy endpoint working
+// while routing all behavior through the backend-next production service.
+func (h *ProductionHandler) handleStartProductionV1(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	var req struct {
+		Kind   int `json:"kind"`
+		Amount int `json:"amount"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
+		return
+	}
+	buildingID := chi.URLParam(r, "buildingId")
+	if buildingID == "" || req.Kind == 0 || req.Amount < 1 {
+		writeErr(w, 400, ErrorValidation, "buildingId, kind, and amount (min 1) are required", nil)
+		return
+	}
+
+	resp, err := h.svc.StartProduction(r.Context(), companyID, &openapi.StartProductionRequest{
+		BuildingId: buildingID,
+		ResourceId: req.Kind,
+		Quantity:   req.Amount,
+	})
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
 // handleClaimProduction claims produced resources from a production job.
 func (h *ProductionHandler) handleClaimProduction(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := CompanyIDFromCtx(r.Context())

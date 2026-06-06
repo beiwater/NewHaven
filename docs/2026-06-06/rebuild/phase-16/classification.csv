@@ -48,7 +48,7 @@ legacy_path,method,handler_file,handler_func,frontend_callsite,migrated_path,dis
 /api/v2/production-modifiers/,any,market.go,handleProductionModifiers,none,none,remaining-core,production,shape,none,prefix
 /api/v3/resources/,any,market.go,handleResources,market.api.ts:useResources,/api/v3/resources/,migrated,resources,shape,/api/v3/resources/,prefix
 /api/v3/resources-info/,any,market.go,handleResourceInfo,none,none,remaining-core,resources,shape,none,prefix
-/api/v1/buildings/,any,production.go,handleV1Buildings,buildings.api.ts:useUpgradeBuilding+production.api.ts:useStartProduction,none,remaining-core,buildings,shape+semantics,none,internal-switch
+/api/v1/buildings/,any,production.go,handleV1Buildings,buildings.api.ts:useUpgradeBuilding+production.api.ts:useStartProduction,/api/v1/buildings/{buildingId}/upgrade/+/api/v1/buildings/{buildingId}/busy/,migrated,buildings,shape+semantics,/api/v1/buildings/,internal-switch
 /api/v2/buildings/,any,production.go,handleV2Buildings,production.api.ts:useProductionOptions,none,remaining-core,production,shape,none,internal-switch
 /api/v2/production/jobs/,any,production.go,handleProductionJobs,production.api.ts:useProductionJobs,/api/v2/production/jobs/,migrated,production,shape+semantics,/api/v2/production/jobs/,prefix
 /api/v2/production/claim/,POST,production.go,handleClaimProduction,production.api.ts:useClaimProduction,/api/v2/production/claim/{jobId}/,migrated,production,shape+semantics,/api/v2/production/claim/{jobId}/,exact

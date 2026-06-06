@@ -74,6 +74,7 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	// API v1 routes (authenticated)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/{buildingId}/upgrade/", buildingHandler.handleUpgradeBuilding)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/{buildingId}/busy/", productionHandler.handleStartProductionV1)
 	})
 
 	return r

@@ -332,6 +332,45 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/buildings/{buildingId}/busy/:
+    post:
+      tags: [Production]
+      summary: Start production through the legacy frontend compatibility route
+      operationId: startBuildingProductionV1
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartProductionV1Request'
+      responses:
+        "200":
+          description: Production started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartProductionResponse'
+        "400":
+          description: Invalid production request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v2/production/claim/{jobId}/:
     post:
       tags: [Production]
@@ -1615,6 +1654,18 @@ components:
         quantity:
           type: integer
           minimum: 1
+
+    StartProductionV1Request:
+      type: object
+      required: [kind, amount]
+      properties:
+        kind:
+          type: integer
+        amount:
+          type: integer
+          minimum: 1
+        estimatedSecondsToFinish:
+          type: integer
 
     ProductionJobDTO:
       type: object

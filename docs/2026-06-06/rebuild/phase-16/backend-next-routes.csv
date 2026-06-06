@@ -38,5 +38,6 @@ POST,/api/v2/buildings/place/,building_handler.go,handlePlaceBuilding,building,m
 POST,/api/v2/buildings/move/,building_handler.go,handleMoveBuilding,building,migrated,buildings,shape+semantics+side-effects,
 POST,/api/v2/buildings/demolish/,building_handler.go,handleDemolishBuilding,building,migrated,buildings,shape+semantics+side-effects,
 POST,/api/v1/buildings/{buildingId}/upgrade/,building_handler.go,handleUpgradeBuilding,building,migrated,buildings,shape+semantics+side-effects,
+POST,/api/v1/buildings/{buildingId}/busy/,production_handler.go,handleStartProductionV1,production,migrated,production,shape+semantics+side-effects,
 GET,/api/v2/companies/me/buildings/,building_handler.go,handleListMyBuildingsV2,building,migrated,buildings,shape+semantics,
 POST,/api/v2/companies/me/warehouse/upgrade/,warehouse_handler.go,handleUpgradeWarehouse,warehouse,migrated,warehouse,shape+semantics+side-effects,
