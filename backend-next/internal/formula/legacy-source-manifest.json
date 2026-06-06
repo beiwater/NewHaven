@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "note": "Legacy source files that backend-next formula package copies or governs. If any digest changes, the BN formula must be reviewed for parity and this manifest updated.",
+  "files": [
+    {
+      "path": "backend/internal/formula/market.go",
+      "sha256": "05d84eec64d104eab6e0886e266e0742882d9be99965058697571e27d2b1b940"
+    },
+    {
+      "path": "backend/internal/formula/bonds.go",
+      "sha256": "b8482a2a47172b569f89b3d4efe4e7fed54ccc2678bc0fd01603d5f856e6e239"
+    },
+    {
+      "path": "backend/internal/formula/production.go",
+      "sha256": "bf009d4f92f34690045884b6f641a86d82604870b319d74f5c95ab1d4a8e1c0b"
+    },
+    {
+      "path": "backend/internal/formula/costs.go",
+      "sha256": "88d75ae58c040b12f070d9efc27be0618b8e8339b0912ad6851e9a671bc30d25"
+    },
+    {
+      "path": "backend/internal/formula/saturation.go",
+      "sha256": "4bf6112aca2aa43a4b16b42abcfa36413b0b03c032c1713f15f20d3ac52da8ad"
+    }
+  ]
+}

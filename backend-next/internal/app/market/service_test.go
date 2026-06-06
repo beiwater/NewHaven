@@ -13,6 +13,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	"github.com/newhaven/backend-next/internal/domain/company"
 	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
+	"github.com/newhaven/backend-next/internal/formula"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage/memory"
@@ -910,6 +911,71 @@ func TestTakeOrder_ValidatesBadPayloads(t *testing.T) {
 				t.Fatal("expected error, got nil")
 			}
 		})
+	}
+}
+
+func TestTakeOrder_FeeMatchesFormula(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		1: {ID: 1, DbLetter: 1, Name: "Grain", IsExchangeTradable: true, ProducedPerHourRaw: 500, UnitsSoldAnHour: 150, HasEconomyModel: true, BasePrice: 23, ProducedFrom: map[int]int{}},
+	}
+	svc, store := newTestSvc(resources)
+
+	buyerID := newTestCompany(t, store, 1, "buyer", 100000)
+	sellerID := newTestCompany(t, store, 2, "seller", 50000)
+
+	// Seed seller with inventory
+	err := store.UpdateInventory(nil, sellerID, 1, 100)
+	if err != nil {
+		t.Fatalf("UpdateInventory: %v", err)
+	}
+
+	// Seller creates 3 sell orders
+	_, err = svc.CreateOrder(ctx, sellerID, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 1, Kind: 0, Quality: 0, Quantity: 10, Price: 20,
+	})
+	if err != nil {
+		t.Fatalf("create sell1: %v", err)
+	}
+
+	_, err = svc.CreateOrder(ctx, sellerID, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 1, Kind: 0, Quality: 0, Quantity: 5, Price: 22,
+	})
+	if err != nil {
+		t.Fatalf("create sell2: %v", err)
+	}
+
+	_, err = svc.CreateOrder(ctx, sellerID, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 1, Kind: 0, Quality: 0, Quantity: 3, Price: 25,
+	})
+	if err != nil {
+		t.Fatalf("create sell3: %v", err)
+	}
+
+	// TakeOrder: buy 15 units across sell orders. Expect 10@20 + 5@22 = 15.
+	takeResp, err := svc.TakeOrder(ctx, buyerID, &openapi.TakeOrderRequest{
+		Resource: 1, Quantity: 15, MaxPrice: 30,
+	})
+	if err != nil {
+		t.Fatalf("TakeOrder: %v", err)
+	}
+	if takeResp.AmountBought == nil || *takeResp.AmountBought != 15 {
+		t.Errorf("expected 15 bought, got %v", takeResp.AmountBought)
+	}
+
+	// Verify company money deduction includes fees
+	buyer, err := store.GetCompany(ctx, buyerID)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+
+	// Cost: 10*20 + 5*22 = 310
+	// Fees: ExchangeFee(10,20,0.04)=8 + ExchangeFee(5,22,0.04)=5 = 13
+	expectedFee := formula.ExchangeFee(10, 20, 0.04) + formula.ExchangeFee(5, 22, 0.04)
+	expectedCost := 310.0 + expectedFee
+	actualSpent := 100000.0 - buyer.Money
+	if actualSpent != expectedCost {
+		t.Errorf("expected spent exactly %.2f, got %.2f", expectedCost, actualSpent)
 	}
 }
 

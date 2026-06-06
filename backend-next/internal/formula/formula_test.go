@@ -1,0 +1,415 @@
+package formula_test
+
+import (
+	"math"
+	"testing"
+
+	"github.com/newhaven/backend-next/internal/formula"
+)
+
+// --- Exchange Fee ---
+
+func TestExchangeFee(t *testing.T) {
+	tests := []struct {
+		fill    int
+		price   float64
+		feeRate float64
+		want    float64
+	}{
+		{100, 23.0, 0.04, 92.0},  // ceil(100*23*0.04) = ceil(92) = 92
+		{1, 5000.0, 0.04, 200.0}, // ceil(1*5000*0.04) = ceil(200) = 200
+		{0, 100.0, 0.04, 0.0},    // ceil(0*100*0.04) = ceil(0) = 0
+		{3, 1.99, 0.10, 1.0},     // ceil(3*1.99*0.10) = ceil(0.597) = 1
+	}
+	for _, tc := range tests {
+		got := formula.ExchangeFee(tc.fill, tc.price, tc.feeRate)
+		if got != tc.want {
+			t.Errorf("ExchangeFee(%d, %.2f, %.2f) = %g; want %g", tc.fill, tc.price, tc.feeRate, got, tc.want)
+		}
+	}
+}
+
+// --- Tick Step ---
+
+func TestTickStep(t *testing.T) {
+	cases := []struct {
+		price float64
+		want  float64
+	}{
+		{25000, 500},
+		{20000, 500}, // boundary
+		{19999, 100},
+		{10000, 100}, // boundary
+		{9999, 25},
+		{5000, 25}, // boundary
+		{4999, 10},
+		{1000, 10}, // boundary
+		{999, 5},
+		{500, 5}, // boundary
+		{499, 2},
+		{200, 2}, // boundary
+		{199, 1},
+		{100, 1}, // boundary
+		{99, 0.5},
+		{50, 0.5}, // boundary
+		{49, 0.25},
+		{20, 0.25}, // boundary
+		{19, 0.1},
+		{5, 0.1}, // boundary
+		{4.99, 0.05},
+		{2, 0.05}, // boundary
+		{1.99, 0.01},
+		{1, 0.01}, // boundary
+		{0.99, 0.005},
+		{0.5, 0.005}, // boundary
+		{0.49, 0.001},
+		{0.001, 0.001},
+	}
+	for _, c := range cases {
+		got := formula.TickStep(c.price)
+		if got != c.want {
+			t.Errorf("TickStep(%.4f) = %g; want %g", c.price, got, c.want)
+		}
+	}
+}
+
+// --- Is Valid Tick ---
+
+func TestIsValidTick(t *testing.T) {
+	cases := []struct {
+		price float64
+		want  bool
+	}{
+		{25.0, true},
+		{25.01, false},
+		{100.0, true},
+		{100.50, false},
+		{2000.0, true},
+		{1999.0, false},
+		{0.5, true},
+		{0.513, false},
+		{10000.0, true},
+		{10250.0, false},
+	}
+	for _, c := range cases {
+		got := formula.IsValidTick(c.price)
+		if got != c.want {
+			t.Errorf("IsValidTick(%.3f) = %v; want %v", c.price, got, c.want)
+		}
+	}
+}
+
+// --- Bonds ---
+
+func TestDailyBondInterest(t *testing.T) {
+	tests := []struct {
+		amount  int
+		faceVal float64
+		ratePct float64
+		want    float64
+	}{
+		{1, 5000, 1.2, math.Floor(1 * 5000 * 1.2 / 100)},       // 60
+		{1, 5000, 0.5, math.Floor(1 * 5000 * 0.5 / 100)},       // 25
+		{0, 5000, 1.2, math.Floor(0 * 5000 * 1.2 / 100)},       // 0
+		{10, 10000, 2.0, math.Floor(10 * 10000 * 2.0 / 100)},   // 2000
+		{100, 5000, 0.01, math.Floor(100 * 5000 * 0.01 / 100)}, // 50
+	}
+	for _, tc := range tests {
+		got := formula.DailyBondInterest(tc.amount, tc.faceVal, tc.ratePct)
+		if got != tc.want {
+			t.Errorf("DailyBondInterest(%d, %.0f, %.1f) = %g; want %g", tc.amount, tc.faceVal, tc.ratePct, got, tc.want)
+		}
+	}
+}
+
+// --- Max Issuable Bonds ---
+
+func TestMaxIssuableBonds(t *testing.T) {
+	tests := []struct {
+		val  float64
+		fv   float64
+		sold int
+		want int
+	}{
+		{500000, 5000, 0, 100}, // floor(500000/5000) = 100
+		{500000, 5000, 50, 50}, // floor(500000/5000) - 50 = 50
+		{5000, 5000, 2, 0},     // floor(5000/5000) - 2 = -1 -> 0
+		{0, 5000, 0, 0},        // zero value
+		{500000, 0, 0, 0},      // faceValue=0 returns 0
+		{500000, -1, 0, 0},     // negative faceValue returns 0
+	}
+	for _, tc := range tests {
+		got := formula.MaxIssuableBonds(tc.val, tc.fv, tc.sold)
+		if got != tc.want {
+			t.Errorf("MaxIssuableBonds(%.0f, %.0f, %d) = %d; want %d", tc.val, tc.fv, tc.sold, got, tc.want)
+		}
+	}
+}
+
+// --- Output Per Hour ---
+
+func TestOutputPerHour(t *testing.T) {
+	tests := []struct {
+		base  float64
+		bonus float64
+		level int
+		want  float64
+	}{
+		{500, 0, 1, 500},  // no bonus
+		{500, 10, 1, 550}, // 10% bonus
+		{500, 0, 3, 1500}, // level 3
+		{500, 0, 0, 500},  // level 0 clamped to 1
+	}
+	for _, tc := range tests {
+		got := formula.OutputPerHour(tc.base, tc.bonus, tc.level)
+		if got != tc.want {
+			t.Errorf("OutputPerHour(%.0f, %.0f, %d) = %g; want %g", tc.base, tc.bonus, tc.level, got, tc.want)
+		}
+	}
+}
+
+// --- Duration Seconds ---
+
+func TestDurationSeconds(t *testing.T) {
+	tests := []struct {
+		qty  int
+		rate int
+		lvl  int
+		mod  float64
+		want float64
+	}{
+		{10, 500, 1, 1.0, math.Ceil(10.0 / 500.0 / 1.0 / 1.0 * 3600)}, // 72
+		{1, 500, 1, 1.0, 30.0}, // min 30s
+		{10, 500, 2, 1.0, math.Ceil(10.0 / 1000.0 / 1.0 * 3600)},        // 36 (level 2)
+		{10, 500, 1, 1.02, math.Ceil(10.0 / 500.0 / 1.0 / 1.02 * 3600)}, // 71 (ProductionMod)
+		{0, 500, 1, 1.0, 0}, // qty=0
+		{10, 0, 1, 1.0, 0},  // rate=0 returns 0
+	}
+	for _, tc := range tests {
+		got := formula.DurationSeconds(tc.qty, tc.rate, tc.lvl, tc.mod)
+		if got != tc.want {
+			t.Errorf("DurationSeconds(%d, %d, %d, %.2f) = %g; want %g", tc.qty, tc.rate, tc.lvl, tc.mod, got, tc.want)
+		}
+	}
+}
+
+// --- Cost Formulas ---
+
+func TestLaborCostPerHour(t *testing.T) {
+	tests := []struct {
+		base  float64
+		idx   float64
+		level int
+		want  float64
+	}{
+		{500, 1.0, 1, 500 * 1.0 * 1},
+		{500, 1.0, 5, 500 * 1.0 * 5},
+		{500, 1.2, 3, 500 * 1.2 * 3},
+		{500, 1.0, 0, 500 * 1.0 * 1}, // level 0 clamped to 1
+	}
+	for _, tc := range tests {
+		got := formula.LaborCostPerHour(tc.base, tc.idx, tc.level)
+		if got != tc.want {
+			t.Errorf("LaborCostPerHour(%.0f, %.1f, %d) = %.2f; want %.2f", tc.base, tc.idx, tc.level, got, tc.want)
+		}
+	}
+}
+
+func TestEnergyCostPerHour(t *testing.T) {
+	tests := []struct {
+		base  float64
+		idx   float64
+		level int
+		want  float64
+	}{
+		{300, 1.0, 1, 300 * 1.0 * 1},
+		{300, 1.0, 4, 300 * 1.0 * 4},
+		{300, 1.5, 2, 300 * 1.5 * 2},
+		{300, 1.0, 0, 300 * 1.0 * 1}, // level 0 clamped to 1
+	}
+	for _, tc := range tests {
+		got := formula.EnergyCostPerHour(tc.base, tc.idx, tc.level)
+		if got != tc.want {
+			t.Errorf("EnergyCostPerHour(%.0f, %.1f, %d) = %.2f; want %.2f", tc.base, tc.idx, tc.level, got, tc.want)
+		}
+	}
+}
+
+func TestInputCost(t *testing.T) {
+	tests := []struct {
+		output     float64
+		qtyPerUnit float64
+		unitPrice  float64
+		matIdx     float64
+		want       float64
+	}{
+		{10, 2, 5, 1.0, 10 * 2 * 5 * 1.0}, // normal
+		{0, 2, 5, 1.0, 0},                 // zero output
+		{10, 0, 5, 1.0, 0},                // zero qty per unit
+		{10, 2, 5, 1.5, 10 * 2 * 5 * 1.5}, // with material cost index
+	}
+	for _, tc := range tests {
+		got := formula.InputCost(tc.output, tc.qtyPerUnit, tc.unitPrice, tc.matIdx)
+		if got != tc.want {
+			t.Errorf("InputCost(%.0f, %.0f, %.0f, %.1f) = %.2f; want %.2f", tc.output, tc.qtyPerUnit, tc.unitPrice, tc.matIdx, got, tc.want)
+		}
+	}
+}
+
+func TestMaintenanceCostPerHour(t *testing.T) {
+	tests := []struct {
+		base  float64
+		level int
+		want  float64
+	}{
+		{200, 1, 200 * 1},
+		{200, 5, 200 * 5},
+		{200, 0, 200 * 1}, // level 0 clamped to 1
+		{200, 10, 200 * 10},
+	}
+	for _, tc := range tests {
+		got := formula.MaintenanceCostPerHour(tc.base, tc.level)
+		if got != tc.want {
+			t.Errorf("MaintenanceCostPerHour(%.0f, %d) = %.2f; want %.2f", tc.base, tc.level, got, tc.want)
+		}
+	}
+}
+
+func TestManagementCostPerHour(t *testing.T) {
+	tests := []struct {
+		base  float64
+		level int
+		sweet int
+		want  float64
+	}{
+		{500, 1, 7, 500 * 1},              // linear (level <= sweet)
+		{500, 7, 7, 500 * 7},              // linear at sweet spot
+		{500, 10, 7, 500.0 * 100.0 / 7.0}, // quadratic (level > sweet)
+		{500, 0, 7, 500 * 1},              // level 0 clamped to 1
+	}
+	for _, tc := range tests {
+		got := formula.ManagementCostPerHour(tc.base, tc.level, tc.sweet)
+		if got != tc.want {
+			t.Errorf("ManagementCostPerHour(%.0f, %d, %d) = %.2f; want %.2f", tc.base, tc.level, tc.sweet, got, tc.want)
+		}
+	}
+}
+
+func TestTaxCost(t *testing.T) {
+	tests := []struct {
+		revenue float64
+		rate    float64
+		want    float64
+	}{
+		{1000, 0.1, 100}, // 10% tax
+		{0, 0.1, 0},      // zero revenue
+		{1000, 0, 0},     // zero rate returns 0
+		{1000, -0.1, 0},  // negative rate returns 0
+	}
+	for _, tc := range tests {
+		got := formula.TaxCost(tc.revenue, tc.rate)
+		if got != tc.want {
+			t.Errorf("TaxCost(%.0f, %.2f) = %.2f; want %.2f", tc.revenue, tc.rate, got, tc.want)
+		}
+	}
+}
+
+func TestUpgradeCost(t *testing.T) {
+	tests := []struct {
+		base  float64
+		level int
+		want  float64
+	}{
+		{10000, 1, 10000 * 1},
+		{10000, 5, 10000 * 5},
+		{10000, 0, 10000 * 1}, // level 0 clamped to 1
+		{5000, 10, 5000 * 10},
+	}
+	for _, tc := range tests {
+		got := formula.UpgradeCost(tc.base, tc.level)
+		if got != tc.want {
+			t.Errorf("UpgradeCost(%.0f, %d) = %.2f; want %.2f", tc.base, tc.level, got, tc.want)
+		}
+	}
+}
+
+func TestTotalBuildingCost(t *testing.T) {
+	tests := []struct {
+		base  float64
+		level int
+		want  float64
+	}{
+		{10000, 1, 10000 * 1 * 2 / 2}, // level 1: 10000
+		{10000, 3, 10000 * 3 * 4 / 2}, // level 3: 60000
+		{10000, 0, 10000 * 1 * 2 / 2}, // level 0 clamped to 1
+		{5000, 5, 5000 * 5 * 6 / 2},   // level 5: 75000
+	}
+	for _, tc := range tests {
+		got := formula.TotalBuildingCost(tc.base, tc.level)
+		if got != tc.want {
+			t.Errorf("TotalBuildingCost(%.0f, %d) = %.2f; want %.2f", tc.base, tc.level, got, tc.want)
+		}
+	}
+}
+
+// --- Saturation ---
+
+func TestSaturationPriceMultiplier(t *testing.T) {
+	tests := []struct {
+		sat  float64
+		k    float64
+		want float64
+	}{
+		{1.0, 0.15, 1.0},    // balanced
+		{1.5, 0.15, 0.925},  // oversupply: 1+(1-1.5)*0.15 = 0.925
+		{0.5, 0.15, 1.075},  // undersupply: 1+(1-0.5)*0.15 = 1.075
+		{10.0, 0.15, 0.70},  // extreme oversupply: clamped at 0.70
+		{-10.0, 0.15, 1.10}, // extreme undersupply: clamped at 1.10
+	}
+	for _, tc := range tests {
+		got := formula.SaturationPriceMultiplier(tc.sat, tc.k)
+		if got != tc.want {
+			t.Errorf("SaturationPriceMultiplier(%.2f, %.2f) = %g; want %g", tc.sat, tc.k, got, tc.want)
+		}
+	}
+}
+
+func TestEffectivePrice(t *testing.T) {
+	tests := []struct {
+		base float64
+		sat  float64
+		evt  float64
+		want float64
+	}{
+		{100, 1.0, 1.0, 100 * 1.0 * 1.0}, // normal
+		{100, 0.8, 0, 100 * 0.8 * 1.0},   // zero event multiplier clamped to 1.0
+		{100, 0, 1.1, 100 * 0 * 1.1},     // zero saturation multiplier
+	}
+	for _, tc := range tests {
+		got := formula.EffectivePrice(tc.base, tc.sat, tc.evt)
+		if got != tc.want {
+			t.Errorf("EffectivePrice(%.0f, %.2f, %.2f) = %g; want %g", tc.base, tc.sat, tc.evt, got, tc.want)
+		}
+	}
+}
+
+// --- Commodity Groups ---
+
+func TestGroupOf(t *testing.T) {
+	tests := []struct {
+		rid  int
+		want int
+	}{
+		{1, formula.GroupGrain},          // Grain (known)
+		{2, formula.GroupProcessed},      // Processed (known)
+		{3, formula.GroupBakery},         // Bakery (known)
+		{4, formula.GroupRestaurantMeal}, // RestaurantMeal (known)
+		{99, formula.GroupGeneralMarket}, // unknown falls back to GeneralMarket
+	}
+	for _, tc := range tests {
+		got := formula.GroupOf(tc.rid)
+		if got != tc.want {
+			t.Errorf("GroupOf(%d) = %d; want %d", tc.rid, got, tc.want)
+		}
+	}
+}

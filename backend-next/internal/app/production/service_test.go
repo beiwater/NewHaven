@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	domain "github.com/newhaven/backend-next/internal/domain/company"
 	proddmn "github.com/newhaven/backend-next/internal/domain/production"
+	"github.com/newhaven/backend-next/internal/formula"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage/memory"
@@ -557,6 +558,67 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 	}
 	if warehouseAfter2.UsedCapacity != 0 {
 		t.Errorf("expected used_capacity 0 after exhausting, got %d", warehouseAfter2.UsedCapacity)
+	}
+}
+
+func TestStartProduction_DurationMatchesFormula(t *testing.T) {
+	ctx := context.Background()
+
+	resources := map[int]*catalog.ResourceEntry{
+		1: {ID: 1, DbLetter: 1, Name: "Grain", ProducedFrom: map[int]int{}, ProducedPerHourRaw: 500, UnitsSoldAnHour: 150, HasEconomyModel: true, BasePrice: 23, IsExchangeTradable: true},
+	}
+	buildings := map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Kind: 1, Name: "Farm", Produces: []int{1}, BaseCost: 10000, BaseOutput: 500, BaseOutputPerHour: 500},
+	}
+	svc, store := newTestService(t, resources, buildings)
+
+	// Create player and company
+	err := store.CreatePlayer(ctx, &auth.Player{ID: 10, Username: "producer"})
+	if err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	err = store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  10,
+		Name:      "Producer Corp",
+		Money:     100000,
+		Level:     1,
+		XP:        0,
+		Inventory: map[int]int{1: 100},
+	})
+	if err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+
+	// Assign a Farm (building_id=1, level 1) to the company
+	company, err := store.GetCompanyByPlayerID(ctx, 10)
+	if err != nil {
+		t.Fatalf("GetCompanyByPlayerID: %v", err)
+	}
+	company.Buildings = []domain.Building{
+		{ID: "bld-1", BuildingID: 1, Level: 1, Name: "Test Farm", X: 0, Y: 0, MapID: "", SlotID: ""},
+	}
+	err = store.UpdateCompany(ctx, company)
+	if err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
+	}
+
+	// Start production of 10 Grain in a level-1 Farm (produces 500/hr)
+	resp, err := svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{
+		BuildingId: "bld-1",
+		ResourceId: 1,
+		Quantity:   10,
+	})
+	if err != nil {
+		t.Fatalf("StartProduction: %v", err)
+	}
+
+	// DurationSeconds(10, 500, 1, 1.0) = ceil(10/500/1/1*3600) = 72
+	expectedDuration := formula.DurationSeconds(10, 500, 1, 1.0)
+	if resp.Job == nil || resp.Job.DurationSeconds == nil {
+		t.Fatal("expected job and duration in response")
+	}
+	if *resp.Job.DurationSeconds != float32(expectedDuration) {
+		t.Errorf("expected duration %.0f, got %.0f", expectedDuration, *resp.Job.DurationSeconds)
 	}
 }
 

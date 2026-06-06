@@ -10,6 +10,7 @@ import (
 	domainauth "github.com/newhaven/backend-next/internal/domain/auth"
 	domaincompany "github.com/newhaven/backend-next/internal/domain/company"
 	domainfinance "github.com/newhaven/backend-next/internal/domain/finance"
+	"github.com/newhaven/backend-next/internal/formula"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
@@ -484,5 +485,57 @@ func TestSoldBonds_ReturnsIssued(t *testing.T) {
 	}
 	if *(*resp.Bonds)[0].Amount != 5 {
 		t.Errorf("expected amount 5, got %d", *(*resp.Bonds)[0].Amount)
+	}
+}
+
+func TestBondInterest_MatchesFormula(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestSvc()
+
+	companyID := newTestCompany(t, store, 99, "bond-company", 1000000)
+
+	// Create a bond: 5 units at 1.2% interest
+	amount := 5
+	interestPct := float32(1.2)
+	resp, err := svc.CreateBond(ctx, companyID, amount, interestPct)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+
+	// Verify daily interest in the create response matches formula
+	expectedDaily := formula.DailyBondInterest(amount, 5000, 1.2)
+	if resp.Bond.DailyInterest == nil {
+		t.Fatal("DailyInterest is nil in create response")
+	}
+	gotDaily := float64(*resp.Bond.DailyInterest)
+	if gotDaily != expectedDaily {
+		t.Errorf("create response DailyInterest = %g; want %g (from formula)", gotDaily, expectedDaily)
+	}
+	if resp.Bond.PeriodInterest == nil {
+		t.Fatal("PeriodInterest is nil in create response")
+	}
+	if got := float64(*resp.Bond.PeriodInterest); got != expectedDaily {
+		t.Errorf("create response PeriodInterest = %g; want %g (from formula)", got, expectedDaily)
+	}
+
+	// Check bond appears in sold bonds list with matching DailyInterest
+	listResp, err := svc.GetSoldBonds(ctx, companyID)
+	if err != nil {
+		t.Fatalf("GetSoldBonds: %v", err)
+	}
+	if listResp.Bonds == nil || len(*listResp.Bonds) == 0 {
+		t.Fatal("expected at least 1 bond")
+	}
+	for _, b := range *listResp.Bonds {
+		if b.DailyInterest == nil {
+			t.Errorf("bond %s has nil DailyInterest", *b.Id)
+			continue
+		}
+		got := float64(*b.DailyInterest)
+		want := formula.DailyBondInterest(*b.Amount, 5000, float64(*b.Interest)*100.0)
+		if got != want {
+			t.Errorf("bond %s DailyInterest = %g; want %g (Interest=%g%%, Amount=%d)",
+				*b.Id, got, want, *b.Interest, *b.Amount)
+		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/newhaven/backend-next/internal/config"
 	domainfinance "github.com/newhaven/backend-next/internal/domain/finance"
+	"github.com/newhaven/backend-next/internal/formula"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage"
@@ -286,11 +287,6 @@ func (s *Service) bondMaxInterest() float64 {
 	return 2.0
 }
 
-// dailyBondInterest computes floor(amount * faceValue * interestRatePct / 100).
-func dailyBondInterest(amount int, faceValue, interestRatePct float64) float64 {
-	return math.Floor(float64(amount) * faceValue * interestRatePct / 100.0)
-}
-
 // bondRatingGroup maps a bond rating to the legacy rating filter bucket.
 func bondRatingGroup(rating string) string {
 	switch rating {
@@ -315,7 +311,7 @@ func bondRatingGroup(rating string) string {
 func (s *Service) bondToDTO(b *domainfinance.Bond, ownerID int, purchasedAt string, amount int) openapi.BondDTO {
 	fv := s.bondFaceValue()
 	interestRatePct := b.InterestRate * 100.0 // stored as decimal, convert to percent
-	daily := dailyBondInterest(amount, fv, interestRatePct)
+	daily := formula.DailyBondInterest(amount, fv, interestRatePct)
 	period := daily // same as daily in this phase
 
 	var callableTime *time.Time

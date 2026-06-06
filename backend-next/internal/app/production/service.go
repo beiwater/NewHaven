@@ -6,15 +6,15 @@ import (
 	"math"
 	"sort"
 
-	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
-	"github.com/newhaven/backend-next/internal/storage"
-
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
 	domain "github.com/newhaven/backend-next/internal/domain/company"
 	"github.com/newhaven/backend-next/internal/domain/finance"
 	proddmn "github.com/newhaven/backend-next/internal/domain/production"
+	"github.com/newhaven/backend-next/internal/formula"
+	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
+	"github.com/newhaven/backend-next/internal/storage"
 )
 
 // MaxDurationSeconds is the cap for any production job (48 hours).
@@ -222,9 +222,8 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		}
 	}
 
-	// Calculate duration.
-	// Formula: max(30, ceil(quantity / (producedPerHourRaw * max(level,1) * ProductionMod) * 3600))
-	// ProductionMod from game.json: higher value = faster production (divisor).
+	// Calculate duration via governed formula.
+	// Preserves current BN semantics: ceil(qty/(rawRate*level*ProductionMod)*3600), min 30s.
 	level := building.Level
 	if level < 1 {
 		level = 1
@@ -236,11 +235,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	if resEntry.ProducedPerHourRaw <= 0 {
 		return nil, fmt.Errorf("invalid production rate for resource %d", req.ResourceId)
 	}
-	rate := float64(resEntry.ProducedPerHourRaw) * float64(level) * prodMod
-	duration := math.Ceil(float64(req.Quantity) / rate * 3600)
-	if duration < 30 {
-		duration = 30
-	}
+	duration := formula.DurationSeconds(req.Quantity, resEntry.ProducedPerHourRaw, level, prodMod)
 	durationSeconds := int(duration)
 
 	// Duration cap: 48h validation.

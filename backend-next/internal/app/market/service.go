@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/domain/finance"
 	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
+	"github.com/newhaven/backend-next/internal/formula"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 	"github.com/newhaven/backend-next/internal/platform"
 	"github.com/newhaven/backend-next/internal/storage"
@@ -563,8 +564,7 @@ func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.Tak
 		if sell.Remaining() < fill {
 			fill = sell.Remaining()
 		}
-
-		fee := math.Ceil(float64(fill) * sell.Price * s.exchangeFeePct())
+		fee := formula.ExchangeFee(fill, sell.Price, s.exchangeFeePct())
 		cost := float64(fill)*sell.Price + fee
 
 		if taker.Money < cost {
@@ -858,7 +858,7 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 	if sellOrder.Remaining() < fill {
 		fill = sellOrder.Remaining()
 	}
-	fee := math.Ceil(float64(fill) * execPrice * s.exchangeFeePct())
+	fee := formula.ExchangeFee(fill, execPrice, s.exchangeFeePct())
 
 	now := s.clock.Now().UTC()
 
