@@ -27,6 +27,10 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
 	st := memory.New()
 	application := app.New(cfg, st)
 	// Load static game data catalogs (best-effort in dev mode).

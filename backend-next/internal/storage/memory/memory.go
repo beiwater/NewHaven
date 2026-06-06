@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/research"
 	"github.com/newhaven/backend-next/internal/domain/social"
 	"github.com/newhaven/backend-next/internal/domain/warehouse"
+	"github.com/newhaven/backend-next/internal/storage"
 )
 
 // Store is an in-memory implementation of storage.Storage.
@@ -62,8 +64,9 @@ func (s *Store) Close() error { return nil }
 func (s *Store) CreatePlayer(_ context.Context, p *auth.Player) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	p.Username = normalizeUsername(p.Username)
 	if _, ok := s.byUser[p.Username]; ok {
-		return fmt.Errorf("username already exists")
+		return fmt.Errorf("%w: username", storage.ErrAlreadyExists)
 	}
 	p.ID = s.nextID
 	s.nextID++
@@ -73,14 +76,30 @@ func (s *Store) CreatePlayer(_ context.Context, p *auth.Player) error {
 	return nil
 }
 
+func (s *Store) DeletePlayer(_ context.Context, id int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.players[id]
+	if !ok {
+		return fmt.Errorf("player not found")
+	}
+	delete(s.players, id)
+	delete(s.byUser, p.Username)
+	return nil
+}
+
 func (s *Store) GetPlayerByUsername(_ context.Context, username string) (*auth.Player, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	p, ok := s.byUser[username]
+	p, ok := s.byUser[normalizeUsername(username)]
 	if !ok {
 		return nil, fmt.Errorf("player not found")
 	}
 	return p, nil
+}
+
+func normalizeUsername(username string) string {
+	return strings.ToLower(strings.TrimSpace(username))
 }
 
 func (s *Store) GetPlayerByID(_ context.Context, id int) (*auth.Player, error) {
@@ -98,6 +117,9 @@ func (s *Store) GetPlayerByID(_ context.Context, id int) (*auth.Player, error) {
 func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if _, ok := s.byPlayer[c.PlayerID]; ok {
+		return fmt.Errorf("%w: player company", storage.ErrAlreadyExists)
+	}
 	c.ID = s.nextID + 1000000
 	s.nextID++
 	c.CreatedAt = time.Now().UTC().Format(time.RFC3339)

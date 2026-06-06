@@ -92,6 +92,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t('auth.usernamePlaceholder')}
+            minLength={3}
+            maxLength={32}
+            autoComplete="username"
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
             autoFocus
           />
@@ -100,6 +103,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t('auth.passwordPlaceholder')}
+            minLength={mode === 'register' ? 6 : undefined}
+            maxLength={72}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
@@ -110,6 +116,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('auth.displayNamePlaceholder')}
+                maxLength={80}
+                autoComplete="name"
                 className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <div className="flex gap-1">
@@ -139,6 +147,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                   value={customGender}
                   onChange={(e) => setCustomGender(e.target.value)}
                   placeholder={t('auth.customGenderPlaceholder')}
+                  maxLength={64}
                   className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   autoFocus
                 />
@@ -148,6 +157,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
+                maxLength={254}
+                autoComplete="email"
                 className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </>

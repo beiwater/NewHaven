@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -50,6 +51,19 @@ func NewService(
 
 // Register creates a new player account and company, returning a JWT.
 func (s *Service) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.LoginResponse, error) {
+	return s.register(ctx, req, true)
+}
+
+func (s *Service) register(ctx context.Context, req *domain.RegisterRequest, validate bool) (*domain.LoginResponse, error) {
+	reqCopy := *req
+	req = &reqCopy
+	req.Username = normalizeUsername(req.Username)
+	req.Email = strings.TrimSpace(req.Email)
+	if validate {
+		if err := validateRegistration(req); err != nil {
+			return nil, err
+		}
+	}
 	now := s.clock.Now().UTC().Format(time.RFC3339)
 
 	// Hash password
@@ -67,7 +81,10 @@ func (s *Service) Register(ctx context.Context, req *domain.RegisterRequest) (*d
 	}
 
 	if err := s.players.CreatePlayer(ctx, player); err != nil {
-		return nil, ErrUsernameTaken
+		if errors.Is(err, storage.ErrAlreadyExists) {
+			return nil, ErrUsernameTaken
+		}
+		return nil, fmt.Errorf("create player: %w", err)
 	}
 
 	// Create company
@@ -88,6 +105,9 @@ func (s *Service) Register(ctx context.Context, req *domain.RegisterRequest) (*d
 	}
 
 	if err := s.companies.CreateCompany(ctx, c); err != nil {
+		if rollbackErr := s.players.DeletePlayer(ctx, player.ID); rollbackErr != nil {
+			return nil, fmt.Errorf("create company: %w", errors.Join(err, fmt.Errorf("rollback player: %w", rollbackErr)))
+		}
 		return nil, fmt.Errorf("create company: %w", err)
 	}
 
@@ -107,13 +127,17 @@ func (s *Service) Register(ctx context.Context, req *domain.RegisterRequest) (*d
 		Token:     token,
 		PlayerID:  player.ID,
 		CompanyID: c.ID,
-		Username:  req.Username,
+		Username:  player.Username,
 	}, nil
 }
 
 // Login authenticates a user and returns a JWT.
 func (s *Service) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
-	player, err := s.players.GetPlayerByUsername(ctx, req.Username)
+	username := normalizeUsername(req.Username)
+	if username == "" || req.Password == "" {
+		return nil, ErrInvalidCredentials
+	}
+	player, err := s.players.GetPlayerByUsername(ctx, username)
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
@@ -135,14 +159,14 @@ func (s *Service) Login(ctx context.Context, req *domain.LoginRequest) (*domain.
 	s.logger.Info("player logged in",
 		"player_id", player.ID,
 		"company_id", c.ID,
-		"username", req.Username,
+		"username", player.Username,
 	)
 
 	return &domain.LoginResponse{
 		Token:     token,
 		PlayerID:  player.ID,
 		CompanyID: c.ID,
-		Username:  req.Username,
+		Username:  player.Username,
 	}, nil
 }
 
@@ -162,7 +186,7 @@ func (s *Service) DevBootstrap(ctx context.Context) error {
 		Email:    "dev@newhaven.game",
 	}
 
-	resp, err := s.Register(ctx, req)
+	resp, err := s.register(ctx, req, false)
 	if err != nil {
 		return fmt.Errorf("dev bootstrap: %w", err)
 	}

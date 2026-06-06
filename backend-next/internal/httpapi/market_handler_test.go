@@ -374,7 +374,7 @@ func TestCreateOrder_Success_200(t *testing.T) {
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
-	token := registerMarketTestToken(t, mux, "cr succ")
+	token := registerMarketTestToken(t, mux, "cr-succ")
 
 	body := `{"resourceId":1,"kind":1,"quality":0,"quantity":5,"price":10.0}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/",
@@ -428,7 +428,7 @@ func TestMarketCancel_Success_200(t *testing.T) {
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
-	token := registerMarketTestToken(t, mux, "cn succ")
+	token := registerMarketTestToken(t, mux, "cn-succ")
 
 	// First create an order so we have something to cancel.
 	createBody := `{"resourceId":1,"kind":1,"quality":0,"quantity":5,"price":10.0}`
@@ -490,7 +490,7 @@ func TestMarketCancel_MissingOrder_404(t *testing.T) {
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
-	token := registerMarketTestToken(t, mux, "cn miss")
+	token := registerMarketTestToken(t, mux, "cn-miss")
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v2/market-order/cancel/doesnotexist/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -570,7 +570,7 @@ func TestTakeOrder_Success_200(t *testing.T) {
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
-	token := registerMarketTestToken(t, mux, "tk succ")
+	token := registerMarketTestToken(t, mux, "tk-succ")
 
 	body := `{"resource":1,"quantity":5,"quality":0,"maxPrice":100.0}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",

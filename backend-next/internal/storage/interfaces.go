@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	"github.com/newhaven/backend-next/internal/domain/company"
@@ -13,9 +14,12 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/warehouse"
 )
 
+var ErrAlreadyExists = errors.New("already exists")
+
 // PlayerStorage handles player/auth persistence.
 type PlayerStorage interface {
 	CreatePlayer(ctx context.Context, p *auth.Player) error
+	DeletePlayer(ctx context.Context, id int) error
 	GetPlayerByUsername(ctx context.Context, username string) (*auth.Player, error)
 	GetPlayerByID(ctx context.Context, id int) (*auth.Player, error)
 }

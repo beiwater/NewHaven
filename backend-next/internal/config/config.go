@@ -2,9 +2,12 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 )
+
+const DevJWTSigningKey = "dev-secret-change-in-production"
 
 type Config struct {
 	// Server
@@ -40,11 +43,22 @@ type GameConfig struct {
 func Load() *Config {
 	return &Config{
 		Addr:          envStr("SIM_API_ADDR", ":8088"),
-		JWTSigningKey: envStr("SIM_API_JWT_SECRET", "dev-secret-change-in-production"),
+		JWTSigningKey: envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
 		DatabaseURL:   os.Getenv("SIM_API_DATABASE_URL"),
 		DevMode:       envStr("SIM_API_DEV_MODE", "true") == "true",
 		Game:          loadGameConfig(FindProjectRoot()),
 	}
+}
+
+// Validate rejects production configurations that would allow token forgery.
+func (c *Config) Validate() error {
+	if c.JWTSigningKey == "" {
+		return errors.New("SIM_API_JWT_SECRET is required")
+	}
+	if !c.DevMode && c.JWTSigningKey == DevJWTSigningKey {
+		return errors.New("SIM_API_JWT_SECRET must be changed when dev mode is disabled")
+	}
+	return nil
 }
 
 func FindProjectRoot() string {

@@ -85,8 +85,17 @@ func ParseJWT(tokenString, signingKey string) (int, int, error) {
 		return 0, 0, fmt.Errorf("unmarshal payload: %w", err)
 	}
 
-	// Check expiration
-	if time.Now().Unix() > payload.ExpiresAt {
+	now := time.Now().Unix()
+	if payload.PlayerID <= 0 || payload.CompanyID <= 0 {
+		return 0, 0, fmt.Errorf("invalid token subject")
+	}
+	if payload.IssuedAt <= 0 || payload.ExpiresAt <= 0 || payload.ExpiresAt <= payload.IssuedAt {
+		return 0, 0, fmt.Errorf("invalid token timestamps")
+	}
+	if payload.IssuedAt > now+60 {
+		return 0, 0, fmt.Errorf("token issued in the future")
+	}
+	if now >= payload.ExpiresAt {
 		return 0, 0, fmt.Errorf("token expired")
 	}
 
