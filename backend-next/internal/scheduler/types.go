@@ -13,4 +13,6 @@ type BotService interface {
 	RefreshDailyOrders(ctx context.Context) error
 	// CleanupMarket removes stale/filled orders and refreshes daily orders.
 	CleanupMarket(ctx context.Context) error
+	// ProcessRetailSales sells goods from company inventories via retail formula.
+	ProcessRetailSales(ctx context.Context) error
 }

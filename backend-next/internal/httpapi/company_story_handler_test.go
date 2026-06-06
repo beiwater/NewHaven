@@ -18,7 +18,7 @@ import (
 func TestCompanyProfileAndStoryProgressRoutes(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	companyHandler := httpapi.NewCompanyHandler(company.NewService(store, a.Logger))
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: httpapi.NewAuthHandler(a.AuthService), Company: companyHandler})
 

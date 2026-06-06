@@ -19,7 +19,7 @@ func TestGetMyWarehouse_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -51,7 +51,7 @@ func TestGetMyWarehouse_WithToken_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -156,7 +156,7 @@ func TestGetMyWarehouse_ReturnsItemsArrayNotNull(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)

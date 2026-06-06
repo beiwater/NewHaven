@@ -109,3 +109,22 @@ func TestLoadResources_RealKeys(t *testing.T) {
 		t.Errorf("expected name Grain, got %s", r.Name)
 	}
 }
+
+// TestLoadEconomyModel_RealKeys verifies that the actual economy_model.json
+// loads successfully and contains the expected number of resource entries (12).
+func TestLoadEconomyModel_RealKeys(t *testing.T) {
+	projectRoot := findProjectRoot()
+	economy, err := catalog.LoadEconomyModel(projectRoot)
+	if err != nil {
+		t.Fatalf("LoadEconomyModel: %v", err)
+	}
+	if len(economy) != 12 {
+		t.Errorf("expected 12 economy model entries, got %d", len(economy))
+	}
+	// Spot-check a few well-known entries.
+	for _, id := range []int{1, 3, 6, 12} {
+		if _, ok := economy[id]; !ok {
+			t.Errorf("missing economy model entry for resource %d", id)
+		}
+	}
+}

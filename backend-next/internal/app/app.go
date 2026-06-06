@@ -30,6 +30,7 @@ type App struct {
 	Logger    *platform.Logger
 	Resources map[int]*catalog.ResourceEntry
 	Buildings map[int]*catalog.BuildingEntry
+	Economy   map[int]*catalog.EconomyModelEntry
 
 	// Domain services
 	AuthService       *auth.Service
@@ -62,7 +63,7 @@ type App struct {
 }
 
 // New creates a fully wired App with all services and handlers constructed.
-func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.ResourceEntry, buildings map[int]*catalog.BuildingEntry) *App {
+func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.ResourceEntry, buildings map[int]*catalog.BuildingEntry, economy map[int]*catalog.EconomyModelEntry) *App {
 	clock := platform.RealClock{}
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
@@ -87,7 +88,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, clock, idgen)
 
 	// Market
-	marketSvc := market.NewService(st, st, st, resources, cfg.Game, clock, idgen)
+	marketSvc := market.NewService(st, st, st, resources, economy, cfg.Game, clock, idgen)
 	marketHandler := httpapi.NewMarketHandler(marketSvc)
 
 	// Finance
@@ -132,6 +133,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		Logger:        logger,
 		Resources:     resources,
 		Buildings:     buildings,
+		Economy:       economy,
 
 		AuthService:       authSvc,
 		CompanyService:    companySvc,

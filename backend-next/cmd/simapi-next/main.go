@@ -38,8 +38,13 @@ func main() {
 		slog.Warn("failed to load buildings catalog, production start will fail", "error", err)
 		buildings = make(map[int]*catalog.BuildingEntry)
 	}
+	economy, err := catalog.LoadEconomyModel(projectRoot)
+	if err != nil {
+		slog.Warn("failed to load economy model, retail sales will be skipped", "error", err)
+		economy = make(map[int]*catalog.EconomyModelEntry)
+	}
 
-	application := app.New(cfg, st, resources, buildings)
+	application := app.New(cfg, st, resources, buildings, economy)
 
 	// Scheduler for bot economy and background tasks including bond interest
 	sched := scheduler.New(application.MarketService, func(ctx context.Context) error {

@@ -33,6 +33,7 @@ func TestNewDoesNotPanic(t *testing.T) {
 	st := memory.New()
 	resources := make(map[int]*catalog.ResourceEntry)
 	buildings := make(map[int]*catalog.BuildingEntry)
+	economy := make(map[int]*catalog.EconomyModelEntry)
 
 	// New should not panic on empty catalogs.
 	func() {
@@ -41,6 +42,6 @@ func TestNewDoesNotPanic(t *testing.T) {
 				t.Fatalf("New panicked: %v", r)
 			}
 		}()
-		_ = New(cfg, st, resources, buildings)
+		_ = New(cfg, st, resources, buildings, economy)
 	}()
 }

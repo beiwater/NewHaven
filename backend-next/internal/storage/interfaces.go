@@ -29,6 +29,7 @@ type CompanyStorage interface {
 	CreateCompany(ctx context.Context, c *company.Company) error
 	GetCompany(ctx context.Context, id int) (*company.Company, error)
 	GetCompanyByPlayerID(ctx context.Context, playerID int) (*company.Company, error)
+	GetAllCompanies(ctx context.Context) ([]*company.Company, error)
 	UpdateCompany(ctx context.Context, c *company.Company) error
 	SaveBuilding(ctx context.Context, b *company.Building) error
 	RemoveBuilding(ctx context.Context, buildingID string) error

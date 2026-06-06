@@ -29,7 +29,7 @@ func TestRegister_Handler(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -76,7 +76,7 @@ func TestRegister_MissingFields(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -110,7 +110,7 @@ func TestRegister_Duplicate(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -159,7 +159,7 @@ func TestLogin_Handler(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -213,7 +213,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -257,7 +257,7 @@ func TestLogin_NonExistentUser(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store, nil, nil)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()

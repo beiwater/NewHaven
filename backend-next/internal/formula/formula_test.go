@@ -543,3 +543,56 @@ func TestFormulaGolden(t *testing.T) {
 		})
 	}
 }
+
+// --- Retail ---
+
+func TestUnitsSoldPerHour_StableMarket(t *testing.T) {
+	// Saturation=1.0: balanced market
+	got := formula.UnitsSoldPerHour(
+		0.8,   // buildingKindModifier
+		0.01,  // buildingLevelsNeededPerUnitPerHour
+		8.0,   // modeledProductionCostPerUnit
+		200.0, // modeledStoreWages
+		15.0,  // modeledUnitsSoldAnHour
+		24.0,  // price
+		6.0,   // quality
+		1.0,   // saturation (balanced)
+		0,     // salesModifierPct
+		1,     // size
+		1,     // acceleration
+		1,     // weatherSellingSpeedMultiplier
+	)
+	if got <= 0 {
+		t.Errorf("UnitsSoldPerHour stable market = %g, want > 0", got)
+	}
+	if got > 300 {
+		t.Errorf("UnitsSoldPerHour stable market = %g, want reasonable (< 300)", got)
+	}
+	t.Logf("UnitsSoldPerHour (stable) = %.2f", got)
+}
+
+func TestUnitsSoldPerHour_HighSaturation(t *testing.T) {
+	// Saturation=2.0: oversupply, should sell less
+	got := formula.UnitsSoldPerHour(0.8, 0.01, 8.0, 200.0, 15.0, 24.0, 6.0, 2.0, 0, 1, 1, 1)
+	if got <= 0 {
+		t.Errorf("UnitsSoldPerHour high saturation = %g, want > 0 (still sells but less)", got)
+	}
+	t.Logf("UnitsSoldPerHour (saturation=2.0) = %.2f", got)
+}
+
+func TestUnitsSoldPerHour_ZeroSaturation(t *testing.T) {
+	// Saturation=0: undersupply, should sell more
+	got := formula.UnitsSoldPerHour(0.8, 0.01, 8.0, 200.0, 15.0, 24.0, 6.0, 0, 0, 1, 1, 1)
+	if got <= 0 {
+		t.Errorf("UnitsSoldPerHour zero saturation = %g, want > 0", got)
+	}
+	t.Logf("UnitsSoldPerHour (saturation=0) = %.2f", got)
+}
+
+func TestUnitsSoldPerHour_LowPrice(t *testing.T) {
+	// Price below production cost → no units sold
+	got := formula.UnitsSoldPerHour(0.8, 0.01, 8.0, 200.0, 15.0, 5.0, 6.0, 1.0, 0, 1, 1, 1)
+	if got != 0 {
+		t.Errorf("UnitsSoldPerHour below-cost price = %g, want 0", got)
+	}
+}

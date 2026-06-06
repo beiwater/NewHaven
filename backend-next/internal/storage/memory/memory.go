@@ -365,6 +365,16 @@ func (s *Store) GetCompanyByPlayerID(_ context.Context, playerID int) (*company.
 	return c, nil
 }
 
+func (s *Store) GetAllCompanies(_ context.Context) ([]*company.Company, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]*company.Company, 0, len(s.companies))
+	for _, c := range s.companies {
+		result = append(result, c)
+	}
+	return result, nil
+}
+
 func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -79,7 +79,12 @@ func (s *Scheduler) tick() {
 		}
 	}
 
-	// 6. Persist game state snapshot
+	// 7. Process retail sales
+	if err := s.svc.ProcessRetailSales(ctx); err != nil {
+		slog.Warn("[scheduler] ProcessRetailSales", "error", err)
+	}
+
+	// 8. Persist game state snapshot
 	if s.saveAll != nil {
 		if err := s.saveAll(ctx); err != nil {
 			slog.Warn("[scheduler] saveAll", "error", err)
