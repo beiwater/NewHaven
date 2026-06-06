@@ -48,7 +48,7 @@ func registerBondTestToken(t *testing.T, mux http.Handler, username string) stri
 func TestListBonds_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -66,7 +66,7 @@ func TestListBonds_NoToken_401(t *testing.T) {
 func TestListBonds_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -103,7 +103,7 @@ func TestListBonds_WithToken_200(t *testing.T) {
 func TestCreateBond_InvalidJSON_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -126,7 +126,7 @@ func TestCreateBond_InvalidJSON_400(t *testing.T) {
 func TestCreateBond_InvalidPayload_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -149,7 +149,7 @@ func TestCreateBond_InvalidPayload_400(t *testing.T) {
 func TestCreateBond_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -188,7 +188,7 @@ func TestCreateBond_Success_200(t *testing.T) {
 func TestGetBond_NotFound_404(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -209,7 +209,7 @@ func TestGetBond_NotFound_404(t *testing.T) {
 func TestGetBond_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -248,7 +248,7 @@ func TestGetBond_Success_200(t *testing.T) {
 func TestGetOwnedBonds_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
@@ -269,7 +269,7 @@ func TestGetOwnedBonds_Success_200(t *testing.T) {
 func TestGetSoldBonds_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})

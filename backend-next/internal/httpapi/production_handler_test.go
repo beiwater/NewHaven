@@ -38,7 +38,7 @@ func TestListProductionJobs_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -70,7 +70,7 @@ func TestListProductionJobs_WithToken_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -147,7 +147,7 @@ func TestListProductionJobs_EmptyJobsIsArray_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -222,7 +222,7 @@ func TestStartProduction_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -245,7 +245,7 @@ func TestStartProduction_InvalidBody_400(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -286,7 +286,7 @@ func TestStartProduction_Success_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 
 	// Set up catalog with Mill producing Flour from Grain
 	resources := map[int]*catalog.ResourceEntry{
@@ -424,7 +424,7 @@ func TestClaimProduction_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -445,7 +445,7 @@ func TestClaimProduction_NoToken_Claimable(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -466,7 +466,7 @@ func TestClaimClaimable_Empty_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -531,7 +531,7 @@ func TestClaimProduction_InvalidJobId_400(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -572,7 +572,7 @@ func TestClaimProduction_Success_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -661,7 +661,7 @@ func TestProductionQueue_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -695,7 +695,7 @@ func TestProductionOptions_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -729,7 +729,7 @@ func TestCancelProduction_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -763,7 +763,7 @@ func TestClaimAll_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)

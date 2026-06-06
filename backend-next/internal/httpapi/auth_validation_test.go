@@ -15,7 +15,7 @@ import (
 func TestRegisterRejectsInvalidAndUnknownFields(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	handler := httpapi.NewAuthHandler(app.New(cfg, store).AuthService)
+	handler := httpapi.NewAuthHandler(app.New(cfg, store, nil, nil).AuthService)
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
 

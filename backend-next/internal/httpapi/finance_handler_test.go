@@ -47,7 +47,7 @@ func registerFinanceTestToken(t *testing.T, mux http.Handler, username string) s
 func TestFinanceRecentCashflow_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
@@ -64,7 +64,7 @@ func TestFinanceRecentCashflow_NoToken_401(t *testing.T) {
 func TestFinanceRecentCashflow_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
@@ -101,7 +101,7 @@ func TestFinanceRecentCashflow_Success_200(t *testing.T) {
 func TestFinanceIncomeStatement_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
@@ -138,7 +138,7 @@ func TestFinanceIncomeStatement_Success_200(t *testing.T) {
 func TestFinanceBalanceSheet_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
@@ -172,7 +172,7 @@ func TestFinanceBalanceSheet_Success_200(t *testing.T) {
 func TestFinanceCashflowStatement_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
@@ -203,7 +203,7 @@ func TestFinanceCashflowStatement_Success_200(t *testing.T) {
 func TestFinancePastFinances_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})

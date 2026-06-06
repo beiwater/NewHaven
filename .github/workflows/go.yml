@@ -1,0 +1,36 @@
+name: Go CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache-dependency-path: |
+            backend/go.sum
+            backend-next/go.sum
+
+      - name: Format (old backend)
+        working-directory: ./backend
+        run: go fmt ./...
+
+      - name: Format (new backend)
+        working-directory: ./backend-next
+        run: go fmt ./...
+
+      - name: Vet + Test (old backend)
+        working-directory: ./backend
+        run: go vet ./... && go test ./...
+
+      - name: Vet + Test (new backend)
+        working-directory: ./backend-next
+        run: go vet ./... && go test ./...

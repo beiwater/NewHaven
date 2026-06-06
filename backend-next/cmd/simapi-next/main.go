@@ -10,18 +10,11 @@ import (
 	"time"
 
 	"github.com/newhaven/backend-next/internal/app"
-	"github.com/newhaven/backend-next/internal/app/building"
-	"github.com/newhaven/backend-next/internal/app/company"
-	"github.com/newhaven/backend-next/internal/app/finance"
-	"github.com/newhaven/backend-next/internal/app/market"
-	"github.com/newhaven/backend-next/internal/app/production"
-	"github.com/newhaven/backend-next/internal/app/warehouse"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/scheduler"
 	"github.com/newhaven/backend-next/internal/storage/memory"
-	"github.com/newhaven/backend-next/internal/storage/postgres"
 )
 
 func main() {
@@ -33,7 +26,6 @@ func main() {
 		os.Exit(1)
 	}
 	st := memory.New()
-	application := app.New(cfg, st)
 	// Load static game data catalogs (best-effort in dev mode).
 	projectRoot := config.FindProjectRoot()
 	resources, err := catalog.LoadResources(projectRoot)
@@ -47,54 +39,19 @@ func main() {
 		buildings = make(map[int]*catalog.BuildingEntry)
 	}
 
-	companySvc := company.NewService(st, application.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
-	authHandler := httpapi.NewAuthHandler(application.AuthService)
-	warehouseSvc := warehouse.NewService(st, st, cfg.Game, application.Logger)
-	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
-	buildingSvc := building.NewService(st, buildings, cfg.Game, application.Clock, application.IDGen)
-	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
+	application := app.New(cfg, st, resources, buildings)
 
-	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
-
-	marketSvc := market.NewService(st, st, st, resources, cfg.Game, application.Clock, application.IDGen)
-	marketHandler := httpapi.NewMarketHandler(marketSvc)
-
-	financeSvc := finance.NewService(st, st, application.Clock, application.IDGen, cfg.Game)
-	financeHandler := httpapi.NewFinanceHandler(financeSvc)
-	bondHandler := httpapi.NewBondHandler(financeSvc)
-	productionHandler := httpapi.NewProductionHandler(productionSvc)
-	playerHandler := httpapi.NewPlayerHandler(st)
-	contractHandler := httpapi.NewContractHandler()
-	researchHandler := httpapi.NewResearchHandler(st, st)
-	executiveHandler := httpapi.NewExecutiveHandler(st)
-	leaderboardHandler := httpapi.NewLeaderboardHandler()
-	socialHandler := httpapi.NewSocialHandler(st)
-	// PostgreSQL snapshot persistence (optional)
-	var pgStore *postgres.Store
-	var saveAll func(ctx context.Context) error
-	if cfg.DatabaseURL != "" {
-		pgStore, err = postgres.New(context.Background(), cfg.DatabaseURL, st)
-		if err != nil {
-			slog.Warn("[main] postgres not available, skipping persistence", "error", err)
-		} else {
-			if err := pgStore.LoadSnapshot(context.Background()); err != nil {
-				slog.Info("[main] no existing snapshot in database", "error", err)
-			}
-			saveAll = pgStore.SaveSnapshot
-		}
-	}
 	// Scheduler for bot economy and background tasks including bond interest
-	sched := scheduler.New(marketSvc, func(ctx context.Context) error {
-		_, err := financeSvc.SettleBondInterest(ctx)
+	sched := scheduler.New(application.MarketService, func(ctx context.Context) error {
+		_, err := application.FinanceService.SettleBondInterest(ctx)
 		return err
-	}, saveAll)
+	}, application.SaveAll)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{
-		Auth: authHandler, Company: companyHandler, Warehouse: warehouseHandler,
-		Building: buildingHandler, Production: productionHandler, Market: marketHandler,
-		Finance: financeHandler, Bond: bondHandler, Player: playerHandler,
-		Social: socialHandler, Contract: contractHandler, Research: researchHandler,
-		Executive: executiveHandler, Leaderboard: leaderboardHandler,
+		Auth: application.AuthHandler, Company: application.CompanyHandler, Warehouse: application.WarehouseHandler,
+		Building: application.BuildingHandler, Production: application.ProductionHandler, Market: application.MarketHandler,
+		Finance: application.FinanceHandler, Bond: application.BondHandler, Player: application.PlayerHandler,
+		Social: application.SocialHandler, Contract: application.ContractHandler, Research: application.ResearchHandler,
+		Executive: application.ExecutiveHandler, Leaderboard: application.LeaderboardHandler,
 	})
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
@@ -134,7 +91,7 @@ func main() {
 		slog.Error("shutdown failed", "error", err)
 	}
 
-	if pgStore != nil {
-		pgStore.Close()
+	if application.PostgresStore != nil {
+		application.PostgresStore.Close()
 	}
 }

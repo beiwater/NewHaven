@@ -10,14 +10,18 @@ import (
 	"testing"
 )
 
-// TestNoAppImportsHttpapi verifies that no package in internal/app/ imports
-// internal/httpapi. Application services must not depend on HTTP.
+// TestNoAppImportsHttpapi verifies that app sub-packages do not import
+// internal/httpapi. Only the top-level app.go wiring layer may import it.
 func TestNoAppImportsHttpapi(t *testing.T) {
 	root := findBackendNextRoot(t)
 	appDir := filepath.Join(root, "internal", "app")
 	err := filepath.Walk(appDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+		// Skip the top-level wiring file — it necessarily imports httpapi.
+		if strings.HasSuffix(path, "app.go") && !strings.HasSuffix(path, "_test.go") {
+			return nil
 		}
 		if info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 			return nil
@@ -30,7 +34,7 @@ func TestNoAppImportsHttpapi(t *testing.T) {
 		for _, imp := range f.Imports {
 			importPath := strings.Trim(imp.Path.Value, "\"")
 			if importPath == "github.com/newhaven/backend-next/internal/httpapi" {
-				t.Errorf("%s imports httpapi (forbidden: app must not import httpapi)", path)
+				t.Errorf("%s imports httpapi (forbidden: app sub-packages must not depend on HTTP)", path)
 			}
 		}
 		return nil

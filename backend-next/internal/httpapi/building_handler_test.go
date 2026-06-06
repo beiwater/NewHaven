@@ -19,7 +19,7 @@ func TestListMyBuildings_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	buildingSvc := building.NewService(store, nil, nil, nil, nil)
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -51,7 +51,7 @@ func TestListMyBuildings_WithToken_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	buildingSvc := building.NewService(store, nil, nil, nil, nil)
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
@@ -136,7 +136,7 @@ func TestListMyBuildings_EmptyArray_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	buildingSvc := building.NewService(store, nil, nil, nil, nil)
 	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)

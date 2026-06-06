@@ -52,7 +52,7 @@ func registerMarketTestToken(t *testing.T, mux http.Handler, username string) st
 func TestMarketResources_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -69,7 +69,7 @@ func TestMarketResources_NoToken_401(t *testing.T) {
 func TestMarketResources_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -125,7 +125,7 @@ func TestMarketResources_WithToken_200(t *testing.T) {
 func TestMarketTicker_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -142,7 +142,7 @@ func TestMarketTicker_NoToken_401(t *testing.T) {
 func TestMarketTicker_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -193,7 +193,7 @@ func TestMarketTicker_WithToken_200(t *testing.T) {
 func TestMarketTicker_InvalidResource_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -212,7 +212,7 @@ func TestMarketTicker_InvalidResource_400(t *testing.T) {
 func TestMarketDepth_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -263,7 +263,7 @@ func TestMarketDepth_WithToken_200(t *testing.T) {
 func TestMarketDepth_InvalidQuality_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -282,7 +282,7 @@ func TestMarketDepth_InvalidQuality_400(t *testing.T) {
 func TestMarketOrders_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -332,7 +332,7 @@ func TestMarketOrders_WithToken_200(t *testing.T) {
 func TestCreateOrder_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -366,7 +366,7 @@ func TestCreateOrder_NoToken_401(t *testing.T) {
 func TestCreateOrder_InvalidJSON_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -387,7 +387,7 @@ func TestCreateOrder_InvalidJSON_400(t *testing.T) {
 func TestCreateOrder_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -424,7 +424,7 @@ func TestCreateOrder_Success_200(t *testing.T) {
 func TestMarketCancel_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -458,7 +458,7 @@ func TestMarketCancel_NoToken_401(t *testing.T) {
 func TestMarketCancel_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -520,7 +520,7 @@ func TestMarketCancel_Success_200(t *testing.T) {
 func TestMarketCancel_MissingOrder_404(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -541,7 +541,7 @@ func TestMarketCancel_MissingOrder_404(t *testing.T) {
 func TestTakeOrder_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -575,7 +575,7 @@ func TestTakeOrder_NoToken_401(t *testing.T) {
 func TestTakeOrder_InvalidBody_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -596,7 +596,7 @@ func TestTakeOrder_InvalidBody_400(t *testing.T) {
 func TestTakeOrder_InvalidPayload_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
@@ -617,7 +617,7 @@ func TestTakeOrder_InvalidPayload_400(t *testing.T) {
 func TestTakeOrder_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
