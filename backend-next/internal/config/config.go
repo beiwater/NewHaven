@@ -24,13 +24,16 @@ type Config struct {
 }
 
 type GameConfig struct {
-	BondFaceValue      float64 `json:"bond_face_value"`
-	ExchangeFeePct     float64 `json:"exchange_fee_pct"`
-	BotReplacementRate float64 `json:"bot_replacement_rate"`
-	BondMinInterest    float64 `json:"bond_min_interest"`
-	BondMaxInterest    float64 `json:"bond_max_interest"`
-	ProductionMod      float64 `json:"production_mod"`
-	AdminOverheadBase  float64 `json:"admin_overhead_base"`
+	BondFaceValue        float64 `json:"bond_face_value"`
+	ExchangeFeePct       float64 `json:"exchange_fee_pct"`
+	BotReplacementRate   float64 `json:"bot_replacement_rate"`
+	BondMinInterest      float64 `json:"bond_min_interest"`
+	BondMaxInterest      float64 `json:"bond_max_interest"`
+	ProductionMod        float64 `json:"production_mod"`
+	AdminOverheadBase    float64 `json:"admin_overhead_base"`
+	BaseBuildingCost     float64 `json:"base_building_cost"`
+	WarehouseBaseCap     int     `json:"warehouse_base_cap"`
+	WarehouseUpgradeCost float64 `json:"warehouse_upgrade_cost"`
 }
 
 func Load() *Config {
@@ -73,13 +76,16 @@ func loadGameConfig(root string) *GameConfig {
 
 func defaultGameConfig() *GameConfig {
 	return &GameConfig{
-		BondFaceValue:      5000,
-		ExchangeFeePct:     0.04,
-		BotReplacementRate: 0.33,
-		BondMinInterest:    0.5,
-		BondMaxInterest:    2.0,
-		ProductionMod:      1.0,
-		AdminOverheadBase:  1.35,
+		BondFaceValue:        5000,
+		ExchangeFeePct:       0.04,
+		BotReplacementRate:   0.33,
+		BondMinInterest:      0.5,
+		BondMaxInterest:      2.0,
+		ProductionMod:        1.0,
+		AdminOverheadBase:    1.35,
+		BaseBuildingCost:     50000,
+		WarehouseBaseCap:     1000,
+		WarehouseUpgradeCost: 25000,
 	}
 }
 

@@ -20,7 +20,7 @@ func TestGetMyWarehouse_NoToken_401(t *testing.T) {
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
+	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
@@ -52,7 +52,7 @@ func TestGetMyWarehouse_WithToken_200(t *testing.T) {
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
+	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
@@ -157,7 +157,7 @@ func TestGetMyWarehouse_ReturnsItemsArrayNotNull(t *testing.T) {
 	}
 	store := memory.New()
 	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
+	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 

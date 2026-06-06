@@ -28,14 +28,6 @@ func main() {
 	cfg := config.Load()
 	st := memory.New()
 	application := app.New(cfg, st)
-	companySvc := company.NewService(st, application.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
-	authHandler := httpapi.NewAuthHandler(application.AuthService)
-	warehouseSvc := warehouse.NewService(st, st, application.Logger)
-	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
-	buildingSvc := building.NewService(st)
-	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
-
 	// Load static game data catalogs (best-effort in dev mode).
 	projectRoot := config.FindProjectRoot()
 	resources, err := catalog.LoadResources(projectRoot)
@@ -48,6 +40,14 @@ func main() {
 		slog.Warn("failed to load buildings catalog, production start will fail", "error", err)
 		buildings = make(map[int]*catalog.BuildingEntry)
 	}
+
+	companySvc := company.NewService(st, application.Logger)
+	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	authHandler := httpapi.NewAuthHandler(application.AuthService)
+	warehouseSvc := warehouse.NewService(st, st, cfg.Game, application.Logger)
+	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
+	buildingSvc := building.NewService(st, buildings, cfg.Game, application.Clock, application.IDGen)
+	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
 
 	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
 

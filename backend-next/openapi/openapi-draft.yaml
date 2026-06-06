@@ -91,6 +91,193 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/buildings/market/:
+    get:
+      tags: [Buildings]
+      summary: List buildings available for purchase
+      operationId: listBuildingMarket
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Building market list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BuildingMarketItem'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/buy/:
+    post:
+      tags: [Buildings]
+      summary: Buy a building
+      operationId: buyBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyBuildingRequest'
+      responses:
+        "200":
+          description: Building bought
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/place/:
+    post:
+      tags: [Buildings]
+      summary: Place a building on the map
+      operationId: placeBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBuildingRequest'
+      responses:
+        "200":
+          description: Building placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/move/:
+    post:
+      tags: [Buildings]
+      summary: Move a building on the map
+      operationId: moveBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveBuildingRequest'
+      responses:
+        "200":
+          description: Building moved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/demolish/:
+    post:
+      tags: [Buildings]
+      summary: Demolish a building
+      operationId: demolishBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemolishBuildingRequest'
+      responses:
+        "200":
+          description: Building demolished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemolishBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v1/buildings/{buildingId}/upgrade/:
+    post:
+      tags: [Buildings]
+      summary: Upgrade a building
+      operationId: upgradeBuilding
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Building upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpgradeBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/companies/me/warehouse/upgrade/:
+    post:
+      tags: [Warehouse]
+      summary: Upgrade warehouse capacity
+      operationId: upgradeWarehouse
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Warehouse upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarehouseUpgradeResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
   /api/v2/production/jobs/:
     get:
       tags: [Production]
@@ -873,6 +1060,8 @@ components:
           type: integer
         robot_count:
           type: integer
+        placed:
+          type: boolean
     BuildingListResponse:
       type: object
       properties:
@@ -880,6 +1069,141 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BuildingDTO'
+    # --- Building Operations ---
+
+    BuildingMarketItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: integer
+        cost:
+          type: number
+          format: double
+        unlock_level:
+          type: integer
+        description:
+          type: string
+        produces:
+          type: array
+          items:
+            type: integer
+        starter_produces:
+          type: array
+          items:
+            type: integer
+        starter_role:
+          type: string
+
+
+    BuyBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        requestId:
+          type: string
+        buildingId:
+          type: string
+
+    BuyBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        cost:
+          type: number
+          format: double
+
+    PlaceBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+        mapId:
+          type: string
+        slotId:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+
+    PlaceBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        status:
+          type: string
+
+    MoveBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+        mapId:
+          type: string
+        slotId:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+
+    MoveBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        status:
+          type: string
+
+    DemolishBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+
+    DemolishBuildingResponse:
+      type: object
+      properties:
+        refund:
+          type: number
+          format: double
+        status:
+          type: string
+
+    UpgradeBuildingResponse:
+      type: object
+      properties:
+        building_id:
+          type: string
+        old_level:
+          type: integer
+        new_level:
+          type: integer
+        cost:
+          type: number
+          format: double
+        output_multiplier:
+          type: integer
+
+    WarehouseUpgradeResponse:
+      type: object
+      properties:
+        level:
+          type: integer
+        capacity:
+          type: integer
+        cost:
+          type: number
+          format: double
     # --- Warehouse ---
 
     WarehouseItem:

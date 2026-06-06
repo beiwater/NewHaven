@@ -89,6 +89,7 @@ type SocialStorage interface {
 // WarehouseStorage handles warehouse persistence.
 type WarehouseStorage interface {
 	GetWarehouse(ctx context.Context, companyID int) (*warehouse.Warehouse, error)
+	UpdateWarehouse(ctx context.Context, w *warehouse.Warehouse) error
 }
 
 // Storage combines all domain storage interfaces.

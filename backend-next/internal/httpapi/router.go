@@ -34,6 +34,7 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", warehouseHandler.handleGetMyWarehouse)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/companies/me/warehouse/upgrade/", warehouseHandler.handleUpgradeWarehouse)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/cashflow/recent/", financeHandler.handleRecentCashflow)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/income-statement/", financeHandler.handleIncomeStatement)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/balance-sheet/", financeHandler.handleBalanceSheet)
@@ -43,6 +44,12 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/market-order/take/", marketHandler.handleTakeOrder)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/players/me/companies/", companyHandler.handleListMyCompanies)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/jobs/", productionHandler.handleListProductionJobs)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/buildings/market/", buildingHandler.handleBuildingMarket)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/buy/", buildingHandler.handleBuyBuilding)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/place/", buildingHandler.handlePlaceBuilding)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/move/", buildingHandler.handleMoveBuilding)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/demolish/", buildingHandler.handleDemolishBuilding)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/buildings/", buildingHandler.handleListMyBuildingsV2)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/start/", productionHandler.handleStartProduction)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/production/claim/{jobId}/", productionHandler.handleClaimProduction)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/production/claimable/", productionHandler.handleListClaimableJobs)
@@ -58,6 +65,11 @@ func NewRouter(cfg *config.Config, authHandler *AuthHandler, companyHandler *Com
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-ticker/{resourceId}/", marketHandler.handleMarketTicker)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-depth/{resourceId}/{quality}/", marketHandler.handleMarketDepth)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market/{resourceId}/{quality}/", marketHandler.handleMarketOrders)
+	})
+
+	// API v1 routes (authenticated)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/buildings/{buildingId}/upgrade/", buildingHandler.handleUpgradeBuilding)
 	})
 
 	return r

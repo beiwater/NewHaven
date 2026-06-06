@@ -32,3 +32,18 @@ func (h *WarehouseHandler) handleGetMyWarehouse(w http.ResponseWriter, r *http.R
 
 	writeSuccess(w, 200, resp)
 }
+
+// handleUpgradeWarehouse upgrades the warehouse for the authenticated company.
+func (h *WarehouseHandler) handleUpgradeWarehouse(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	resp, err := h.svc.UpgradeWarehouse(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}

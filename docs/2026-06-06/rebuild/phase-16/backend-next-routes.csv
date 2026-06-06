@@ -27,3 +27,12 @@ GET,/api/v3/companies/me/past-finances/,finance_handler.go,handlePastFinances,fi
 GET,/api/v3/market-ticker/{resourceId}/,market_handler.go,handleMarketTicker,market,migrated,market,shape+semantics+side-effects,
 GET,/api/v3/market-depth/{resourceId}/{quality}/,market_handler.go,handleMarketDepth,market,migrated,market,shape+semantics+side-effects,
 GET,/api/v3/market/{resourceId}/{quality}/,market_handler.go,handleMarketOrders,market,migrated,market,shape+semantics+side-effects,
+
+GET,/api/v2/buildings/market/,building_handler.go,handleBuildingMarket,building,migrated,buildings,shape+semantics,
+POST,/api/v2/buildings/buy/,building_handler.go,handleBuyBuilding,building,migrated,buildings,shape+semantics+side-effects,
+POST,/api/v2/buildings/place/,building_handler.go,handlePlaceBuilding,building,migrated,buildings,shape+semantics+side-effects,
+POST,/api/v2/buildings/move/,building_handler.go,handleMoveBuilding,building,migrated,buildings,shape+semantics+side-effects,
+POST,/api/v2/buildings/demolish/,building_handler.go,handleDemolishBuilding,building,migrated,buildings,shape+semantics+side-effects,
+POST,/api/v1/buildings/{buildingId}/upgrade/,building_handler.go,handleUpgradeBuilding,building,migrated,buildings,shape+semantics+side-effects,
+GET,/api/v2/companies/me/buildings/,building_handler.go,handleListMyBuildingsV2,building,migrated,buildings,shape+semantics,
+POST,/api/v2/companies/me/warehouse/upgrade/,warehouse_handler.go,handleUpgradeWarehouse,warehouse,migrated,warehouse,shape+semantics+side-effects,

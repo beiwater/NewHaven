@@ -37,7 +37,6 @@ type Store struct {
 	messages   []social.Message
 	notifs     []social.Notification
 	warehouses map[int]*warehouse.Warehouse
-	buildings  map[string]*company.Building
 	nextID     int
 }
 
@@ -51,7 +50,6 @@ func New() *Store {
 		tickers:    make(map[int]*market.Ticker),
 		jobs:       make(map[string]*production.ProductionJob),
 		bonds:      make(map[string]*finance.Bond),
-		buildings:  make(map[string]*company.Building),
 		warehouses: make(map[int]*warehouse.Warehouse),
 		nextID:     1,
 	}
@@ -136,8 +134,6 @@ func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 		Y:          20,
 	}
 	c.Buildings = []company.Building{bld1, bld2}
-	s.buildings[bld1.ID] = &c.Buildings[0]
-	s.buildings[bld2.ID] = &c.Buildings[1]
 	return nil
 }
 
@@ -248,6 +244,16 @@ func (s *Store) GetWarehouse(_ context.Context, companyID int) (*warehouse.Wareh
 		return nil, fmt.Errorf("warehouse not found")
 	}
 	return w, nil
+}
+
+func (s *Store) UpdateWarehouse(_ context.Context, w *warehouse.Warehouse) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.warehouses == nil {
+		s.warehouses = make(map[int]*warehouse.Warehouse)
+	}
+	s.warehouses[w.CompanyID] = w
+	return nil
 }
 
 // --- MarketStorage ---
