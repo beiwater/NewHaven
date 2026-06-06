@@ -4,6 +4,7 @@ import { useLogin, useRegister } from '@/api/company.api'
 import { SUPPORTED_LOCALES, LOCALE_LABELS, getStoredLocale, setStoredLocale } from '@/i18n'
 import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
 import { audio } from '@/audio/AudioManager'
+import { LoadingScreen } from './LoadingScreen'
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -19,6 +20,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const register = useRegister()
   // Initialize from stored token so refresh doesn't show login flash.
   const [authenticated, setAuthenticated] = useState(isAuthenticated)
+  const [showLoading, setShowLoading] = useState(false)
 
   useEffect(() => {
     const syncAuth = () => setAuthenticated(isAuthenticated())
@@ -38,8 +40,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [authenticated])
 
-  if (authenticated) {
+  if (authenticated && !showLoading) {
     return <>{children}</>
+  }
+
+  if (authenticated && showLoading) {
+    return <LoadingScreen onFinished={() => setShowLoading(false)} />
   }
 
   const isPending = login.isPending || register.isPending
@@ -48,6 +54,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password.trim()) return
+    setShowLoading(true)
     audio.unlockAudio()
     audio.playSfx('ui_confirm')
     if (mode === 'login') {
@@ -55,8 +62,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     } else {
       const finalGender = showCustomGender && customGender.trim() ? customGender.trim() : gender
       register.mutate({
-        username: username.trim(),
-        password,
         name: name.trim() || undefined,
         gender: finalGender || undefined,
         email: email.trim() || undefined,
