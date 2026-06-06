@@ -21,7 +21,7 @@ func TestListMyCompanies_NoToken_401(t *testing.T) {
 	store := memory.New()
 	a := app.New(cfg, store, nil, nil, nil)
 	companySvc := company.NewService(store, a.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Company: companyHandler})
@@ -53,7 +53,7 @@ func TestListMyCompanies_WithToken_200(t *testing.T) {
 	store := memory.New()
 	a := app.New(cfg, store, nil, nil, nil)
 	companySvc := company.NewService(store, a.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Company: companyHandler})
@@ -133,7 +133,7 @@ func TestListMyCompanies_ReturnsEnvelope(t *testing.T) {
 	store := memory.New()
 	a := app.New(cfg, store, nil, nil, nil)
 	companySvc := company.NewService(store, a.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Company: companyHandler})

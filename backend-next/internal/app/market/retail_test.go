@@ -151,3 +151,146 @@ func TestProcessRetailSales_EmptyEconomy_NoOp(t *testing.T) {
 		t.Errorf("money should be unchanged with empty economy, got %g", updated.Money)
 	}
 }
+
+func TestCatchUpPlayerRetail_FirstTime_SetsBaseline(t *testing.T) {
+	t.Parallel()
+
+	economy := map[int]*catalog.EconomyModelEntry{
+		1: {
+			BuildingKindModifier:               0.8,
+			BuildingLevelsNeededPerUnitPerHour: 0.01,
+			ModeledProductionCostPerUnit:       8.0,
+			ModeledStoreWages:                  200.0,
+			ModeledUnitsSoldAnHour:             15.0,
+		},
+	}
+	svc, store := newRetailTestSvc(economy)
+	setupRetailTicker(t, store, 1, 24.0)
+
+	companyID := newTestCompany(t, store, 1004, "catchup_first", 500.0)
+	c, err := store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+	c.Inventory[1] = 100
+	if err := store.UpdateCompany(nil, c); err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
+	}
+
+	// First call: should set baseline and not sell anything
+	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
+		t.Fatalf("CatchUpPlayerRetail (first): %v", err)
+	}
+
+	updated, err := store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany after first catch-up: %v", err)
+	}
+	if updated.LastRetailAt == "" {
+		t.Fatal("expected LastRetailAt to be set after first catch-up")
+	}
+	if updated.Inventory[1] != 100 {
+		t.Errorf("inventory should be unchanged on first catch-up, got %d", updated.Inventory[1])
+	}
+	if updated.Money != 500.0 {
+		t.Errorf("money should be unchanged on first catch-up, got %g", updated.Money)
+	}
+}
+
+func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
+	t.Parallel()
+
+	economy := map[int]*catalog.EconomyModelEntry{
+		1: {
+			BuildingKindModifier:               0.8,
+			BuildingLevelsNeededPerUnitPerHour: 0.01,
+			ModeledProductionCostPerUnit:       8.0,
+			ModeledStoreWages:                  200.0,
+			ModeledUnitsSoldAnHour:             15.0,
+		},
+	}
+	svc, store := newRetailTestSvc(economy)
+	setupRetailTicker(t, store, 1, 24.0)
+
+	companyID := newTestCompany(t, store, 1005, "catchup_elapsed", 500.0)
+	c, err := store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+	c.Inventory[1] = 100
+	// Set last settlement to 1 hour ago
+	now := time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC)
+	originalLastRetailAt := now.Add(-1 * time.Hour).Format(time.RFC3339)
+	c.LastRetailAt = originalLastRetailAt
+	if err := store.UpdateCompany(nil, c); err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
+	}
+
+	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
+		t.Fatalf("CatchUpPlayerRetail: %v", err)
+	}
+
+	updated, err := store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany after catch-up: %v", err)
+	}
+	// Inventory should be deducted
+	if updated.Inventory[1] >= 100 {
+		t.Errorf("expected inventory to be deducted from elapsed sales, got %d", updated.Inventory[1])
+	}
+	// Money should have increased
+	if updated.Money <= 500.0 {
+		t.Errorf("expected money to increase from elapsed sales, got %g", updated.Money)
+	}
+	// LastRetailAt should be updated (use copy of original since c pointer is mutated in-place)
+	if updated.LastRetailAt == originalLastRetailAt {
+		t.Error("expected LastRetailAt to be updated after catch-up")
+	}
+	t.Logf("Inventory: 100 -> %d, Money: 500 -> %g, LastRetailAt: %s", updated.Inventory[1], updated.Money, updated.LastRetailAt)
+}
+
+func TestCatchUpPlayerRetail_SkipsPlayerCompanyInScheduler(t *testing.T) {
+	t.Parallel()
+
+	// Verify that a company with LastRetailAt set is skipped by ProcessRetailSales.
+	economy := map[int]*catalog.EconomyModelEntry{
+		1: {
+			BuildingKindModifier:               0.8,
+			BuildingLevelsNeededPerUnitPerHour: 0.01,
+			ModeledProductionCostPerUnit:       8.0,
+			ModeledStoreWages:                  200.0,
+			ModeledUnitsSoldAnHour:             15.0,
+		},
+	}
+	svc, store := newRetailTestSvc(economy)
+	setupRetailTicker(t, store, 1, 24.0)
+
+	companyID := newTestCompany(t, store, 1006, "player_skip", 500.0)
+	c, err := store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+	c.Inventory[1] = 100
+	// Mark as player company (has LastRetailAt set)
+	now := time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC)
+	c.LastRetailAt = now.Format(time.RFC3339)
+	if err := store.UpdateCompany(nil, c); err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
+	}
+
+	if err := svc.ProcessRetailSales(context.Background()); err != nil {
+		t.Fatalf("ProcessRetailSales: %v", err)
+	}
+
+	updated, err := store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany after scheduler: %v", err)
+	}
+	// Should be untouched by the scheduler
+	if updated.Inventory[1] != 100 {
+		t.Errorf("player company inventory should not be touched by scheduler, got %d", updated.Inventory[1])
+	}
+	if updated.Money != 500.0 {
+		t.Errorf("player company money should not be touched by scheduler, got %g", updated.Money)
+	}
+}

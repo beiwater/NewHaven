@@ -25,6 +25,7 @@ type Company struct {
 	Executives     []Executive    `json:"executives,omitempty"`
 	WarehouseLevel int            `json:"warehouse_level"`
 	CreatedAt      string         `json:"created_at"`
+	LastRetailAt   string         `json:"last_retail_at,omitempty"`
 }
 
 // NewPlayerPreferences returns preferences for a newly registered account.

@@ -71,9 +71,13 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	// Auth
 	authSvc := auth.NewService(st, st, clock, idgen, logger, cfg.JWTSigningKey)
 
+	// Market
+	marketSvc := market.NewService(st, st, st, resources, economy, cfg.Game, clock, idgen)
+	marketHandler := httpapi.NewMarketHandler(marketSvc)
+
 	// Company
 	companySvc := company.NewService(st, logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, marketSvc)
 	authHandler := httpapi.NewAuthHandler(authSvc)
 
 	// Warehouse
@@ -86,10 +90,6 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 
 	// Production
 	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, clock, idgen)
-
-	// Market
-	marketSvc := market.NewService(st, st, st, resources, economy, cfg.Game, clock, idgen)
-	marketHandler := httpapi.NewMarketHandler(marketSvc)
 
 	// Finance
 	financeSvc := finance.NewService(st, st, clock, idgen, cfg.Game)

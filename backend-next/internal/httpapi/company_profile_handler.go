@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -21,6 +22,10 @@ func (h *CompanyHandler) handleGetCompanyProfile(w http.ResponseWriter, r *http.
 		writeErr(w, 400, ErrorValidation, "invalid company id", nil)
 		return
 	}
+	// Catch up retail sales since last login before returning profile.
+	if err := h.marketSvc.CatchUpPlayerRetail(r.Context(), companyID); err != nil {
+		slog.Warn("retail catch-up failed", "company_id", companyID, "error", err)
+	}
 	resp, err := h.svc.GetProfile(r.Context(), playerID, companyID, requestedCompanyID)
 	if err != nil {
 		writeAppErr(w, err)
@@ -35,6 +40,12 @@ func (h *CompanyHandler) handleUpdateStoryProgress(w http.ResponseWriter, r *htt
 		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
 		return
 	}
+
+	// Catch up retail before updating story progress.
+	if err := h.marketSvc.CatchUpPlayerRetail(r.Context(), companyID); err != nil {
+		slog.Warn("retail catch-up failed", "company_id", companyID, "error", err)
+	}
+
 	var req company.StoryProgressRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)

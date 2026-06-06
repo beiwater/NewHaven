@@ -13,6 +13,7 @@ interface UIState {
   chatOpen: boolean
   powerupOpen: boolean
   currentMapId: MapId
+  syncingRetail: boolean
 
   setActiveView: (view: ActiveView) => void
   selectBuilding: (id: string | null) => void
@@ -25,6 +26,7 @@ interface UIState {
   setChatOpen: (open: boolean) => void
   setPowerupOpen: (open: boolean) => void
   setCurrentMapId: (mapId: MapId) => void
+  setSyncingRetail: (syncing: boolean) => void
 }
 
 function initialMapId(): MapId {
@@ -42,6 +44,7 @@ export const useUIStore = create<UIState>((set) => ({
   marketPanelOpen: false,
   chatOpen: false,
   powerupOpen: false,
+  syncingRetail: false,
   currentMapId: initialMapId(),
 
   setActiveView: (view) => set({ activeView: view, selectedBuildingId: null }),
@@ -58,4 +61,5 @@ export const useUIStore = create<UIState>((set) => ({
     localStorage.setItem('newhaven_current_map', mapId)
     set({ currentMapId: mapId, selectedBuildingId: null })
   },
+  setSyncingRetail: (syncing) => set({ syncingRetail: syncing }),
 }))
