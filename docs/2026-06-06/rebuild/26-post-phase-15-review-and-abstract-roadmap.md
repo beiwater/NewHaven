@@ -36,6 +36,22 @@ work contains the most operationally sensitive areas: scheduler behavior,
 economic formulas, persistence, frontend cutover, and several gameplay
 domains.
 
+### Deferred extension plugins
+
+The following capability groups are optional extension plugins and are not
+required implementations for the core backend rewrite:
+
+- anti-cheat and AML
+- aerospace
+- executives
+- research
+- government contracts
+
+The core rewrite must reserve stable integration ports, optional API
+namespaces, configuration and registration boundaries, and failure isolation
+for these plugins. A missing or disabled plugin must not prevent core startup
+or operation.
+
 ## 2. Stability Review
 
 ### Stable foundations
@@ -87,18 +103,18 @@ remain incomplete.
 
 - building market, purchase, placement, movement, demolition, and upgrades
 - production queue management, cancellation, slot management, and claim-all
-- research lifecycle
 - player progression, achievements, boosts, and offline income
-- remaining company, executive, auction, leaderboard, social, newspaper,
-  contract, daily order, and aerospace behavior
+- remaining company, auction, leaderboard, social, newspaper, and daily order
+  behavior
 - remaining market, bond, and finance lifecycle behavior
-- anti-cheat and AML behavior
+- optional extension-plugin behavior: anti-cheat/AML, aerospace, executives,
+  research, and government contracts
 
 ### Operational responsibilities
 
 - scheduler tick and its ordering contract
 - bond settlement and default processing
-- government awards and defaults
+- optional government-contract awards and defaults
 - bot market cycle and market lock behavior
 - order cleanup and daily refresh
 - persistent save and restore
@@ -152,8 +168,8 @@ Exit gate:
 
 Purpose:
 
-- complete remaining building, market, finance, bond, contract, and progression
-  write paths
+- complete remaining building, market, finance, bond, and progression write
+  paths
 - define atomicity and rollback behavior for cross-domain mutations
 
 Entry gate:
@@ -175,7 +191,8 @@ Purpose:
 
 Entry gate:
 
-- all domains called by the scheduler are owned by backend-next
+- all core domains called by the scheduler are owned by backend-next; optional
+  plugin jobs are isolated behind extension ports
 
 Exit gate:
 
@@ -265,16 +282,18 @@ The rewrite is complete only when all of the following are true:
 - PostgreSQL implements all required storage contracts
 - migrations are versioned, repeatable, and reversible where required
 - restart, backup/restore, legacy import, and rollback preserve verified state
-- money, inventory, XP, ownership, orders, trades, ledger, bonds, research,
-  messages, and progression survive restart
+- money, inventory, XP, ownership, orders, trades, ledger, bonds, messages, and
+  progression survive restart
+- enabled plugins declare and verify their own persistence requirements
 
 ### Runtime safety
 
 - scheduler jobs are observable, replayable, and failure-aware
 - concurrency-sensitive paths pass race testing in a CGO-enabled environment
 - health and readiness checks reflect real dependencies
-- rate limiting, anti-cheat, AML, and security responsibilities are either
-  migrated or explicitly replaced
+- core rate limiting and security responsibilities are implemented
+- anti-cheat and AML are represented by documented optional plugin ports and do
+  not block core startup when absent
 
 ### Cutover
 

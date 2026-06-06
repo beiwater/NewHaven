@@ -22,7 +22,23 @@ It is intentionally changeable:
 
 Phase numbers describe the current expected order, not an irreversible promise.
 
-## 2. Standard Phase Workflow
+## 2. Deferred Extension Plugin Policy
+
+The following capability groups are optional extension plugins and are not
+required implementations for the core rewrite:
+
+- anti-cheat and AML
+- aerospace
+- executives
+- research
+- government contracts
+
+Future phases reserve stable plugin ports, optional API namespaces,
+registration/configuration boundaries, and failure isolation for these groups.
+Disabled or absent plugins must not prevent core startup, scheduler operation,
+persistence, frontend cutover, or legacy retirement.
+
+## 3. Standard Phase Workflow
 
 Every future phase follows this control loop:
 
@@ -47,7 +63,7 @@ Every phase must explicitly list:
 - rollback or failure behavior
 - completion evidence
 
-## 3. Planned Phases
+## 4. Planned Phases
 
 ### Phase 16: Compatibility and Completion Baseline
 
@@ -59,6 +75,7 @@ Goal:
 Expected outcomes:
 
 - classify every legacy route as migrated, remaining, dev-only, stub, or retire
+- classify deferred extension-plugin routes separately from core routes
 - map frontend workflows to required backend capabilities
 - produce a reviewable responsibility matrix with valid dispositions and owners
 - define compatibility levels for status, shape, semantics, and side effects
@@ -112,6 +129,7 @@ Expected outcomes:
 - consolidate runtime dependency composition expectations
 - assign ownership and replacement policy for rate limiting, anti-cheat, AML,
   and other cross-cutting safety controls
+- define optional extension-plugin ports and failure-isolation rules
 
 Non-goals:
 
@@ -155,7 +173,8 @@ Candidate responsibility groups:
 - leaderboard and public company/player views
 - remaining market and finance reads
 - recipes, production options, and configuration views
-- social, contract, research, and progression reads
+- social and progression reads
+- optional plugin read namespaces may be reserved without implementations
 
 Delivery rule:
 
@@ -171,16 +190,18 @@ Completion gate:
 - supported read-only frontend workflows have backend-next ownership and parity
   evidence
 
-### Phase 21: Research and Social Domains
+### Phase 21: Social Domain and Extension Plugin Ports
 
 Goal:
 
-- complete bounded domains whose storage abstractions already exist
+- complete the bounded social domain and reserve the shared extension-plugin
+  boundary
 
 Candidate responsibility groups:
 
-- research lifecycle
 - messages, chat, contacts, and notifications
+- optional plugin registration, configuration, API namespace, and health model
+  for research, executives, aerospace, government contracts, and anti-cheat/AML
 
 Non-goals:
 
@@ -189,8 +210,9 @@ Non-goals:
 
 Completion gate:
 
-- selected domains are independently owned, tested, and no longer require
-  legacy runtime behavior
+- the social domain is independently owned and tested
+- deferred plugins can be absent or disabled without affecting core operation
+- reserved plugin ports are documented without requiring implementations
 
 ### Phase 22: Building and Warehouse Lifecycle
 
@@ -308,16 +330,16 @@ Completion gate:
 
 - bond ownership, money movement, liability, and rollback invariants are proven
 
-### Phase 27: Contracts and Daily Orders
+### Phase 27: Daily Orders and Government-Contract Plugin Reservation
 
 Goal:
 
-- migrate or formally retire the remaining bounded gameplay systems
+- migrate daily orders and reserve the government-contract plugin boundary
 
 Candidate responsibility groups:
 
-- government contracts
 - daily orders
+- government-contract plugin API and scheduler ports
 
 Non-goals:
 
@@ -326,21 +348,22 @@ Non-goals:
 
 Completion gate:
 
-- player-triggered contract and daily-order state transitions are owned,
-  deterministic, and ready for scheduler integration
+- daily-order state transitions are owned, deterministic, and ready for
+  scheduler integration
+- government-contract behavior remains optional behind documented plugin ports
 
-### Phase 28: Auctions, Executives, and Legacy Scope Retirement
+### Phase 28: Auctions and Legacy Scope Retirement
 
 Goal:
 
-- migrate the remaining supported bounded gameplay systems and formally retire
-  unsupported legacy scope
+- migrate remaining supported core gameplay and formally classify deferred or
+  retired legacy scope
 
 Candidate responsibility groups:
 
 - auctions
-- executives
-- aerospace and other legacy stubs
+- executives and aerospace are classified as deferred extension plugins
+- other unsupported legacy stubs are retired
 
 Non-goals:
 
@@ -348,8 +371,8 @@ Non-goals:
 
 Completion gate:
 
-- each remaining gameplay system is migrated, retired, or explicitly deferred
-  outside the rewrite definition
+- each remaining core gameplay system is migrated or retired
+- extension-plugin routes are documented and excluded from core completion
 
 ### Phase 29: Scheduler Framework and Job Contracts
 
@@ -383,7 +406,7 @@ Goal:
 Candidate responsibility groups:
 
 - bond settlement and defaults
-- government awards and defaults
+- optional government-contract awards and defaults remain plugin-owned
 - bot market cycle
 - market lock behavior
 - cleanup and refresh jobs
@@ -430,6 +453,8 @@ Expected outcomes:
 - backups and rollback procedure
 - reconciliation for money, inventory, ownership, orders, trades, ledger, bonds,
   progression, and social data
+- deferred plugin data is excluded unless an enabled plugin explicitly supplies
+  and owns its migration contract
 
 Non-goals:
 
@@ -473,7 +498,8 @@ Expected outcomes:
 - race tests in a supported environment
 - load and failure testing
 - health and readiness dependency checks
-- security, auth, rate-limit, anti-cheat, and AML disposition
+- security, auth, and core rate-limit review
+- anti-cheat and AML plugin-port and failure-isolation review
 - scheduler and database operational runbooks
 
 Non-goals:
@@ -506,7 +532,7 @@ Completion gate:
 - deleting or archiving legacy does not remove any responsibility listed as
   supported in the Phase 16 matrix
 
-## 4. Expected Change Points
+## 5. Expected Change Points
 
 The roadmap should be reconsidered at these checkpoints:
 
@@ -517,7 +543,7 @@ The roadmap should be reconsidered at these checkpoints:
 - before Phase 33, because cutover groups depend on actual frontend usage
 - before Phase 35, because legacy retirement requires operational evidence
 
-## 5. Rules for Changing the Plan
+## 6. Rules for Changing the Plan
 
 A roadmap change is healthy when it:
 
