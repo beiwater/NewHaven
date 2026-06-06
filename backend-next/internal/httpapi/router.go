@@ -33,6 +33,10 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	r.Use(Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(CORS)
+	// Rate limiter (skips /healthz and /readyz internally)
+	if cfg.RateLimitEnabled {
+		r.Use(NewRateLimiter(0, 0).Middleware)
+	}
 
 	// Health
 	r.Get("/healthz", handleHealthz)

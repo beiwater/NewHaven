@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/newhaven/backend-next/internal/domain/auth"
@@ -23,6 +26,7 @@ import (
 // Data is NOT persisted across restarts.
 type Store struct {
 	mu         sync.RWMutex
+	snapshotPath string
 	players    map[int]*auth.Player
 	byUser     map[string]*auth.Player
 	companies  map[int]*company.Company
@@ -54,11 +58,193 @@ func New() *Store {
 		bonds:      make(map[string]*finance.Bond),
 		warehouses: make(map[int]*warehouse.Warehouse),
 		nextID:     1,
+		snapshotPath: envOrDefault("SIM_API_SNAPSHOT_PATH", "data/snapshot.json"),
 	}
 }
 
 func (s *Store) Close() error { return nil }
 
+
+func envOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
+// snapshotPath implements file-based snapshot persistence.
+
+func (s *Store) SaveSnapshot(_ context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	snap := s.collectSnapshot()
+	data, err := json.MarshalIndent(snap, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(s.snapshotPath), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(s.snapshotPath, data, 0644)
+}
+
+func (s *Store) LoadSnapshot(_ context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, err := os.ReadFile(s.snapshotPath)
+	if err != nil {
+		return err
+	}
+	var snap storage.GameSnapshot
+	if err := json.Unmarshal(data, &snap); err != nil {
+		return err
+	}
+	s.applySnapshot(&snap)
+	return nil
+}
+
+// GetSnapshotData returns a copy of the current game state as a GameSnapshot.
+// The caller should hold s.mu (read or write).
+func (s *Store) collectSnapshot() *storage.GameSnapshot {
+	snap := &storage.GameSnapshot{
+		Players:    make(map[int]*auth.Player, len(s.players)),
+		ByUser:     make(map[string]*auth.Player, len(s.byUser)),
+		Companies:  make(map[int]*company.Company, len(s.companies)),
+		Orders:     make(map[string]*market.MarketOrder, len(s.orders)),
+		Tickers:    make(map[int]*market.Ticker, len(s.tickers)),
+		Jobs:       make(map[string]*production.ProductionJob, len(s.jobs)),
+		Bonds:      make(map[string]*finance.Bond, len(s.bonds)),
+		Warehouses: make(map[int]*warehouse.Warehouse, len(s.warehouses)),
+	}
+	for k, v := range s.players {
+		snap.Players[k] = v
+	}
+	for k, v := range s.byUser {
+		snap.ByUser[k] = v
+	}
+	for k, v := range s.companies {
+		snap.Companies[k] = v
+	}
+	for k, v := range s.orders {
+		snap.Orders[k] = v
+	}
+	for k, v := range s.tickers {
+		snap.Tickers[k] = v
+	}
+	for k, v := range s.jobs {
+		snap.Jobs[k] = v
+	}
+	for k, v := range s.bonds {
+		snap.Bonds[k] = v
+	}
+	for k, v := range s.warehouses {
+		snap.Warehouses[k] = v
+	}
+	snap.Trades = append([]market.Trade(nil), s.trades...)
+	snap.Ledger = append([]finance.LedgerEntry(nil), s.ledger...)
+	snap.Holdings = append([]finance.BondHolding(nil), s.holdings...)
+	snap.Research = append([]research.Project(nil), s.research...)
+	snap.Progress = append([]research.CompanyProgress(nil), s.progress...)
+	snap.Messages = append([]social.Message(nil), s.messages...)
+	snap.Notifs = append([]social.Notification(nil), s.notifs...)
+	snap.NextID = s.nextID
+	return snap
+}
+
+// applySnapshot replaces all store state from a GameSnapshot.
+// The caller must hold s.mu write lock.
+func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
+	s.players = snap.Players
+	if s.players == nil {
+		s.players = make(map[int]*auth.Player)
+	}
+	s.byUser = snap.ByUser
+	if s.byUser == nil {
+		s.byUser = make(map[string]*auth.Player)
+	}
+	s.companies = snap.Companies
+	if s.companies == nil {
+		s.companies = make(map[int]*company.Company)
+	}
+	// rebuild byPlayer map from companies
+	s.byPlayer = make(map[int]*company.Company, len(s.companies))
+	for _, c := range s.companies {
+		s.byPlayer[c.PlayerID] = c
+	}
+	s.orders = snap.Orders
+	if s.orders == nil {
+		s.orders = make(map[string]*market.MarketOrder)
+	}
+	if snap.Trades != nil {
+		s.trades = snap.Trades
+	} else {
+		s.trades = nil
+	}
+	s.tickers = snap.Tickers
+	if s.tickers == nil {
+		s.tickers = make(map[int]*market.Ticker)
+	}
+	s.jobs = snap.Jobs
+	if s.jobs == nil {
+		s.jobs = make(map[string]*production.ProductionJob)
+	}
+	if snap.Ledger != nil {
+		s.ledger = snap.Ledger
+	} else {
+		s.ledger = nil
+	}
+	s.bonds = snap.Bonds
+	if s.bonds == nil {
+		s.bonds = make(map[string]*finance.Bond)
+	}
+	if snap.Holdings != nil {
+		s.holdings = snap.Holdings
+	} else {
+		s.holdings = nil
+	}
+	if snap.Research != nil {
+		s.research = snap.Research
+	} else {
+		s.research = nil
+	}
+	if snap.Progress != nil {
+		s.progress = snap.Progress
+	} else {
+		s.progress = nil
+	}
+	if snap.Messages != nil {
+		s.messages = snap.Messages
+	} else {
+		s.messages = nil
+	}
+	if snap.Notifs != nil {
+		s.notifs = snap.Notifs
+	} else {
+		s.notifs = nil
+	}
+	s.warehouses = snap.Warehouses
+	if s.warehouses == nil {
+		s.warehouses = make(map[int]*warehouse.Warehouse)
+	}
+	s.nextID = snap.NextID
+	if s.nextID <= 0 {
+		s.nextID = 1
+	}
+}
+
+// GetSnapshotData returns a snapshot of the current game state for external callers (e.g. PG store).
+func (s *Store) GetSnapshotData() *storage.GameSnapshot {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.collectSnapshot()
+}
+
+// LoadFromSnapshot populates the store from a snapshot (e.g. loaded from PG).
+func (s *Store) LoadFromSnapshot(snap *storage.GameSnapshot) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.applySnapshot(snap)
+}
 // --- PlayerStorage ---
 
 func (s *Store) CreatePlayer(_ context.Context, p *auth.Player) error {

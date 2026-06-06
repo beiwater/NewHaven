@@ -21,6 +21,7 @@ import (
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/scheduler"
 	"github.com/newhaven/backend-next/internal/storage/memory"
+	"github.com/newhaven/backend-next/internal/storage/postgres"
 )
 
 func main() {
@@ -69,11 +70,25 @@ func main() {
 	executiveHandler := httpapi.NewExecutiveHandler(st)
 	leaderboardHandler := httpapi.NewLeaderboardHandler()
 	socialHandler := httpapi.NewSocialHandler(st)
+	// PostgreSQL snapshot persistence (optional)
+	var pgStore *postgres.Store
+	var saveAll func(ctx context.Context) error
+	if cfg.DatabaseURL != "" {
+		pgStore, err = postgres.New(context.Background(), cfg.DatabaseURL, st)
+		if err != nil {
+			slog.Warn("[main] postgres not available, skipping persistence", "error", err)
+		} else {
+			if err := pgStore.LoadSnapshot(context.Background()); err != nil {
+				slog.Info("[main] no existing snapshot in database", "error", err)
+			}
+			saveAll = pgStore.SaveSnapshot
+		}
+	}
 	// Scheduler for bot economy and background tasks including bond interest
 	sched := scheduler.New(marketSvc, func(ctx context.Context) error {
 		_, err := financeSvc.SettleBondInterest(ctx)
 		return err
-	})
+	}, saveAll)
 	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{
 		Auth: authHandler, Company: companyHandler, Warehouse: warehouseHandler,
 		Building: buildingHandler, Production: productionHandler, Market: marketHandler,
@@ -117,5 +132,9 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("shutdown failed", "error", err)
+	}
+
+	if pgStore != nil {
+		pgStore.Close()
 	}
 }

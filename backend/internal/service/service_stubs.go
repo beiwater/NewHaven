@@ -1,4 +1,5 @@
 package service
+
 import (
 	"fmt"
 	"math"
@@ -22,7 +23,7 @@ type ExecutiveStub struct {
 	RecruitCost     float64 `json:"recruitCost"`
 	TrainingCost    float64 `json:"trainingCost"`
 	TrainingTime    float64 `json:"trainingTime"` // seconds
-	Status          string  `json:"status"`        // "idle" | "training" | "recruiting"
+	Status          string  `json:"status"`       // "idle" | "training" | "recruiting"
 	TrainingEndTime *string `json:"trainingEndTime,omitempty"`
 }
 
@@ -366,7 +367,6 @@ func stubToMap(e *ExecutiveStub) map[string]any {
 	}
 	return m
 }
-
 
 func getStr(m map[string]any, key string) string {
 	v, _ := m[key].(string)

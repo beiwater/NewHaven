@@ -19,6 +19,9 @@ type Config struct {
 	// Database
 	DatabaseURL string
 
+	// Rate limiting
+	RateLimitEnabled bool
+
 	// Dev mode (creates dev user/company)
 	DevMode bool
 
@@ -44,11 +47,12 @@ type GameConfig struct {
 
 func Load() *Config {
 	return &Config{
-		Addr:          envStr("SIM_API_ADDR", ":8088"),
-		JWTSigningKey: envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
-		DatabaseURL:   os.Getenv("SIM_API_DATABASE_URL"),
-		DevMode:       envStr("SIM_API_DEV_MODE", "true") == "true",
-		Game:          loadGameConfig(FindProjectRoot()),
+		Addr:              envStr("SIM_API_ADDR", ":8088"),
+		JWTSigningKey:     envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
+		DatabaseURL:       os.Getenv("SIM_API_DATABASE_URL"),
+		RateLimitEnabled:  true,
+		DevMode:           envStr("SIM_API_DEV_MODE", "true") == "true",
+		Game:              loadGameConfig(FindProjectRoot()),
 	}
 }
 

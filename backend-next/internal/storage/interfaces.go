@@ -97,6 +97,12 @@ type WarehouseStorage interface {
 	UpdateWarehouse(ctx context.Context, w *warehouse.Warehouse) error
 }
 
+// SnapshotStorage handles full game state save/load.
+type SnapshotStorage interface {
+	SaveSnapshot(ctx context.Context) error
+	LoadSnapshot(ctx context.Context) error
+}
+
 // Storage combines all domain storage interfaces.
 // Implementations can choose to implement all or compose from sub-stores.
 type Storage interface {
@@ -108,5 +114,6 @@ type Storage interface {
 	ResearchStorage
 	SocialStorage
 	WarehouseStorage
+	SnapshotStorage
 	Close() error
 }

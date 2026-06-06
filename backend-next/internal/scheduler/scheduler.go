@@ -6,20 +6,22 @@ import (
 	"time"
 )
 
-// Scheduler runs background economy maintenance tasks on a ticker.
 type Scheduler struct {
 	svc         BotService
 	settleBonds func(ctx context.Context) error
+	saveAll     func(ctx context.Context) error
 	ticker      *time.Ticker
 	done        chan struct{}
 }
 
 // New creates a Scheduler that ticks every 60 seconds.
 // settleBonds is an optional function called on each tick to settle bond interest.
-func New(svc BotService, settleBonds func(ctx context.Context) error) *Scheduler {
+// saveAll is an optional function called on each tick to persist game state.
+func New(svc BotService, settleBonds func(ctx context.Context) error, saveAll func(ctx context.Context) error) *Scheduler {
 	return &Scheduler{
 		svc:         svc,
 		settleBonds: settleBonds,
+		saveAll:     saveAll,
 		ticker:      time.NewTicker(60 * time.Second),
 		done:        make(chan struct{}),
 	}
@@ -74,6 +76,13 @@ func (s *Scheduler) tick() {
 	if s.settleBonds != nil {
 		if err := s.settleBonds(ctx); err != nil {
 			slog.Warn("[scheduler] settleBonds", "error", err)
+		}
+	}
+
+	// 6. Persist game state snapshot
+	if s.saveAll != nil {
+		if err := s.saveAll(ctx); err != nil {
+			slog.Warn("[scheduler] saveAll", "error", err)
 		}
 	}
 	slog.Debug("[scheduler] tick end")
