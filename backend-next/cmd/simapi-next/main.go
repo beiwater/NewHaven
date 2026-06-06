@@ -64,10 +64,19 @@ func main() {
 	researchHandler := httpapi.NewResearchHandler(st, st)
 	executiveHandler := httpapi.NewExecutiveHandler(st)
 	leaderboardHandler := httpapi.NewLeaderboardHandler()
-	// Scheduler for bot economy and background tasks
-	sched := scheduler.New(marketSvc)
 	socialHandler := httpapi.NewSocialHandler(st)
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler, financeHandler, bondHandler, playerHandler, socialHandler, contractHandler, researchHandler, executiveHandler, leaderboardHandler)
+	// Scheduler for bot economy and background tasks including bond interest
+	sched := scheduler.New(marketSvc, func(ctx context.Context) error {
+		_, err := financeSvc.SettleBondInterest(ctx)
+		return err
+	})
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{
+		Auth: authHandler, Company: companyHandler, Warehouse: warehouseHandler,
+		Building: buildingHandler, Production: productionHandler, Market: marketHandler,
+		Finance: financeHandler, Bond: bondHandler, Player: playerHandler,
+		Social: socialHandler, Contract: contractHandler, Research: researchHandler,
+		Executive: executiveHandler, Leaderboard: leaderboardHandler,
+	})
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {

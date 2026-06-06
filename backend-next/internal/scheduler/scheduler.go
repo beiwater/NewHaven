@@ -8,17 +8,20 @@ import (
 
 // Scheduler runs background economy maintenance tasks on a ticker.
 type Scheduler struct {
-	svc    BotService
-	ticker *time.Ticker
-	done   chan struct{}
+	svc         BotService
+	settleBonds func(ctx context.Context) error
+	ticker      *time.Ticker
+	done        chan struct{}
 }
 
 // New creates a Scheduler that ticks every 60 seconds.
-func New(svc BotService) *Scheduler {
+// settleBonds is an optional function called on each tick to settle bond interest.
+func New(svc BotService, settleBonds func(ctx context.Context) error) *Scheduler {
 	return &Scheduler{
-		svc:    svc,
-		ticker: time.NewTicker(60 * time.Second),
-		done:   make(chan struct{}),
+		svc:         svc,
+		settleBonds: settleBonds,
+		ticker:      time.NewTicker(60 * time.Second),
+		done:        make(chan struct{}),
 	}
 }
 
@@ -67,5 +70,11 @@ func (s *Scheduler) tick() {
 		slog.Warn("[scheduler] CleanupMarket", "error", err)
 	}
 
+	// 5. Settle bond interest
+	if s.settleBonds != nil {
+		if err := s.settleBonds(ctx); err != nil {
+			slog.Warn("[scheduler] settleBonds", "error", err)
+		}
+	}
 	slog.Debug("[scheduler] tick end")
 }

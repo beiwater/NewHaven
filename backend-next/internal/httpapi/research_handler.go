@@ -239,19 +239,25 @@ func (h *ResearchHandler) handleCompleteResearch(w http.ResponseWriter, r *http.
 		writeAppErr(w, apperr.WrapMsg(apperr.KindInternal, "failed to load research progress", err))
 		return
 	}
-	var found bool
-	for _, p := range progress {
-		if p.ProjectID == projectID && p.CompletedAt == "" {
-			found = true
+	var foundEntry *research.CompanyProgress
+	for i := range progress {
+		if progress[i].ProjectID == projectID && progress[i].CompletedAt == "" {
+			foundEntry = &progress[i]
 			break
 		}
 	}
-	if !found {
+	if foundEntry == nil {
 		writeErr(w, http.StatusBadRequest, ErrorConflict, "research project not in progress or already completed", nil)
 		return
 	}
 
 	now := h.clock().UTC().Format(time.RFC3339)
+	foundEntry.CompletedAt = now
+	if err := h.research.SaveProgress(r.Context(), foundEntry); err != nil {
+		writeAppErr(w, apperr.WrapMsg(apperr.KindInternal, "failed to save research progress", err))
+		return
+	}
+
 	writeSuccess(w, http.StatusOK, map[string]any{
 		"ok":              true,
 		"projectId":       projectID,

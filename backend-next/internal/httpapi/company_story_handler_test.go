@@ -20,7 +20,7 @@ func TestCompanyProfileAndStoryProgressRoutes(t *testing.T) {
 	store := memory.New()
 	a := app.New(cfg, store)
 	companyHandler := httpapi.NewCompanyHandler(company.NewService(store, a.Logger))
-	mux := httpapi.NewRouter(cfg, httpapi.NewAuthHandler(a.AuthService), companyHandler, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: httpapi.NewAuthHandler(a.AuthService), Company: companyHandler})
 
 	reg := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(`{"username":"storyuser","password":"secret123"}`))
