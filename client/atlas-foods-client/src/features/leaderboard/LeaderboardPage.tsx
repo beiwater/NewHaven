@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBuildings } from '@/api/buildings.api'
 import { useCompanyBuildings } from '@/api/buildings.api'
 import { buildingIcon } from '@/game/icons'
@@ -14,11 +14,14 @@ import {
   type SortDimension,
   type LeaderboardEntry,
 } from '@/api/leaderboard.api'
+import { useCompany, useSavePreferences } from '@/api/company.api'
 
 export function LeaderboardPage() {
   const [sort, setSort] = useState<SortDimension>('net_worth')
   const [page, setPage] = useState(1)
   const [selectedCompany, setSelectedCompany] = useState<LeaderboardEntry | null>(null)
+  const [nicknames, setNicknames] = useState<Record<string, string>>({})
+  const { data: companyData } = useCompany()
   const limit = 10
 
   const { data, isLoading, isError, error } = useLeaderboard(sort, page, limit)
@@ -26,6 +29,11 @@ export function LeaderboardPage() {
   const totalPages = data?.totalPages ?? 1
   const entries = data?.entries ?? []
   const podium = entries.slice(0, 3)
+  useEffect(() => {
+    if (companyData?.preferences?.nicknames) {
+      setNicknames(companyData.preferences.nicknames as Record<string, string>)
+    }
+  }, [companyData])
 
   return (
     <div className="h-full overflow-y-auto">
@@ -50,6 +58,8 @@ export function LeaderboardPage() {
               entry={selectedCompany}
               sort={sort}
               onClose={() => setSelectedCompany(null)}
+              nicknames={nicknames}
+              onNicknameChange={setNicknames}
             />
           </div>
         )}
@@ -92,13 +102,13 @@ export function LeaderboardPage() {
 
             {/* Podium — top 3 */}
             {!isLoading && !isError && podium.length > 0 && (
-              <PodiumSection entries={podium} sort={sort} onSelect={setSelectedCompany} />
+              <PodiumSection entries={podium} sort={sort} onSelect={setSelectedCompany} nicknames={nicknames} />
             )}
 
             {/* Ranking table */}
             {!isLoading && !isError && (
               <>
-                <RankingTable entries={entries} sort={sort} onSelect={setSelectedCompany} />
+                <RankingTable entries={entries} sort={sort} onSelect={setSelectedCompany} nicknames={nicknames} />
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between rounded-xl border border-amber-200/60 bg-white/60 px-4 py-3">
@@ -138,10 +148,12 @@ function PodiumSection({
   entries,
   sort,
   onSelect,
+  nicknames,
 }: {
   entries: LeaderboardEntry[]
   sort: SortDimension
   onSelect: (entry: LeaderboardEntry) => void
+  nicknames: Record<string, string>
 }) {
   const second = entries.find((e) => e.rank === 2)
   const first = entries.find((e) => e.rank === 1)
@@ -149,9 +161,9 @@ function PodiumSection({
 
   return (
     <div className="flex items-end justify-center gap-3 md:gap-5">
-      <PodiumCard entry={second} pos={2} sort={sort} onSelect={onSelect} className="w-1/3 md:w-1/4" />
-      <PodiumCard entry={first} pos={1} sort={sort} onSelect={onSelect} className="w-1/3 md:w-1/3 scale-105 z-10" champion />
-      <PodiumCard entry={third} pos={3} sort={sort} onSelect={onSelect} className="w-1/3 md:w-1/4" />
+      <PodiumCard entry={second} pos={2} sort={sort} onSelect={onSelect} nicknames={nicknames} className="w-1/3 md:w-1/4" />
+      <PodiumCard entry={first} pos={1} sort={sort} onSelect={onSelect} nicknames={nicknames} className="w-1/3 md:w-1/3 scale-105 z-10" champion />
+      <PodiumCard entry={third} pos={3} sort={sort} onSelect={onSelect} nicknames={nicknames} className="w-1/3 md:w-1/4" />
     </div>
   )
 }
@@ -163,6 +175,7 @@ function PodiumCard({
   className = '',
   champion = false,
   onSelect,
+  nicknames,
 }: {
   entry?: LeaderboardEntry
   pos: number
@@ -170,6 +183,7 @@ function PodiumCard({
   className?: string
   champion?: boolean
   onSelect: (entry: LeaderboardEntry) => void
+  nicknames: Record<string, string>
 }) {
   if (!entry) {
     return <div className={`rounded-2xl border border-dashed border-amber-200/50 bg-white/30 p-4 text-center ${className}`}>
@@ -193,7 +207,10 @@ function PodiumCard({
       >
         {entry.companyName.charAt(0)}
       </div>
-      <div className="truncate text-sm font-bold text-amber-950">{entry.companyName}</div>
+      <div className="truncate text-sm font-bold text-amber-950">{nicknames[entry.companyId] || entry.companyName}</div>
+      {nicknames[entry.companyId] && (
+        <div className="truncate text-[9px] text-amber-500">{entry.companyName}</div>
+      )}
       <div className="text-[10px] font-semibold text-amber-700">Level {entry.level}</div>
       <div className="mt-1 text-sm font-black text-green-700">
         {formatMainStat(entry.mainStat, sort)}
@@ -208,10 +225,12 @@ function RankingTable({
   entries,
   sort,
   onSelect,
+  nicknames,
 }: {
   entries: LeaderboardEntry[]
   sort: SortDimension
   onSelect: (entry: LeaderboardEntry) => void
+  nicknames: Record<string, string>
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-amber-200/60 bg-white/60 shadow-sm">
@@ -261,8 +280,11 @@ function RankingTable({
                     </div>
                     <div className="min-w-0">
                       <span className={`truncate font-bold ${isMe ? 'text-green-800' : 'text-amber-950'}`}>
-                        {entry.companyName}
+                        {nicknames[entry.companyId] || entry.companyName}
                       </span>
+                      {nicknames[entry.companyId] && (
+                        <span className="ml-1 text-[9px] text-amber-500">原名: {entry.companyName}</span>
+                      )}
                       {isMe && (
                         <span className="ml-1.5 rounded bg-green-200 px-1.5 py-0.5 text-[9px] font-bold text-green-800">You</span>
                       )}
@@ -290,15 +312,38 @@ function CompanyDetailCard({
   entry,
   sort,
   onClose,
+  nicknames,
+  onNicknameChange,
 }: {
   entry: LeaderboardEntry
   sort: SortDimension
   onClose: () => void
+  nicknames: Record<string, string>
+  onNicknameChange: (n: Record<string, string>) => void
 }) {
   const isMe = isCurrentCompany(entry)
   const setActiveView = useUIStore((s) => s.setActiveView)
   const { data: buildingsData } = useBuildings()
   const { data: otherBuildingsData } = useCompanyBuildings(isMe ? null : entry.companyId)
+  const { data: companyData } = useCompany()
+  const [nicknameInput, setNicknameInput] = useState(nicknames[entry.companyId] || '')
+  const savePrefs = useSavePreferences()
+  const setChatTab = useUIStore((s) => s.setChatTab)
+
+  const handleSaveNickname = () => {
+    const updated = { ...nicknames, [entry.companyId]: nicknameInput }
+    if (!nicknameInput.trim()) {
+      delete updated[entry.companyId]
+    }
+    onNicknameChange(updated)
+    savePrefs.mutate({ ...(companyData?.preferences as object || {}), nicknames: updated })
+  }
+
+  const handlePrivateChat = () => {
+    onClose()
+    setChatTab('messages')
+    setActiveView('chat')
+  }
 
   const buildings = Array.isArray(buildingsData)
     ? buildingsData.filter((building) => building.placed !== false)
@@ -357,6 +402,38 @@ function CompanyDetailCard({
           <div className="text-[9px] text-amber-600 uppercase tracking-wider">Company ID</div>
           <div className="text-sm font-bold text-amber-900">#{entry.companyId}</div>
         </div>
+      </div>
+
+      {/* Nickname */}
+      <div className="border-t border-amber-200/40 pt-3 mt-3">
+        <div className="text-[10px] font-semibold text-amber-600 mb-1">
+          昵称 (仅自己可见)
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={nicknameInput}
+            onChange={e => setNicknameInput(e.target.value)}
+            placeholder="给这家公司起个昵称..."
+            className="flex-1 px-3 py-2 rounded-lg border border-amber-200/60 bg-white/80 text-xs text-amber-900 placeholder-amber-300"
+          />
+          <button
+            onClick={handleSaveNickname}
+            disabled={savePrefs.isPending}
+            className="px-3 py-2 rounded-lg bg-amber-800 text-white text-[10px] font-bold hover:bg-amber-900 disabled:opacity-50"
+          >
+            {savePrefs.isPending ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
+
+      {/* Private chat button */}
+      <div className="border-t border-amber-200/40 pt-3 mt-3">
+        <button
+          onClick={handlePrivateChat}
+          className="w-full px-3 py-2 rounded-lg border border-amber-400/60 bg-amber-100 text-amber-800 text-xs font-bold hover:bg-amber-200 transition-colors"
+        >
+          私聊
+        </button>
       </div>
 
       {isMe ? (
