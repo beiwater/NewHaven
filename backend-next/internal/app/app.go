@@ -105,8 +105,8 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	playerHandler := httpapi.NewPlayerHandler(st)
 	contractHandler := httpapi.NewContractHandler()
 	executiveHandler := httpapi.NewExecutiveHandler(st)
-	leaderboardHandler := httpapi.NewLeaderboardHandler()
-	socialHandler := httpapi.NewSocialHandler(st)
+	leaderboardHandler := httpapi.NewLeaderboardHandler(st)
+	socialHandler := httpapi.NewSocialHandler(st, st)
 	adminHandler := httpapi.NewAdminHandler(st)
 
 	// Snapshot persistence: file-based (memory) or PostgreSQL

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,11 +14,21 @@ import (
 
 // SocialHandler handles chat, message, and contact HTTP endpoints.
 type SocialHandler struct {
-	social storage.SocialStorage
+	social    storage.SocialStorage
+	companies storage.CompanyStorage
 }
 
-func NewSocialHandler(social storage.SocialStorage) *SocialHandler {
-	return &SocialHandler{social: social}
+func NewSocialHandler(social storage.SocialStorage, companies storage.CompanyStorage) *SocialHandler {
+	return &SocialHandler{social: social, companies: companies}
+}
+
+// lookupCompanyName resolves the company's display name from storage.
+func (h *SocialHandler) lookupCompanyName(ctx context.Context, companyID int) string {
+	c, err := h.companies.GetCompany(ctx, companyID)
+	if err != nil {
+		return fmt.Sprintf("Company-%d", companyID)
+	}
+	return c.Name
 }
 
 // handleMessages returns all chat messages (GET) or sends a new one (POST).
@@ -56,9 +67,10 @@ func (h *SocialHandler) handleMessages(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request body", nil)
 			return
 		}
+		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{
 			CompanyID:  companyID,
-			SenderName: fmt.Sprintf("Company-%d", companyID),
+			SenderName: companyName,
 			Content:    req.Body,
 			Channel:    req.Chatroom,
 			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
@@ -98,9 +110,10 @@ func (h *SocialHandler) handleV2Message(w http.ResponseWriter, r *http.Request) 
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request body", nil)
 			return
 		}
+		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{
 			CompanyID:  companyID,
-			SenderName: fmt.Sprintf("Company-%d", companyID),
+			SenderName: companyName,
 			Content:    req.Body,
 			Channel:    req.Chatroom,
 			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
@@ -119,7 +132,6 @@ func (h *SocialHandler) handleV2Message(w http.ResponseWriter, r *http.Request) 
 		})
 	case http.MethodGet:
 		// GET /api/v2/message/{id}/read/ - mark as read
-		// Chi captures {id} from the path
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	default:
 		writeErr(w, http.StatusMethodNotAllowed, ErrorBadRequest, "method not allowed", nil)
@@ -169,9 +181,8 @@ func (h *SocialHandler) handleContacts(w http.ResponseWriter, r *http.Request) {
 // handleMarkRead marks a message as read via path suffix.
 // This handles the pattern: GET /api/v2/message/{messageId}/read/
 func (h *SocialHandler) handleMarkRead(w http.ResponseWriter, r *http.Request) {
-	// Extract messageId from path
 	path := strings.TrimPrefix(r.URL.Path, "/api/v2/message/")
 	path = strings.TrimSuffix(path, "/read/")
-	// path is the messageId - we just acknowledge it
+	_ = path
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

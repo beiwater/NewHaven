@@ -8,6 +8,12 @@
       "gender": "other",
       "email": "dev@newhaven.game",
       "created_at": "2026-06-07T00:26:41Z"
+    },
+    "4": {
+      "id": 4,
+      "username": "dev1",
+      "password_hash": "$2a$10$lDXn5lyINVK4gAjlrtcTtuaQDhXBzjrPaAKKa1DRITs4j/1john9y",
+      "created_at": "2026-06-07T01:23:07Z"
     }
   },
   "by_user": {
@@ -19,6 +25,12 @@
       "gender": "other",
       "email": "dev@newhaven.game",
       "created_at": "2026-06-07T00:26:41Z"
+    },
+    "dev1": {
+      "id": 4,
+      "username": "dev1",
+      "password_hash": "$2a$10$lDXn5lyINVK4gAjlrtcTtuaQDhXBzjrPaAKKa1DRITs4j/1john9y",
+      "created_at": "2026-06-07T01:23:07Z"
     }
   },
   "companies": {
@@ -26,9 +38,9 @@
       "id": 1000002,
       "player_id": 1,
       "name": "Dev Player",
-      "money": 1000000000,
+      "money": 999980000,
       "level": 100,
-      "xp": 1000000000,
+      "xp": 1000000001,
       "preferences": {
         "storyProgress": {
           "chapter1Arrival": {
@@ -61,11 +73,83 @@
           "x": 15,
           "y": 20,
           "robot_count": 0
+        },
+        {
+          "id": "b-1780792200156232100-19",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Farm",
+          "level": 1,
+          "map_id": "harbor",
+          "slot_id": "harbor-plot-01",
+          "x": 1,
+          "y": 1,
+          "robot_count": 0
+        },
+        {
+          "id": "b-1780795261752240100-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Farm",
+          "level": 1,
+          "map_id": "harbor",
+          "slot_id": "harbor-plot-02",
+          "x": 2,
+          "y": 1,
+          "robot_count": 0
+        }
+      ],
+      "inventory": {
+        "1": 1
+      },
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T00:26:41Z",
+      "last_retail_at": "2026-06-07T01:40:14Z"
+    },
+    "1000005": {
+      "id": 1000005,
+      "player_id": 4,
+      "name": "dev1",
+      "money": 100000,
+      "level": 1,
+      "xp": 0,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "completed",
+            "stepId": "system-objective"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000005-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_a1",
+          "x": 5,
+          "y": 10,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000005-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
         }
       ],
       "warehouse_level": 0,
-      "created_at": "2026-06-07T00:26:41Z",
-      "last_retail_at": "2026-06-07T00:27:21Z"
+      "created_at": "2026-06-07T01:23:07Z",
+      "last_retail_at": "2026-06-07T01:33:21Z"
     }
   },
   "orders": {
@@ -141,6 +225,222 @@
       "status": "open",
       "created_at": "2026-06-07T00:28:41Z"
     },
+    "bot-buy-1780792181373865300-13": {
+      "id": "bot-buy-1780792181373865300-13",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 32.30607798585608,
+      "quantity": 437,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-buy-1780792181373865300-15": {
+      "id": "bot-buy-1780792181373865300-15",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 60.336294698767944,
+      "quantity": 61,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-buy-1780792181373865300-17": {
+      "id": "bot-buy-1780792181373865300-17",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 40.24179498921404,
+      "quantity": 287,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-buy-1780792241374141600-20": {
+      "id": "bot-buy-1780792241374141600-20",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 55.446214557792324,
+      "quantity": 135,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-buy-1780792241374141600-22": {
+      "id": "bot-buy-1780792241374141600-22",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 41.568966994179725,
+      "quantity": 253,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-buy-1780792241374141600-24": {
+      "id": "bot-buy-1780792241374141600-24",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 48.83868115765714,
+      "quantity": 197,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-buy-1780792301373981500-26": {
+      "id": "bot-buy-1780792301373981500-26",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 32.30607798585608,
+      "quantity": 322,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-buy-1780792301373981500-28": {
+      "id": "bot-buy-1780792301373981500-28",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 48.83868115765714,
+      "quantity": 265,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-buy-1780792361373856700-30": {
+      "id": "bot-buy-1780792361373856700-30",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 60.336294698767944,
+      "quantity": 114,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-buy-1780792361373856700-32": {
+      "id": "bot-buy-1780792361373856700-32",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 60.598988041686844,
+      "quantity": 419,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-buy-1780792361373856700-34": {
+      "id": "bot-buy-1780792361373856700-34",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 40.24179498921404,
+      "quantity": 177,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-buy-1780795305168901500-3": {
+      "id": "bot-buy-1780795305168901500-3",
+      "company_id": 900001,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 51.15865360153458,
+      "quantity": 109,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-buy-1780795305168901500-5": {
+      "id": "bot-buy-1780795305168901500-5",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 60.598988041686844,
+      "quantity": 288,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-buy-1780795365169212200-7": {
+      "id": "bot-buy-1780795365169212200-7",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": true,
+      "price": 20.737150030986125,
+      "quantity": 145,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:22:45Z"
+    },
+    "bot-buy-1780795485168903900-10": {
+      "id": "bot-buy-1780795485168903900-10",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 31.12850134857707,
+      "quantity": 133,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:24:45Z"
+    },
+    "bot-buy-1780795545168938900-12": {
+      "id": "bot-buy-1780795545168938900-12",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 31.12850134857707,
+      "quantity": 310,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-buy-1780795545168938900-14": {
+      "id": "bot-buy-1780795545168938900-14",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 13.106381557339253,
+      "quantity": 176,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-buy-1780795665169316200-16": {
+      "id": "bot-buy-1780795665169316200-16",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 13.106381557339253,
+      "quantity": 209,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:27:45Z"
+    },
     "bot-sell-1780792061374045100-2": {
       "id": "bot-sell-1780792061374045100-2",
       "company_id": 900001,
@@ -212,24 +512,306 @@
       "quality": 0,
       "status": "open",
       "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792181373865300-14": {
+      "id": "bot-sell-1780792181373865300-14",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 35.706717773840936,
+      "quantity": 87,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-sell-1780792181373865300-16": {
+      "id": "bot-sell-1780792181373865300-16",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 66.68748361442773,
+      "quantity": 238,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-sell-1780792181373865300-18": {
+      "id": "bot-sell-1780792181373865300-18",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 44.477773409131316,
+      "quantity": 64,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-sell-1780792241374141600-21": {
+      "id": "bot-sell-1780792241374141600-21",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 61.28265819545468,
+      "quantity": 91,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-sell-1780792241374141600-23": {
+      "id": "bot-sell-1780792241374141600-23",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 45.94464773040918,
+      "quantity": 359,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-sell-1780792241374141600-25": {
+      "id": "bot-sell-1780792241374141600-25",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 53.97959496372632,
+      "quantity": 111,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-sell-1780792301373981500-27": {
+      "id": "bot-sell-1780792301373981500-27",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 35.706717773840936,
+      "quantity": 103,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-sell-1780792301373981500-29": {
+      "id": "bot-sell-1780792301373981500-29",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 53.97959496372632,
+      "quantity": 442,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-sell-1780792361373856700-31": {
+      "id": "bot-sell-1780792361373856700-31",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 66.68748361442773,
+      "quantity": 252,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-sell-1780792361373856700-33": {
+      "id": "bot-sell-1780792361373856700-33",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 66.9778288881802,
+      "quantity": 163,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-sell-1780792361373856700-35": {
+      "id": "bot-sell-1780792361373856700-35",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 44.477773409131316,
+      "quantity": 434,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-sell-1780795305168901500-4": {
+      "id": "bot-sell-1780795305168901500-4",
+      "company_id": 900001,
+      "resource_id": 8,
+      "is_buy": false,
+      "price": 56.54377503327507,
+      "quantity": 373,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-sell-1780795305168901500-6": {
+      "id": "bot-sell-1780795305168901500-6",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 66.9778288881802,
+      "quantity": 164,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-sell-1780795365169212200-8": {
+      "id": "bot-sell-1780795365169212200-8",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 22.920007928984663,
+      "quantity": 292,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:22:45Z"
+    },
+    "bot-sell-1780795485168903900-11": {
+      "id": "bot-sell-1780795485168903900-11",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 34.40518570105887,
+      "quantity": 363,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:24:45Z"
+    },
+    "bot-sell-1780795545168938900-13": {
+      "id": "bot-sell-1780795545168938900-13",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 34.40518570105887,
+      "quantity": 355,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-sell-1780795545168938900-15": {
+      "id": "bot-sell-1780795545168938900-15",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 14.486000668638122,
+      "quantity": 308,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-sell-1780795665169316200-17": {
+      "id": "bot-sell-1780795665169316200-17",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 14.486000668638122,
+      "quantity": 380,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:27:45Z"
     }
   },
   "trades": null,
   "tickers": {},
-  "jobs": {},
-  "ledger": null,
+  "jobs": {
+    "prod-1780795267270288800-2": {
+      "id": "prod-1780795267270288800-2",
+      "company_id": 1000002,
+      "building_id": "b-1780795261752240100-1",
+      "resource_id": 1,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T11:21:07.2702888+10:00",
+      "duration_seconds": 71,
+      "claimed_amount": 1,
+      "claimable_amount": 9,
+      "xp_awarded": 1,
+      "status": "ready"
+    },
+    "prod-1780795401766966500-9": {
+      "id": "prod-1780795401766966500-9",
+      "company_id": 1000005,
+      "building_id": "bld-1000005-2",
+      "resource_id": 2,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T11:23:21.7669665+10:00",
+      "duration_seconds": 85,
+      "claimed_amount": 0,
+      "claimable_amount": 10,
+      "xp_awarded": 0,
+      "status": "ready"
+    }
+  },
+  "ledger": [
+    {
+      "id": 3,
+      "company_id": 1000002,
+      "kind": "production_output",
+      "amount": 1,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780795267270288800-2",
+        "partial": true,
+        "resourceId": 1
+      },
+      "created_at": ""
+    }
+  ],
   "bonds": {},
   "holdings": null,
   "companyResearch": {},
-  "messages": null,
+  "messages": [
+    {
+      "id": 6,
+      "company_id": 1000002,
+      "sender_name": "Company-1000002",
+      "content": "111",
+      "channel": "N",
+      "created_at": "2026-06-07T01:32:44Z"
+    }
+  ],
   "notifications": null,
   "warehouses": {
     "1000002": {
       "company_id": 1000002,
       "capacity": 1000,
+      "used_capacity": 1,
+      "items": [
+        {
+          "resource_id": 1,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 1
+        }
+      ]
+    },
+    "1000005": {
+      "company_id": 1000005,
+      "capacity": 1000,
       "used_capacity": 0,
       "items": []
     }
   },
-  "nextId": 3
+  "nextId": 7
 }

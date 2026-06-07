@@ -62,6 +62,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     } else {
       const finalGender = showCustomGender && customGender.trim() ? customGender.trim() : gender
       register.mutate({
+        username: username.trim(),
+        password,
         name: name.trim() || undefined,
         gender: finalGender || undefined,
         email: email.trim() || undefined,

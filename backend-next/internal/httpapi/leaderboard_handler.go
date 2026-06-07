@@ -2,26 +2,31 @@ package httpapi
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
+
+	"github.com/newhaven/backend-next/internal/domain/company"
+	"github.com/newhaven/backend-next/internal/storage"
 )
 
 // LeaderboardHandler handles leaderboard endpoints.
 type LeaderboardHandler struct {
+	st storage.CompanyStorage
 }
 
 // NewLeaderboardHandler creates a new LeaderboardHandler.
-func NewLeaderboardHandler() *LeaderboardHandler {
-	return &LeaderboardHandler{}
+func NewLeaderboardHandler(st storage.CompanyStorage) *LeaderboardHandler {
+	return &LeaderboardHandler{st: st}
 }
 
 // handleLeaderboard returns the company leaderboard.
 func (h *LeaderboardHandler) handleLeaderboard(w http.ResponseWriter, r *http.Request) {
-	sort := r.URL.Query().Get("sort")
+	sortKey := r.URL.Query().Get("sort")
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
 
-	if sort == "" {
-		sort = "net_worth"
+	if sortKey == "" {
+		sortKey = "net_worth"
 	}
 	page, _ := strconv.Atoi(pageStr)
 	if page < 1 {
@@ -32,45 +37,40 @@ func (h *LeaderboardHandler) handleLeaderboard(w http.ResponseWriter, r *http.Re
 		limit = 10
 	}
 
-	entries := []map[string]any{
-		{
-			"rank":        1,
-			"companyId":   1000002,
-			"companyName": "Dev Corp",
-			"level":       100,
-			"mainStat":    1000000000,
-		},
-		{
-			"rank":        2,
-			"companyId":   1000003,
-			"companyName": "Alpha Industries",
-			"level":       45,
-			"mainStat":    45000000,
-		},
-		{
-			"rank":        3,
-			"companyId":   1000004,
-			"companyName": "Beta Manufacturing",
-			"level":       38,
-			"mainStat":    32000000,
-		},
-		{
-			"rank":        4,
-			"companyId":   1000005,
-			"companyName": "Gamma Trading Co",
-			"level":       32,
-			"mainStat":    28000000,
-		},
-		{
-			"rank":        5,
-			"companyId":   1000006,
-			"companyName": "Delta Logistics",
-			"level":       28,
-			"mainStat":    22000000,
-		},
+	companies, err := h.st.GetAllCompanies(r.Context())
+	if err != nil {
+		writeErr(w, 500, ErrorInternal, "failed to load companies", nil)
+		return
 	}
-	total := 5
-	totalPages := 1
+
+	sortCompanies(companies, sortKey)
+
+	// Paginate
+	start := (page - 1) * limit
+	if start > len(companies) {
+		start = len(companies)
+	}
+	end := start + limit
+	if end > len(companies) {
+		end = len(companies)
+	}
+
+	entries := make([]map[string]any, 0, end-start)
+	for i, c := range companies[start:end] {
+		entries = append(entries, map[string]any{
+			"rank":        start + i + 1,
+			"companyId":   c.ID,
+			"companyName": c.Name,
+			"level":       c.Level,
+			"mainStat":    mainStat(c, sortKey),
+		})
+	}
+
+	total := len(companies)
+	totalPages := (total + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
 
 	writeSuccess(w, http.StatusOK, map[string]any{
 		"entries":    entries,
@@ -78,6 +78,43 @@ func (h *LeaderboardHandler) handleLeaderboard(w http.ResponseWriter, r *http.Re
 		"page":       page,
 		"limit":      limit,
 		"totalPages": totalPages,
-		"sort":       sort,
+		"sort":       sortKey,
+	})
+}
+
+func mainStat(c *company.Company, sortKey string) int64 {
+	switch sortKey {
+	case "net_worth":
+		return int64(c.Money) + c.XP
+	case "level":
+		return int64(c.Level)
+	case "production":
+		total := int64(0)
+		for _, b := range c.Buildings {
+			total += int64(b.Level)
+		}
+		return total
+	case "sales", "contracts":
+		// Not tracked yet; fall back to wealth.
+		return int64(c.Money) + c.XP
+	default:
+		return int64(c.Money) + c.XP
+	}
+}
+
+func sortCompanies(companies []*company.Company, sortKey string) {
+	sort.Slice(companies, func(i, j int) bool {
+		a, b := companies[i], companies[j]
+		switch sortKey {
+		case "net_worth":
+			return a.Money+float64(a.XP) > b.Money+float64(b.XP)
+		case "level":
+			if a.Level != b.Level {
+				return a.Level > b.Level
+			}
+			return a.XP > b.XP
+		default:
+			return a.Money+float64(a.XP) > b.Money+float64(b.XP)
+		}
 	})
 }
