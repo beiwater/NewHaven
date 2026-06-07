@@ -128,8 +128,7 @@ export function MessagesView() {
         </div>
 
         {/* Input */}
-        {/* Input */}
-        <div className="border-t border-amber-200/60 p-3 flex flex-col gap-2 bg-amber-50/80">
+        <div className="border-t border-amber-200/60 p-3 flex flex-col gap-2 bg-amber-50/80 shrink-0">
           <div className="flex gap-2">
             <input
               value={input}

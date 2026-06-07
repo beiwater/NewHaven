@@ -179,11 +179,32 @@ func (h *SocialHandler) handleChatroom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleContacts returns the contacts list.
+// handleContacts returns all companies as contacts for search.
 func (h *SocialHandler) handleContacts(w http.ResponseWriter, r *http.Request) {
+	companies, err := h.companies.GetAllCompanies(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"chatrooms":                 []any{},
+			"contacts":                  []any{},
+			"unreadMessagesOtherRealms": 0,
+			"invisible":                 false,
+			"ignoringCompanies":         map[string]any{},
+			"companiesChatBlockingUs":   map[string]any{},
+		})
+		return
+	}
+	contacts := make([]map[string]any, 0, len(companies))
+	for _, c := range companies {
+		contacts = append(contacts, map[string]any{
+			"companyId": c.ID,
+			"company":   c.Name,
+			"playerId":  fmt.Sprintf("p-%d", c.PlayerID),
+			"level":     c.Level,
+		})
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"chatrooms":                 []any{},
-		"contacts":                  []any{},
+		"contacts":                  contacts,
 		"unreadMessagesOtherRealms": 0,
 		"invisible":                 false,
 		"ignoringCompanies":         map[string]any{},

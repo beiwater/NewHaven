@@ -246,6 +246,7 @@ export function ChatPanel() {
         {sendMessage.isError && (
           <p className="text-[10px] text-red-400 text-right">Send failed.</p>
         )}
+      </div>
       {/* Input */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-1 p-2 border-t border-amber-200/60 shrink-0">
         <div className="flex gap-1">
