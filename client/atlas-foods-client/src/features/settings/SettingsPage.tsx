@@ -93,6 +93,7 @@ export function SettingsPage() {
   const [showSoundTest, setShowSoundTest] = useState(false)
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
   const [saved] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: companyData } = useCompany()
   const savePrefs = useSavePreferences()
@@ -114,6 +115,11 @@ export function SettingsPage() {
   useEffect(() => {
     setSettings(loadSettings())
   }, [])
+  useEffect(() => {
+    if (companyData?.preferences?.avatar_url) {
+      setAvatarUrl(companyData.preferences.avatar_url as string)
+    }
+  }, [companyData])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -133,9 +139,8 @@ export function SettingsPage() {
   const handleRemoveAvatar = () => {
     savePrefs.mutate({ avatarBg: serverAvatarBg })
   }
-
   // Get current display values
-  const displayAvatar = serverAvatar
+  const displayAvatar = (companyData?.preferences?.avatar_url as string) || serverAvatar
   const displayBg = serverAvatarBg
 
   return (
@@ -223,6 +228,31 @@ export function SettingsPage() {
                 )}
               </div>
             </div>
+          </div>
+        </section>
+        {/* Avatar URL */}
+        <section className="space-y-2">
+          <div className="bg-white/60 rounded-xl border border-amber-200/40 p-4">
+            <div className="flex gap-2">
+              <input
+                value={avatarUrl}
+                onChange={e => setAvatarUrl(e.target.value)}
+                placeholder="https://img..."
+                className="flex-1 px-3 py-2 rounded-lg border border-amber-200/60 bg-white/80 text-xs text-amber-900 placeholder-amber-300"
+              />
+              <button
+                onClick={() => savePrefs.mutate({ ...(companyData?.preferences as object || {}), avatar_url: avatarUrl })}
+                disabled={savePrefs.isPending}
+                className="px-3 py-2 rounded-lg bg-amber-800 text-white text-[10px] font-bold hover:bg-amber-900 disabled:opacity-50"
+              >
+                {savePrefs.isPending ? '保存中...' : '保存'}
+              </button>
+            </div>
+            {savePrefs.isError && (
+              <div className="text-[9px] text-red-500 mt-1">
+                {savePrefs.error instanceof Error ? savePrefs.error.message : t('settings.failedToSave')}
+              </div>
+            )}
           </div>
         </section>
 
