@@ -167,7 +167,10 @@
       "raw": "原材料",
       "processed": "加工品",
       "finished": "成品"
-    }
+    },
+    "myOrders": "我的挂单",
+    "totalRemaining": "剩余 {{count}} 单位",
+    "noOrders": "暂无挂单"
   },
   "building": {
     "produces": "生产",

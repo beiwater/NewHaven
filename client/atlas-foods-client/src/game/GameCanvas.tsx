@@ -144,6 +144,7 @@ function GameCanvas() {
         const firstBg = await loadImage(currentMap.background ?? MAPS.harbor.background)
         if (destroyed) return
         app = await createGameApp(container)
+        if (destroyed) return
         appRef.current = app
         app.renderer.background.color = 0xe8dcc8
         textureCacheRef.current = await preloadBuildingTextures()

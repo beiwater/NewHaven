@@ -65,9 +65,9 @@ export function ExecutiveCard({
       {/* Stats */}
       <div className="mb-3 space-y-1 border-t border-amber-200/50 pt-2">
         <StatRow label={t('executives.salary')} value={`$${formatMoney(executive.salary)}/hr`} />
-        <StatRow label={t('executives.statProduction')} value={`+${Number(executive.productionBonus).toFixed(2)}%`} tone="up" />
-        <StatRow label={t('executives.statSales')} value={`+${Number(executive.salesBonus).toFixed(2)}%`} tone="up" />
-        <StatRow label={t('executives.statMgmtDiscount')} value={`${Number(executive.mgmtDiscount).toFixed(2)}%`} tone="up" />
+        <StatRow label={t('executives.statProduction')} value={`+${Number(executive.productionBonus).toFixed(1)}%`} tone="up" />
+        <StatRow label={t('executives.statSales')} value={`+${Number(executive.salesBonus).toFixed(1)}%`} tone="up" />
+        <StatRow label={t('executives.statMgmtDiscount')} value={`${Number(executive.mgmtDiscount).toFixed(1)}%`} tone="up" />
       </div>
 
       {/* Actions */}

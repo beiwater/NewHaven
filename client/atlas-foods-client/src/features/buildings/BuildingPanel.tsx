@@ -4,6 +4,7 @@ import { useBuildings } from '@/api/buildings.api'
 import { useClaimableJobs, useClaimAll } from '@/api/production.api'
 import { useCompany } from '@/api/company.api'
 import { isMapUnlocked, MAPS, placeableSlots, type MapId } from '@/game/map.config'
+import { buildingIcon } from '@/game/icons'
 import { BuildingCard } from './BuildingCard'
 export function BuildingPanel() {
   const { t } = useTranslation()
@@ -71,12 +72,10 @@ export function BuildingPanel() {
                 className="w-full text-left p-2.5 rounded-lg bg-white/60 hover:bg-amber-100/60 border border-amber-200/40 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded bg-amber-200 flex items-center justify-center text-xs font-bold text-amber-800">
-                    {b.kind}
-                  </div>
+                  <img src={buildingIcon(b.kind)} alt="" className="w-7 h-7 rounded bg-amber-100 object-contain p-1" />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-semibold text-amber-900 truncate">
-                      {b.name ?? `${t('building.building')} ${b.kind}`}
+                      {t('building.name_' + b.kind, b.name ?? '')}
                     </div>
                     <div className="text-[10px] text-amber-600/70">
                       {t('building.level', { level: b.level })} · {b.status ?? t('building.idle')}

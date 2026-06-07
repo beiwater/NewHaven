@@ -1,6 +1,6 @@
 import { useUIStore } from '@/store/ui.store'
 import { useTranslation } from 'react-i18next'
-import { resourceName } from '@/game/resources'
+import { buildingIcon } from '@/game/icons'
 import { useBuildings } from '@/api/buildings.api'
 import { useClaimableJobs, useClaimAll } from '@/api/production.api'
 import { useCompany } from '@/api/company.api'
@@ -56,14 +56,11 @@ export function MobileBuildingSummary() {
           <button
             key={b.id}
             onClick={() => selectBuilding(b.id)}
-            className="w-full text-left p-1.5 rounded-md bg-amber-50/70 hover:bg-amber-100/60 border border-amber-200/30 transition-colors flex items-center gap-2"
-          >
-            <div className="w-6 h-6 rounded bg-amber-200 flex items-center justify-center text-[10px] font-bold text-amber-800 shrink-0">
-              {b.kind}
-            </div>
+            className="w-full text-left p-1.5 rounded-md bg-amber-50/70 hover:bg-amber-100/60 border border-amber-200/30 transition-colors flex items-center gap-2">
+            <img src={buildingIcon(b.kind)} alt="" className="w-6 h-6 rounded bg-amber-100 object-contain p-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-[9px] font-semibold text-amber-900 truncate">
-                {b.name ?? t('mobile.buildingFallback', { kind: b.kind })}
+                {t('building.name_' + b.kind, b.name ?? '')}
               </div>
               <div className="text-[8px] text-amber-600">
                 {t('building.level', { level: b.level })} · {b.status ?? t('mobile.idle')}

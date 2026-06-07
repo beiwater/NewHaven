@@ -118,7 +118,13 @@ func validStoryStatus(status string) bool {
 
 func arrivalStoryStatus(preferences map[string]any) string {
 	stories, _ := preferences["storyProgress"].(map[string]any)
+	if stories == nil {
+		return ""
+	}
 	arrival, _ := stories[domain.ArrivalStoryID].(map[string]any)
+	if arrival == nil {
+		return ""
+	}
 	status, _ := arrival["status"].(string)
 	return status
 }

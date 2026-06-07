@@ -20,8 +20,6 @@ func httpStatusForKind(k apperr.Kind) int {
 		return http.StatusForbidden
 	case apperr.KindNotFound:
 		return http.StatusNotFound
-	// KindConflict maps to 400 for Phase 18 compatibility (previously returned CONFLICT code on HTTP 400).
-	// Future phases may use 409.
 	case apperr.KindConflict:
 		return http.StatusBadRequest
 	case apperr.KindInsufficientFunds:

@@ -11,6 +11,7 @@ import { isMapUnlocked } from '@/game/map.config'
 import { availableMaps, findBestPlacement } from '@/game/map/mapPlacement'
 import { MapPicker } from './MapPicker'
 import { resourceName } from '@/game/resources'
+import { buildingIcon } from '@/game/icons'
 import type { Building } from '@/game/types'
 
 interface BuildingMarketItem {
@@ -124,9 +125,12 @@ export function BuildView() {
         const locked = playerLevel < (item.unlockLevel ?? 1)
         return (
           <div key={item.id} className={'rounded-xl p-4 border transition-all duration-200 ' + (locked ? 'bg-amber-50/40 border-amber-200/20 opacity-50' : 'bg-white border-amber-200/60 shadow-sm hover:shadow-md hover:border-amber-300')}>
-            <div className="flex items-start justify-between mb-2">
-              <span className="text-sm font-bold text-amber-900">{t('building.name_' + item.kind, item.name)}</span>
-              <span className="text-xs font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">{item.cost.toLocaleString()}$</span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <img src={buildingIcon(item.kind)} alt="" className="w-8 h-8 rounded bg-amber-100 object-contain p-1 shrink-0" />
+                <span className="text-sm font-bold text-amber-900 truncate">{t('building.name_' + item.kind, item.name)}</span>
+              </div>
+              <span className="text-xs font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">{item.cost.toLocaleString()}$</span>
             </div>
             <p className="text-[11px] text-amber-600/80 leading-relaxed mb-3 min-h-[2em]">{t('building.desc_' + item.kind, item.description ?? '')}</p>
             <div className="flex items-center gap-2">

@@ -2,11 +2,13 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/newhaven/backend-next/internal/app/market"
+	"github.com/newhaven/backend-next/internal/apperr"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
 )
 
@@ -198,6 +200,12 @@ func (h *MarketHandler) handleCancelOrder(w http.ResponseWriter, r *http.Request
 
 	resp, err := h.svc.CancelOrder(r.Context(), companyID, orderID)
 	if err != nil {
+		// Idempotent cancel: if order is already settled, return success.
+		var appErr *apperr.Error
+		if errors.As(err, &appErr) && appErr.Kind == apperr.KindConflict {
+			writeSuccess(w, 200, map[string]any{"id": orderID, "status": "cancelled"})
+			return
+		}
 		writeAppErr(w, err)
 		return
 	}

@@ -167,7 +167,10 @@
       "raw": "Raw Materials",
       "processed": "Processed",
       "finished": "Finished Goods"
-    }
+    },
+    "myOrders": "My Orders",
+    "totalRemaining": "{{count}} units remaining",
+    "noOrders": "No open orders"
   },
   "building": {
     "produces": "Produces",
