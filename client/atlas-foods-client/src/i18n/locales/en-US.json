@@ -121,7 +121,8 @@
     "version": "Version 1.0.0",
     "saved": "Settings saved ✓",
     "autoSaveNote": "Changes are saved automatically",
-    "language": "Language"
+    "language": "Language",
+    "logout": "Sign Out"
   },
   "market": {
     "all": "All",
@@ -201,12 +202,36 @@
     "noActiveJobs": "No active jobs",
     "viewAllJobs": "View All Jobs",
     "building": "Building",
-    "level": "Level {{level}}"
+    "level": "Level {{level}}",
     "idle": "idle",
-    "noBuildingsYet": "No buildings yet"
+    "noBuildingsYet": "No buildings yet",
     "stash": "Stash",
     "returnToInventory": "Return to inventory",
-    "stashing": "Stashing..."
+    "stashing": "Stashing...",
+    "name_1": "Farm",
+    "name_2": "Barn",
+    "name_3": "Mill",
+    "name_4": "Kitchen",
+    "name_5": "Bakery",
+    "name_6": "Market Stall",
+    "name_7": "Cafe",
+    "name_8": "Food Truck",
+    "name_9": "Restaurant",
+    "name_10": "Trading Hub",
+    "name_11": "Warehouse",
+    "name_12": "Shop",
+    "desc_1": "Primary crop land for Grain, Sugar, and Vegetables.",
+    "desc_2": "Livestock building for Dairy Milk and Steak.",
+    "desc_3": "Turns Grain into Flour.",
+    "desc_4": "Intermediate food prep for Dough, Butter, and Cheese.",
+    "desc_5": "Produces Cakes for dessert demand.",
+    "desc_6": "Produces Coffee for local market traffic.",
+    "desc_7": "Small retail kitchen for Coffee and Pizza.",
+    "desc_8": "Mobile production and retail point.",
+    "desc_9": "High-tier venue for prepared meals.",
+    "desc_10": "Scales processed goods for the exchange.",
+    "desc_11": "Bulk raw-goods handling and staging.",
+    "desc_12": "Retail outlet for high-value finished food."
   },
   "production": {
     "title": "Production Queue",
@@ -286,7 +311,7 @@
     "emptyMarket": "No executives available on the market",
     "skill": "Skill",
     "salary": "Salary",
-    "assignTo": "Assign to"
+    "assignTo": "Assign to",
     "refreshesIn": "Refreshes in",
     "refresh": "Refresh",
     "refreshing": "Refreshing...",
@@ -352,7 +377,14 @@
     "expiring": "expiring",
     "timeHour": "h",
     "timeMinute": "m",
-    "timeSecond": "s"
+    "timeSecond": "s",
+    "speed_name": "Speed Boost",
+    "speed_desc": "Faster production for 1 hour",
+    "yield_name": "Yield Boost",
+    "yield_desc": "+50% production output for 1 hour",
+    "quality_name": "Quality Boost",
+    "quality_desc": "Improve product quality for 1 hour",
+    "underDevelopment": "This feature is under development"
   },
   "inspect": {
     "title": "Inspect",
@@ -477,5 +509,33 @@
     "raw": "Raw Goods",
     "processed": "Processed",
     "finished": "Finished Food"
+  },
+  "mobile": {
+    "cash": "Cash",
+    "viewFinancials": "View financials",
+    "financeUnlock": "Finance unlocks at level {{level}}",
+    "powerup": "Power-up",
+    "activeCount": "{{count}} active",
+    "readyCount": "{{count}} ready",
+    "plots": "{{filled}}/{{total}} plots",
+    "collectAll": "Collect All ({{count}})",
+    "noBuildings": "No buildings placed",
+    "buildingFallback": "Building {{kind}}",
+    "more": "+{{count}} more",
+    "orderBoard": "Order Board",
+    "noOrders": "No orders available",
+    "deliverOrder": "Deliver {{quantity}}",
+    "reward": "Reward",
+    "xp": "XP",
+    "claim": "Claim",
+    "go": "Go",
+    "viewAllContracts": "View All Contracts",
+    "production": "Production",
+    "slots": "{{used}}/{{max}} slots",
+    "noProduction": "No active production",
+    "resLabel": "Res #{{id}}",
+    "cancel": "Cancel",
+    "ready": "Ready!",
+    "idle": "idle"
   }
 }

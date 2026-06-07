@@ -6,6 +6,7 @@ import { Icon } from '@/features/ui/Icon'
 import { useUIStore } from '@/store/ui.store'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
 import { audio } from '@/audio/AudioManager'
+import { useTranslation } from 'react-i18next'
 import { isMapUnlocked } from '@/game/map.config'
 import { availableMaps, findBestPlacement } from '@/game/map/mapPlacement'
 import { MapPicker } from './MapPicker'
@@ -35,6 +36,7 @@ export function BuildView() {
   const startBuildingPlacement = useUIStore((s) => s.startBuildingPlacement)
   const currentMapIdRaw = useUIStore((s) => s.currentMapId)
   const { data: companyData } = useCompany()
+  const { t } = useTranslation()
   const { data: levelData } = usePlayerLevel()
 
   const marketItems = Array.isArray(marketData) ? marketData : []
@@ -123,10 +125,10 @@ export function BuildView() {
         return (
           <div key={item.id} className={'rounded-xl p-4 border transition-all duration-200 ' + (locked ? 'bg-amber-50/40 border-amber-200/20 opacity-50' : 'bg-white border-amber-200/60 shadow-sm hover:shadow-md hover:border-amber-300')}>
             <div className="flex items-start justify-between mb-2">
-              <span className="text-sm font-bold text-amber-900">{item.name}</span>
+              <span className="text-sm font-bold text-amber-900">{t('building.name_' + item.kind, item.name)}</span>
               <span className="text-xs font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">{item.cost.toLocaleString()}$</span>
             </div>
-            <p className="text-[11px] text-amber-600/80 leading-relaxed mb-3 min-h-[2em]">{item.description ?? ''}</p>
+            <p className="text-[11px] text-amber-600/80 leading-relaxed mb-3 min-h-[2em]">{t('building.desc_' + item.kind, item.description ?? '')}</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleBuy(item.id)}
@@ -200,7 +202,7 @@ export function BuildView() {
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-800">{b.kind}</div>
                         <div>
-                          <div className="text-sm font-bold text-amber-900">{b.name ?? ('建筑 ' + b.kind)}</div>
+                          <div className="text-sm font-bold text-amber-900">{b.name ?? t('building.name_' + b.kind, '建筑 ' + b.kind)}</div>
                           <div className="text-[10px] text-amber-500">等待放置</div>
                         </div>
                       </div>

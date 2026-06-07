@@ -121,7 +121,8 @@
     "version": "版本 1.0.0",
     "saved": "设置已保存 ✓",
     "autoSaveNote": "更改会自动保存",
-    "language": "语言"
+    "language": "语言",
+    "logout": "退出登录"
   },
   "market": {
     "all": "全部",
@@ -201,12 +202,36 @@
     "noActiveJobs": "无进行中任务",
     "viewAllJobs": "查看全部任务",
     "building": "建筑",
-    "level": "{{level}}级"
+    "level": "{{level}}级",
     "idle": "空闲",
-    "noBuildingsYet": "暂无建筑"
+    "noBuildingsYet": "暂无建筑",
     "stash": "收纳",
     "returnToInventory": "返回库存",
-    "stashing": "收纳中..."
+    "stashing": "收纳中...",
+    "name_1": "农场",
+    "name_2": "谷仓",
+    "name_3": "磨坊",
+    "name_4": "厨房",
+    "name_5": "面包房",
+    "name_6": "市集摊位",
+    "name_7": "咖啡馆",
+    "name_8": "餐车",
+    "name_9": "餐厅",
+    "name_10": "贸易中心",
+    "name_11": "仓库",
+    "name_12": "商店",
+    "desc_1": "种植谷物、糖和蔬菜的初级耕地。",
+    "desc_2": "养殖场，生产鲜奶和牛排。",
+    "desc_3": "将谷物加工成面粉。",
+    "desc_4": "中间食材加工，生产面团、黄油和奶酪。",
+    "desc_5": "生产蛋糕，满足甜点需求。",
+    "desc_6": "生产咖啡，供应本地市场。",
+    "desc_7": "小型零售厨房，制作咖啡和披萨。",
+    "desc_8": "移动式生产与销售点。",
+    "desc_9": "高端预制菜餐厅。",
+    "desc_10": "批量加工商品用于交易。",
+    "desc_11": "大宗原材料处理与仓储。",
+    "desc_12": "高附加值成品食品零售店。"
   },
   "production": {
     "title": "生产队列",
@@ -286,7 +311,7 @@
     "emptyMarket": "市场上暂无高管",
     "skill": "技能",
     "salary": "薪资",
-    "assignTo": "分配至"
+    "assignTo": "分配至",
     "refreshesIn": "刷新倒计时",
     "refresh": "刷新",
     "refreshing": "刷新中...",
@@ -351,7 +376,14 @@
     "expiring": "即将到期",
     "timeHour": "小时",
     "timeMinute": "分钟",
-    "timeSecond": "秒"
+    "timeSecond": "秒",
+    "speed_name": "加速增益",
+    "speed_desc": "加快生产速度，持续 1小时",
+    "yield_name": "产量增益",
+    "yield_desc": "产量 +50%，持续 1小时",
+    "quality_name": "品质增益",
+    "quality_desc": "提升产品品质，持续 1小时",
+    "underDevelopment": "此功能正在开发中"
   },
   "inspect": {
     "title": "查看状态",
@@ -477,5 +509,33 @@
     "raw": "原材料",
     "processed": "加工品",
     "finished": "成品"
+  },
+  "mobile": {
+    "cash": "现金",
+    "viewFinancials": "查看财务",
+    "financeUnlock": "达到{{level}}级解锁财务",
+    "powerup": "增益",
+    "activeCount": "{{count}} 生效中",
+    "readyCount": "{{count}} 可用",
+    "plots": "{{filled}}/{{total}} 地块",
+    "collectAll": "全部领取 ({{count}})",
+    "noBuildings": "尚未放置建筑",
+    "buildingFallback": "建筑 {{kind}}",
+    "more": "还有 {{count}} 个",
+    "orderBoard": "订单板",
+    "noOrders": "暂无可用订单",
+    "deliverOrder": "交付 {{quantity}}",
+    "reward": "奖励",
+    "xp": "经验",
+    "claim": "领取奖励",
+    "go": "去交付",
+    "viewAllContracts": "查看全部合同",
+    "production": "生产",
+    "slots": "{{used}}/{{max}} 槽位",
+    "noProduction": "无进行中生产",
+    "resLabel": "资源 #{{id}}",
+    "cancel": "取消",
+    "ready": "完成！",
+    "idle": "空闲"
   }
 }

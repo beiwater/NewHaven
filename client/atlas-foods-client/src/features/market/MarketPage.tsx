@@ -316,6 +316,7 @@ export function MarketPage() {
                 ))}
               </div>
             </section>
+          </main>
         </div>
       </div>
     </div>

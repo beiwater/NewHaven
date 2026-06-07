@@ -71,6 +71,11 @@ export function PowerPanel() {
         </button>
       </div>
 
+
+      {/* Under development notice */}
+      <div className="mx-2 mt-1 px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded text-[10px] text-amber-700 text-center font-medium">
+        ⚡ {t('powerups.underDevelopment')}
+      </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {/* Active power-up banner */}
         {hasActive && (
@@ -117,8 +122,8 @@ export function PowerPanel() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-amber-900">{boost.name}</div>
-                    <div className="text-[11px] text-amber-600 mt-0.5">{boost.desc}</div>
+                    <div className="text-xs font-semibold text-amber-900">{t('powerups.' + boost.id + '_name', boost.name)}</div>
+                    <div className="text-[11px] text-amber-600 mt-0.5">{t('powerups.' + boost.id + '_desc', boost.desc)}</div>
                     <div className="text-[10px] text-amber-400 mt-0.5">{formatDuration(boost.duration, t)}</div>
                   </div>
                   <div className="flex flex-col items-end shrink-0">

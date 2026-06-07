@@ -3,6 +3,7 @@ import { systemIcon } from '@/game/icons'
 import { useCompany, usePlayerLevel } from '@/api/company.api'
 import { clearAuth } from '@/api/client'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature: string }> = [
   { id: 'map', label: 'Map', sysIcon: 'inventory', feature: 'map' },
@@ -24,10 +25,11 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
   const { data: companyData } = useCompany()
   const { data: levelData } = usePlayerLevel()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const level = companyData?.levelInfo?.level ?? levelData?.level ?? 1
   const cash = companyData?.authCompany?.money ?? 0
-  const companyName = companyData?.authCompany?.company ?? 'Atlas'
+  const companyName = companyData?.authCompany?.company ?? t('common.appName', 'Atlas')
 
   const handleNav = (view: ActiveView) => {
     setActiveView(view)
@@ -86,11 +88,11 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
               >
                 <img
                   src={systemIcon(item.sysIcon)}
-                  alt={item.label}
+                  alt={t('nav.' + item.id, item.label)}
                   className="w-6 h-6 object-contain"
                   loading="lazy"
                 />
-                <span className="text-xs uppercase tracking-wider">{item.label}</span>
+                <span className="text-xs uppercase tracking-wider">{t('nav.' + item.id, item.label)}</span>
                 {!isUnlocked && (
                   <span className="ml-auto text-[9px] text-amber-500 font-bold">Lv.{unlockLevel}</span>
                 )}

@@ -24,7 +24,7 @@ type botConfig struct {
 
 var botCfg = botConfig{
 	enabled:          true,
-	spreadPct:        0.05,
+	spreadPct:        0.03,
 	orderSizeMin:     50,
 	orderSizeMax:     500,
 	resourcesPerTick: 3,
@@ -77,6 +77,8 @@ func (s *Service) EnsureBotCompanies(ctx context.Context) error {
 }
 
 // RunBotCycle generates NPC buy/sell orders to maintain market liquidity.
+// Places up to 3 buy + 3 sell levels per selected resource with dynamic spread,
+// inventory feedback, stale order cleanup, and random drift.
 func (s *Service) RunBotCycle(ctx context.Context) error {
 	if !botCfg.enabled {
 		return nil
@@ -110,61 +112,197 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 	now := s.clock.Now().UTC()
 
 	for _, resourceID := range selected {
-		midPrice := s.estimateMidPrice(ctx, resourceID, rng)
-		if midPrice <= 0 {
+		// Step 1: Gather market data
+		allOrders, err := s.market.GetOrdersByResource(ctx, resourceID)
+		if err != nil {
 			continue
 		}
+		ticker, _ := s.market.GetTicker(ctx, resourceID)
 
-		existing, _ := s.market.GetOrdersByResource(ctx, resourceID)
-		botOrderCount := 0
-		for _, o := range existing {
-			if o.CompanyID == s.botCompanyID && o.Remaining() > 0 {
-				botOrderCount++
+		// Calculate fairPrice
+		var fairPrice float64
+		if ticker != nil && ticker.LastPrice > 0 {
+			fairPrice = ticker.LastPrice
+		} else {
+			var highestBuy, lowestSell float64
+			lowestSell = math.MaxFloat64
+			for _, o := range allOrders {
+				if o.Remaining() <= 0 {
+					continue
+				}
+				if o.IsBuy && o.Price > highestBuy {
+					highestBuy = o.Price
+				}
+				if !o.IsBuy && o.Price < lowestSell {
+					lowestSell = o.Price
+				}
+			}
+			if highestBuy > 0 && lowestSell < math.MaxFloat64 {
+				fairPrice = (highestBuy + lowestSell) / 2
+			} else if highestBuy > 0 {
+				fairPrice = highestBuy * 1.05
+			} else if lowestSell < math.MaxFloat64 {
+				fairPrice = lowestSell * 0.95
+			} else {
+				fairPrice = 10.0 + float64(resourceID)*5.0
+				jitter := 1.0 + (rng.Float64()-0.5)*0.1
+				fairPrice *= jitter
 			}
 		}
-		if botOrderCount >= 4 {
+
+		// Dynamic spread
+		spread := 0.06
+		if ticker != nil && ticker.Volume24h > 0 {
+			spread = 0.03
+		}
+
+		// Step 2: Calculate net position from filled quantities
+		netPos := 0
+		for _, o := range allOrders {
+			if o.CompanyID != s.botCompanyID {
+				continue
+			}
+			if o.IsBuy {
+				netPos += o.FilledQuantity
+			} else {
+				netPos -= o.FilledQuantity
+			}
+		}
+
+		// Step 3: Cancel stale orders, count remaining bot orders
+		wantedBuy := 3
+		wantedSell := 3
+		for i := range allOrders {
+			o := &allOrders[i]
+			if o.CompanyID != s.botCompanyID {
+				continue
+			}
+			if o.Remaining() <= 0 {
+				continue
+			}
+			// Check if this order's price is too far from fair price
+			if math.Abs(o.Price-fairPrice)/fairPrice > 3.0*spread {
+				s.cancelBotOrderLocked(ctx, o)
+				continue
+			}
+			// Valid bot order — counts against budget
+			if o.IsBuy {
+				wantedBuy--
+			} else {
+				wantedSell--
+			}
+		}
+		if wantedBuy < 0 {
+			wantedBuy = 0
+		}
+		if wantedSell < 0 {
+			wantedSell = 0
+		}
+		if wantedBuy == 0 && wantedSell == 0 {
 			continue
 		}
+		// Step 4: Market cycle wave (sine wave superposition, stateless, time-driven)
+		nowSec := float64(s.clock.Now().Unix())
+		phaseA := float64(resourceID) * 1.7   // per-resource phase
+		phaseB := float64(resourceID) * 2.3
+		periodA := 1200.0 // 20 min primary
+		periodB := 420.0  // 7 min secondary
+		waveA := math.Sin(2*math.Pi*nowSec/periodA + phaseA)
+		waveB := math.Sin(2*math.Pi*nowSec/periodB + phaseB)
+		cycleOffset := 0.03 * (0.65*waveA + 0.35*waveB) // ±3% max, blended
 
-		buyPrice := midPrice * (1 - botCfg.spreadPct)
-		buyQty := botCfg.orderSizeMin + rng.Intn(botCfg.orderSizeMax-botCfg.orderSizeMin+1)
-		buyOrder := &domainmarket.MarketOrder{
-			ID:         s.idgen.Next("bot-buy"),
-			CompanyID:  s.botCompanyID,
-			ResourceID: resourceID,
-			IsBuy:      true,
-			Price:      buyPrice,
-			Quantity:   buyQty,
-			Quality:    0,
-			Status:     domainmarket.StatusOpen,
-			CreatedAt:  now.Format(time.RFC3339),
+		// Step 5: Inventory feedback and random drift
+		inventoryOffset := -float64(netPos) * 0.002
+		drift := (rng.Float64() - 0.5) * fairPrice * 0.01
+		basePrice := fairPrice*(1+cycleOffset) + inventoryOffset + drift
+		if basePrice < 0.01 {
+			basePrice = 0.01
 		}
 
-		sellPrice := midPrice * (1 + botCfg.spreadPct)
-		sellQty := botCfg.orderSizeMin + rng.Intn(botCfg.orderSizeMax-botCfg.orderSizeMin+1)
-		sellOrder := &domainmarket.MarketOrder{
-			ID:         s.idgen.Next("bot-sell"),
-			CompanyID:  s.botCompanyID,
-			ResourceID: resourceID,
-			IsBuy:      false,
-			Price:      sellPrice,
-			Quantity:   sellQty,
-			Quality:    0,
-			Status:     domainmarket.StatusOpen,
-			CreatedAt:  now.Format(time.RFC3339),
+		// Base size for level 1
+		size1 := botCfg.orderSizeMin + rng.Intn(botCfg.orderSizeMax-botCfg.orderSizeMin+1)
+		size2 := int(float64(size1) * 1.5)
+		size3 := int(float64(size1) * 2.5)
+
+		// Level prices
+		buyPrices := [3]float64{
+			basePrice * (1 - spread),
+			basePrice * (1 - 1.5*spread),
+			basePrice * (1 - 2.5*spread),
+		}
+		sellPrices := [3]float64{
+			basePrice * (1 + spread),
+			basePrice * (1 + 1.5*spread),
+			basePrice * (1 + 2.5*spread),
+		}
+		buySizes := [3]int{size1, size2, size3}
+		sellSizes := [3]int{size1, size2, size3}
+
+		// Place buy levels
+		for i := 0; i < 3 && i < wantedBuy; i++ {
+			price := buyPrices[i]
+			if price < 0.01 {
+				price = 0.01
+			}
+			size := buySizes[i]
+			if size <= 0 {
+				continue
+			}
+			buyOrder := &domainmarket.MarketOrder{
+				ID:         s.idgen.Next("bot-buy"),
+				CompanyID:  s.botCompanyID,
+				ResourceID: resourceID,
+				IsBuy:      true,
+				Price:      price,
+				Quantity:   size,
+				Quality:    0,
+				Status:     domainmarket.StatusOpen,
+				CreatedAt:  now.Format(time.RFC3339),
+			}
+			if err := s.market.CreateOrder(ctx, buyOrder); err != nil {
+				slog.Warn("[bot] create buy order failed", "resource", resourceID, "price", price, "error", err)
+				continue
+			}
+			s.matchNewBuyOrder(ctx, buyOrder)
 		}
 
-		_ = s.market.CreateOrder(ctx, buyOrder)
-		_ = s.market.CreateOrder(ctx, sellOrder)
-		s.matchNewBuyOrder(ctx, buyOrder)
-		s.matchNewSellOrder(ctx, sellOrder)
+		// Place sell levels
+		for i := 0; i < 3 && i < wantedSell; i++ {
+			price := sellPrices[i]
+			if price < 0.01 {
+				price = 0.01
+			}
+			size := sellSizes[i]
+			if size <= 0 {
+				continue
+			}
+			sellOrder := &domainmarket.MarketOrder{
+				ID:         s.idgen.Next("bot-sell"),
+				CompanyID:  s.botCompanyID,
+				ResourceID: resourceID,
+				IsBuy:      false,
+				Price:      price,
+				Quantity:   size,
+				Quality:    0,
+				Status:     domainmarket.StatusOpen,
+				CreatedAt:  now.Format(time.RFC3339),
+			}
+			if err := s.market.CreateOrder(ctx, sellOrder); err != nil {
+				slog.Warn("[bot] create sell order failed", "resource", resourceID, "price", price, "error", err)
+				continue
+			}
+			s.matchNewSellOrder(ctx, sellOrder)
+		}
 
 		slog.Debug("bot orders placed",
 			"resource", resourceID,
-			"buy_qty", buyQty,
-			"buy_price", buyPrice,
-			"sell_qty", sellQty,
-			"sell_price", sellPrice,
+			"fairPrice", fairPrice,
+			"spread", spread,
+			"netPos", netPos,
+			"drift", drift,
+			"inventoryOffset", inventoryOffset,
+			"buyPrices", buyPrices,
+			"sellPrices", sellPrices,
 		)
 	}
 	return nil
@@ -248,4 +386,29 @@ func (s *Service) estimateMidPrice(ctx context.Context, resourceID int, rng *ran
 	basePrice := 10.0 + float64(resourceID)*5.0
 	jitter := 1.0 + (rng.Float64()-0.5)*0.2
 	return basePrice * jitter
+}
+
+// cancelBotOrderLocked cancels a bot order and refunds reserved funds/inventory.
+// Called under s.mu (from RunBotCycle). Does NOT acquire the lock.
+func (s *Service) cancelBotOrderLocked(ctx context.Context, order *domainmarket.MarketOrder) {
+	if order.Status == domainmarket.StatusFilled || order.Status == domainmarket.StatusCancelled {
+		return
+	}
+	remaining := order.Remaining()
+	order.Status = domainmarket.StatusCancelled
+	if err := s.market.UpdateOrder(ctx, order); err != nil {
+		slog.Warn("[bot] cancel order failed", "id", order.ID, "error", err)
+		return
+	}
+	// Refund reserved funds/inventory.
+	if order.IsBuy {
+		refund := order.Price * float64(remaining)
+		company, err := s.companies.GetCompany(ctx, order.CompanyID)
+		if err == nil {
+			company.Money += refund
+			_ = s.companies.UpdateCompany(ctx, company)
+		}
+	} else {
+		_ = s.companies.UpdateInventory(ctx, order.CompanyID, order.ResourceID, remaining)
+	}
 }
