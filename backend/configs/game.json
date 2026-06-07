@@ -51,5 +51,7 @@
   "base_energy_cost": 300,
   "base_maintenance_cost": 200,
   "base_management_cost": 500,
-  "sweet_spot_level": 7
+  "sweet_spot_level": 7,
+  "base_output": 100,
+  "max_buildings": 20
 }

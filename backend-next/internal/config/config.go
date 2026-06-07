@@ -53,7 +53,7 @@ func Load() *Config {
 		Addr:              envStr("SIM_API_ADDR", ":8088"),
 		JWTSigningKey:     envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
 		DatabaseURL:       os.Getenv("SIM_API_DATABASE_URL"),
-		RateLimitEnabled:  true,
+		RateLimitEnabled:  envStr("SIM_API_RATE_LIMIT", "false") == "true",
 		DevMode:           envStr("SIM_API_DEV_MODE", "true") == "true",
 		Game:              loadGameConfig(FindProjectRoot()),
 	}

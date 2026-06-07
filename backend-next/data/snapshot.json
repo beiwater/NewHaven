@@ -1,0 +1,235 @@
+{
+  "players": {
+    "1": {
+      "id": 1,
+      "username": "dev",
+      "password_hash": "$2a$10$Pz2AumWLvWOYxRFS7.M88.wvtQJqk32u2ksPjyERTcTf04lndV8kO",
+      "display_name": "Dev Player",
+      "gender": "other",
+      "email": "dev@newhaven.game",
+      "created_at": "2026-06-07T00:26:41Z"
+    }
+  },
+  "by_user": {
+    "dev": {
+      "id": 1,
+      "username": "dev",
+      "password_hash": "$2a$10$Pz2AumWLvWOYxRFS7.M88.wvtQJqk32u2ksPjyERTcTf04lndV8kO",
+      "display_name": "Dev Player",
+      "gender": "other",
+      "email": "dev@newhaven.game",
+      "created_at": "2026-06-07T00:26:41Z"
+    }
+  },
+  "companies": {
+    "1000002": {
+      "id": 1000002,
+      "player_id": 1,
+      "name": "Dev Player",
+      "money": 1000000000,
+      "level": 100,
+      "xp": 1000000000,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "completed",
+            "stepId": "chapter-title"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000002-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_a1",
+          "x": 5,
+          "y": 10,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000002-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T00:26:41Z",
+      "last_retail_at": "2026-06-07T00:27:21Z"
+    }
+  },
+  "orders": {
+    "bot-buy-1780792061374045100-1": {
+      "id": "bot-buy-1780792061374045100-1",
+      "company_id": 900001,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 51.15865360153458,
+      "quantity": 51,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-buy-1780792061374045100-3": {
+      "id": "bot-buy-1780792061374045100-3",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 41.568966994179725,
+      "quantity": 225,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-buy-1780792061374045100-5": {
+      "id": "bot-buy-1780792061374045100-5",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 22.732535756362896,
+      "quantity": 332,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-buy-1780792121373912100-11": {
+      "id": "bot-buy-1780792121373912100-11",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": true,
+      "price": 20.737150030986125,
+      "quantity": 240,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-buy-1780792121373912100-7": {
+      "id": "bot-buy-1780792121373912100-7",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 22.732535756362896,
+      "quantity": 405,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-buy-1780792121373912100-9": {
+      "id": "bot-buy-1780792121373912100-9",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 55.446214557792324,
+      "quantity": 116,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792061374045100-2": {
+      "id": "bot-sell-1780792061374045100-2",
+      "company_id": 900001,
+      "resource_id": 8,
+      "is_buy": false,
+      "price": 56.54377503327507,
+      "quantity": 312,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-sell-1780792061374045100-4": {
+      "id": "bot-sell-1780792061374045100-4",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 45.94464773040918,
+      "quantity": 138,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-sell-1780792061374045100-6": {
+      "id": "bot-sell-1780792061374045100-6",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 25.125434257032676,
+      "quantity": 435,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-sell-1780792121373912100-10": {
+      "id": "bot-sell-1780792121373912100-10",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 61.28265819545468,
+      "quantity": 193,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792121373912100-12": {
+      "id": "bot-sell-1780792121373912100-12",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 22.920007928984663,
+      "quantity": 179,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792121373912100-8": {
+      "id": "bot-sell-1780792121373912100-8",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 25.125434257032676,
+      "quantity": 284,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    }
+  },
+  "trades": null,
+  "tickers": {},
+  "jobs": {},
+  "ledger": null,
+  "bonds": {},
+  "holdings": null,
+  "companyResearch": {},
+  "messages": null,
+  "notifications": null,
+  "warehouses": {
+    "1000002": {
+      "company_id": 1000002,
+      "capacity": 1000,
+      "used_capacity": 0,
+      "items": []
+    }
+  },
+  "nextId": 3
+}

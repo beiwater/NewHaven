@@ -23,6 +23,7 @@ const goCmd = isWindows ? 'go.exe' : 'go'
 const backendDir = path.join(__dirname, 'backend')
 const clientDir = path.join(__dirname, 'client', 'atlas-foods-client')
 const clientNodeModules = path.join(clientDir, 'node_modules')
+const snapshotDir = path.join(__dirname, 'backend-next', 'data')
 
 const services = {
   backend: {
@@ -71,6 +72,7 @@ let commandBuffer = ''
 let autosaveEnabled = true
 let autosaveInterval = 300000 // 5 minutes in ms
 let autosaveTimer = null
+let lastSaveTime = null
 
 
 async function main() {
@@ -88,7 +90,8 @@ async function main() {
     pushLog('system', 'Frontend dependencies are missing. Run: cd client/atlas-foods-client && npm install')
   }
 
-  await startService('backend')
+  await forceFreePort(8088)
+  await startService('backendNext')
   await startService('frontend')
   startInput()
   startAutosave()
@@ -115,7 +118,7 @@ async function startService(name) {
   const child = spawn(svc.command, svc.args, {
     cwd: svc.cwd,
     env: { ...process.env },
-    shell: false,
+    shell: isWindows,
     detached: !isWindows,
   })
 
@@ -381,6 +384,7 @@ async function saveSnapshot() {
     const res = await fetch('http://127.0.0.1:8088/api/admin/snapshot/save', { method: 'POST' })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     pushLog('system', 'Snapshot saved.')
+    lastSaveTime = Date.now()
   } catch (err) {
     pushLog('system', `Save failed: ${err.message}`)
   }
@@ -397,7 +401,7 @@ async function loadSnapshot() {
 }
 
 async function clearSnapshot() {
-  const snapPath = path.join(__dirname, 'data', 'snapshot.json')
+  const snapPath = path.join(snapshotDir, 'snapshot.json')
   try {
     const { unlinkSync } = await import('node:fs')
     unlinkSync(snapPath)
@@ -408,7 +412,7 @@ async function clearSnapshot() {
 }
 
 function snapshotsDir() {
-  return path.join(__dirname, 'data', 'snapshots')
+  return path.join(snapshotDir, 'snapshots')
 }
 
 async function saveNamedSnapshot(name) {
@@ -427,7 +431,7 @@ async function saveNamedSnapshot(name) {
 
   // Copy primary snapshot to named file
   const dir = snapshotsDir()
-  const src = path.join(__dirname, 'data', 'snapshot.json')
+  const src = path.join(snapshotDir, 'snapshot.json')
   const dst = path.join(dir, `${name}.json`)
 
   const { copyFileSync, mkdirSync, existsSync } = await import('node:fs')
@@ -435,6 +439,7 @@ async function saveNamedSnapshot(name) {
   try {
     copyFileSync(src, dst)
     pushLog('system', `Saved snapshot: ${name}`)
+    lastSaveTime = Date.now()
   } catch (err) {
     pushLog('system', `Failed to copy snapshot: ${err.message}`)
   }
@@ -446,7 +451,7 @@ async function loadNamedSnapshot(name) {
     return
   }
   const src = path.join(snapshotsDir(), `${name}.json`)
-  const dst = path.join(__dirname, 'data', 'snapshot.json')
+  const dst = path.join(snapshotDir, 'snapshot.json')
 
   const { copyFileSync, existsSync } = await import('node:fs')
   if (!existsSync(src)) {
@@ -490,8 +495,28 @@ async function listNamedSnapshots() {
   }
 }
 
+async function forceFreePort(port) {
+  // Windows: find and kill any process holding the port
+  if (!isWindows) return
+  try {
+    const { execSync } = await import('node:child_process')
+    const out = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', timeout: 3000 })
+    const pids = new Set()
+    for (const line of out.split(/\r?\n/)) {
+      const m = line.trim().match(/LISTENING\s+(\d+)$/)
+      if (m) pids.add(m[1])
+    }
+    for (const pid of pids) {
+      try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', timeout: 2000 }) } catch {}
+      pushLog('system', `Killed stale process ${pid} on port ${port}`)
+    }
+    if (pids.size > 0) {
+      await new Promise(r => setTimeout(r, 500))
+    }
+  } catch { /* netstat failed or no process found */ }
+}
+
 async function toggleBackendNext() {
-  const existing = services['backend']
   const bn = services['backendNext']
   if (!bn) {
     pushLog('system', 'Backend-next service not defined.')
@@ -502,13 +527,13 @@ async function toggleBackendNext() {
     await stopService('backendNext')
     pushLog('system', 'Backend-next stopped.')
   } else {
-    // Stop original backend if running (same port)
-    if (existing && existing.child) {
-      pushLog('system', 'Stopping original backend before starting backend-next...')
+    await forceFreePort(8088)
+    // Also stop the old backend tracker if it still thinks it's running
+    if (services['backend'].child) {
       await stopService('backend')
     }
+    services['backend'].status = 'stopped'
     await startService('backendNext')
-    pushLog('system', 'Backend-next started.')
   }
 }
 
@@ -630,7 +655,7 @@ function scheduleRender() {
 function render() {
   const width = process.stdout.columns || 100
   const height = process.stdout.rows || 32
-  const logRows = Math.max(8, height - 13 - (commandMode ? 1 : 0))
+  const logRows = Math.max(8, height - 14 - (commandMode ? 1 : 0))
   const line = '─'.repeat(width)
 
   process.stdout.write('\x1b[?25l\x1b[H\x1b[2J')
@@ -638,8 +663,9 @@ function render() {
   writeLine('Browser-based economy sim | API + Vite launcher', width)
   writeLine(line, width)
 
-  for (const key of ['backend', 'frontend', 'backendNext']) {
+  for (const key of ['backendNext', 'frontend', 'backend']) {
     const svc = services[key]
+    if (!svc) continue
     const uptime = svc.startedAt && svc.child ? formatDuration(Date.now() - svc.startedAt) : '--'
     writeLine(`${statusBadge(svc.status)} ${svc.label.padEnd(12)} ${svc.url.padEnd(24)} uptime ${uptime}`, width)
   }
@@ -656,7 +682,17 @@ function render() {
 
   for (let i = visibleLogs.length; i < logRows; i++) writeLine('', width)
   writeLine(line, width)
-  writeLine(`Login tip: use dev / dev | Logs: log/dev-console-${new Date().toISOString().slice(0, 10)}.log`, width)
+
+  // System status line
+  const dbMode = process.env.SIM_API_DATABASE_URL ? color('PostgreSQL', 'cyan', true) : color('Memory (file)', 'gold', true)
+  const asStatus = autosaveEnabled ? color('on', 'green') : color('off', 'gray')
+  const asInterval = `${autosaveInterval / 60000}min`
+  const saveTime = lastSaveTime
+    ? new Date(lastSaveTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '--'
+  writeLine(`DB: ${dbMode}  |  Autosave: ${asStatus} (${asInterval})  |  Last save: ${saveTime}`, width)
+
+  writeLine(`Login tip: use dev / dev  |  Logs: log/dev-console-${new Date().toISOString().slice(0, 10)}.log  |  :help for commands`, width)
 
   if (commandMode) {
     const prompt = `: ${commandBuffer}`

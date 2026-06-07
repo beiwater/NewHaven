@@ -112,6 +112,7 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-ticker/{resourceId}/", h.Market.handleMarketTicker)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-depth/{resourceId}/{quality}/", h.Market.handleMarketDepth)
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market/{resourceId}/{quality}/", h.Market.handleMarketOrders)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/market-ticker/", h.Market.handleListTickers)
 	})
 
 	// API v1 routes (authenticated)

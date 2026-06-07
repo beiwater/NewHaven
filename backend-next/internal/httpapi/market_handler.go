@@ -61,6 +61,25 @@ func (h *MarketHandler) handleMarketTicker(w http.ResponseWriter, r *http.Reques
 	writeSuccess(w, 200, resp)
 }
 
+// handleListTickers returns all market tickers at once.
+func (h *MarketHandler) handleListTickers(w http.ResponseWriter, r *http.Request) {
+	_, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	tickers, err := h.svc.GetTickers(r.Context())
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+
+	writeSuccess(w, http.StatusOK, map[string]any{
+		"tickers": tickers,
+	})
+}
+
 // handleMarketDepth returns market depth for a resource and quality.
 func (h *MarketHandler) handleMarketDepth(w http.ResponseWriter, r *http.Request) {
 	_, ok := CompanyIDFromCtx(r.Context())

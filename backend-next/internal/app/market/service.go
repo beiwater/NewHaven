@@ -128,6 +128,77 @@ func (s *Service) GetMarketTicker(ctx context.Context, resourceID int) (*openapi
 	}, nil
 }
 
+// GetTickers returns ticker data for all market-tradable resources.
+func (s *Service) GetTickers(ctx context.Context) ([]openapi.MarketTickerResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := s.clock.Now().UTC().Truncate(time.Hour)
+
+	// Collect all exchange-tradable resource IDs.
+	resourceIDs := make([]int, 0, len(s.resources))
+	for _, r := range s.resources {
+		if r.DbLetter <= 0 || r.IsResearch || !r.IsExchangeTradable {
+			continue
+		}
+		resourceIDs = append(resourceIDs, r.DbLetter)
+	}
+	sort.Ints(resourceIDs)
+
+	tickers := make([]openapi.MarketTickerResponse, 0, len(resourceIDs))
+	for _, rid := range resourceIDs {
+		tickers = append(tickers, s.buildTickerResponse(ctx, rid, now))
+	}
+
+	return tickers, nil
+}
+
+// buildTickerResponse builds a single ticker response without locking.
+// Caller must hold s.mu.
+func (s *Service) buildTickerResponse(ctx context.Context, resourceID int, now time.Time) openapi.MarketTickerResponse {
+	// Try reading from storage first.
+	ticker, err := s.market.GetTicker(ctx, resourceID)
+	if err == nil && ticker != nil {
+		series := make([]openapi.MarketTickerPoint, 48)
+		for i := 47; i >= 0; i-- {
+			ts := now.Add(-time.Duration(i) * time.Hour)
+			price32 := float32(ticker.LastPrice)
+			series[47-i] = openapi.MarketTickerPoint{
+				Price: &price32,
+				Time:  &ts,
+			}
+		}
+		return openapi.MarketTickerResponse{
+			Resource: &resourceID,
+			Series:   &series,
+		}
+	}
+
+	// Fallback: synthesize deterministic series from catalog BasePrice.
+	basePrice := s.basePriceForResource(resourceID)
+	if basePrice <= 0 {
+		basePrice = 20.0 + float64(resourceID%11)*3.0
+	}
+
+	series := make([]openapi.MarketTickerPoint, 48)
+	for i := 47; i >= 0; i-- {
+		hour := now.Add(-time.Duration(i) * time.Hour)
+		h := hour.Unix() / 3600
+		wave := math.Sin(float64(h+int64(resourceID*17))*0.37)*0.025 +
+			math.Cos(float64(h+int64(resourceID*31))*0.11)*0.015
+		price := float32(math.Round(basePrice*(1+wave)*100) / 100)
+		series[47-i] = openapi.MarketTickerPoint{
+			Price: &price,
+			Time:  &hour,
+		}
+	}
+
+	return openapi.MarketTickerResponse{
+		Resource: &resourceID,
+		Series:   &series,
+	}
+}
+
 // GetMarketDepth returns aggregated buy/sell depth for a resource and quality.
 func (s *Service) GetMarketDepth(ctx context.Context, resourceID int, quality int) (*openapi.MarketDepthResponse, error) {
 	s.mu.Lock()

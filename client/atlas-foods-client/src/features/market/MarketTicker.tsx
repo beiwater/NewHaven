@@ -1,13 +1,17 @@
 import { useTranslation } from 'react-i18next'
-import { useMarketTicker } from '@/api/market.api'
+import { useAllMarketTickers } from '@/api/market.api'
 import { FALLBACK_MARKET_RESOURCES, resourceIcon, resourceName } from '@/game/resources'
 
 const TRACKED_RESOURCES = FALLBACK_MARKET_RESOURCES
 
-function PriceCard({ resource }: { resource: typeof TRACKED_RESOURCES[number] }) {
-  const { data } = useMarketTicker(resource.resourceId)
-
-  const series = data?.series ?? []
+function PriceCard({
+  resource,
+  ticker
+}: {
+  resource: typeof TRACKED_RESOURCES[number]
+  ticker: { series: Array<{ price: number; time: string }> } | undefined
+}) {
+  const series = ticker?.series ?? []
   const last = series.length > 0 ? series[series.length - 1].price : 0
   const prev = series.length > 1 ? series[series.length - 2].price : last
   const isUp = last >= prev
@@ -37,6 +41,16 @@ function PriceCard({ resource }: { resource: typeof TRACKED_RESOURCES[number] })
 
 export function MarketTicker() {
   const { t } = useTranslation()
+  const { data } = useAllMarketTickers()
+
+  // Build a lookup map: resourceId -> ticker data
+  const tickerMap = new Map<number, { series: Array<{ price: number; time: string }> }>()
+  if (data?.tickers) {
+    for (const t of data.tickers) {
+      tickerMap.set(t.resource, t)
+    }
+  }
+
   return (
     <div className="market-ticker flex items-center overflow-hidden border-t-2 border-amber-700/30 bg-[#f5e6c8]">
       <div className="flex min-w-[150px] items-center gap-2 border-r border-amber-200/60 bg-amber-100/50 px-4 py-2">
@@ -51,7 +65,7 @@ export function MarketTicker() {
       <div className="ticker-window flex-1 overflow-hidden">
         <div className="ticker-track flex w-max">
           {[...TRACKED_RESOURCES, ...TRACKED_RESOURCES].map((r, index) => (
-            <PriceCard key={`${r.resourceId}-${index}`} resource={r} />
+            <PriceCard key={`${r.resourceId}-${index}`} resource={r} ticker={tickerMap.get(r.resourceId)} />
           ))}
         </div>
       </div>

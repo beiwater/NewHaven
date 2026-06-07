@@ -12,6 +12,19 @@ export function useMarketTicker(resourceId: number) {
   })
 }
 
+interface AllMarketTickersResponse {
+  tickers: MarketTickerData[]
+}
+
+export function useAllMarketTickers() {
+  return useQuery({
+    queryKey: ['allMarketTickers'],
+    queryFn: () => api.get<AllMarketTickersResponse>('/api/v3/market-ticker/'),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  })
+}
+
 // /api/v3/market-depth/{id}/{quality}/ returns { buys, sells }
 export function useMarketDepth(resourceId: number, quality = 0) {
   return useQuery({
