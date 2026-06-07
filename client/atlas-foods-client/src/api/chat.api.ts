@@ -153,7 +153,7 @@ export function useSendRoomMessage(roomId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: string) =>
-      api.post<ChatMessage>(`/api/v2/chat/room/${roomId}/send/`, { body }),
+      api.post<ChatMessage>('/api/v2/chat/room/send/', { roomId, body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat', 'room', roomId, 'messages'] })
     },

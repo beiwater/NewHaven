@@ -71,9 +71,9 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	// Chat routes (authenticated)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/", h.Chat.handleCreateRoom)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chat/rooms/", h.Chat.handleListRooms)
-	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chat/room/{roomId}/messages/", h.Chat.handleGetRoomMessages)
-	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/{roomId}/send/", h.Chat.handleSendMessage)
-	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/{roomId}/read/", h.Chat.handleMarkRead)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chat/room/{roomId:[^/]+}/messages/", h.Chat.handleGetRoomMessages)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/send/", h.Chat.handleSendMessage)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/read/", h.Chat.handleMarkRead)
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", h.Warehouse.handleGetMyWarehouse)

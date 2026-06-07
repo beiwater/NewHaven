@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
+	"strconv"
+	
 	"time"
 
 	"github.com/newhaven/backend-next/internal/domain/chat"
@@ -136,17 +137,16 @@ func (h *ChatHandler) handleSendMessage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	roomID := extractRoomID(r.URL.Path)
-	if !h.isParticipant(roomID, companyID) {
-		writeErr(w, http.StatusForbidden, ErrorForbidden, "not a participant", nil)
-		return
-	}
-
 	var req struct {
-		Body string `json:"body"`
+		RoomId string `json:"roomId"`
+		Body   string `json:"body"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request", nil)
+		return
+	}
+	if req.RoomId == "" || !h.isParticipant(req.RoomId, companyID) {
+		writeErr(w, http.StatusForbidden, ErrorForbidden, "not a participant", nil)
 		return
 	}
 	if len([]rune(req.Body)) > h.maxMsgLen {
@@ -159,38 +159,63 @@ func (h *ChatHandler) handleSendMessage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	companyName := h.lookupCompanyName(r.Context(), companyID)
-
 	msg := &chat.Message{
-		RoomID:     roomID,
+		RoomID:     req.RoomId,
 		SenderID:   companyID,
 		SenderName: companyName,
 		Content:    req.Body,
 		CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 	}
-
 	if err := h.chat.SaveRoomMessage(r.Context(), msg); err != nil {
 		writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to save message", nil)
 		return
 	}
-
 	writeJSON(w, http.StatusOK, msg)
 }
 
+// handleMarkRead marks messages as read via body (roomId in body to avoid chi colon issues).
+func (h *ChatHandler) handleMarkRead(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "not authenticated", nil)
+		return
+	}
+
+	var req struct {
+		RoomId        string `json:"roomId"`
+		LastMessageId int64  `json:"lastMessageId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request", nil)
+		return
+	}
+	if req.RoomId == "" || !h.isParticipant(req.RoomId, companyID) {
+		writeErr(w, http.StatusForbidden, ErrorForbidden, "not a participant", nil)
+		return
+	}
+
+	if err := h.chat.MarkRoomRead(r.Context(), req.RoomId, int64(companyID), req.LastMessageId); err != nil {
+		writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to mark read", nil)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
 
 func (h *ChatHandler) getParticipants(roomID string) (int, int, bool) {
 	parts := strings.SplitN(strings.TrimPrefix(roomID, "p:"), "-", 2)
 	if len(parts) != 2 {
 		return 0, 0, false
 	}
-	a, _ := strconv.Atoi(parts[0])
-	b, _ := strconv.Atoi(parts[1])
-	if a == 0 || b == 0 {
+	a, err1 := strconv.Atoi(parts[0])
+	b, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
 		return 0, 0, false
 	}
 	return a, b, true
 }
 
-// isParticipant checks if the given company ID is a participant in the room.
+
 func (h *ChatHandler) isParticipant(roomID string, companyID int) bool {
 	a, b, ok := h.getParticipants(roomID)
 	return ok && (companyID == a || companyID == b)
@@ -210,34 +235,6 @@ func (h *ChatHandler) findOtherParticipant(roomID string, companyID int) (int, b
 	return 0, false
 }
 
-func (h *ChatHandler) handleMarkRead(w http.ResponseWriter, r *http.Request) {
-	companyID, ok := CompanyIDFromCtx(r.Context())
-	if !ok {
-		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "not authenticated", nil)
-		return
-	}
-
-	roomID := extractRoomID(r.URL.Path)
-	if !h.isParticipant(roomID, companyID) {
-		writeErr(w, http.StatusForbidden, ErrorForbidden, "not a participant", nil)
-		return
-	}
-
-	var req struct {
-		LastMessageId int64 `json:"lastMessageId"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request", nil)
-		return
-	}
-
-	if err := h.chat.MarkRoomRead(r.Context(), roomID, int64(companyID), req.LastMessageId); err != nil {
-		writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to mark read", nil)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
-}
 
 // extractRoomID extracts the room ID from a URL path like
 // /api/v2/chat/room/p:1000001-1000002/messages/.

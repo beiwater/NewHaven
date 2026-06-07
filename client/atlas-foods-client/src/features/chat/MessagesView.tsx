@@ -64,10 +64,10 @@ export function MessagesView() {
   useEffect(() => {
     if (selectedRoomId && messages.length > 0) {
       const lastId = messages[messages.length - 1].id
-      fetch(`/api/v2/chat/room/${selectedRoomId}/read/`, {
+      fetch('/api/v2/chat/room/read/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('atlas_auth_token')}` },
-        body: JSON.stringify({ lastMessageId: lastId }),
+        body: JSON.stringify({ roomId: selectedRoomId, lastMessageId: lastId }),
       })
     }
   }, [selectedRoomId, messages])
