@@ -147,7 +147,7 @@ export function MessagesView() {
           <div className="flex justify-end">
             <span className={`text-[10px] font-medium ${
             input.length > 100 ? 'text-red-500' : input.length > 80 ? 'text-amber-500' : 'text-amber-400'
-            `}>
+            `} }>
               {input.length} / 120
             </span>
           </div>
