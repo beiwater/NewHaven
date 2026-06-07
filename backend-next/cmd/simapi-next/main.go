@@ -55,7 +55,7 @@ func main() {
 		Auth: application.AuthHandler, Company: application.CompanyHandler, Warehouse: application.WarehouseHandler,
 		Building: application.BuildingHandler, Production: application.ProductionHandler, Market: application.MarketHandler,
 		Finance: application.FinanceHandler, Bond: application.BondHandler, Player: application.PlayerHandler,
-		Social: application.SocialHandler, Contract: application.ContractHandler, Research: application.ResearchHandler,
+		Social: application.SocialHandler, Chat: application.ChatHandler, Contract: application.ContractHandler, Research: application.ResearchHandler,
 		Executive: application.ExecutiveHandler, Leaderboard: application.LeaderboardHandler, Admin: application.AdminHandler,
 	})
 	if cfg.DevMode {

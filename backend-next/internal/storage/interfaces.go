@@ -11,6 +11,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/research"
 	"github.com/newhaven/backend-next/internal/domain/social"
+	"github.com/newhaven/backend-next/internal/domain/chat"
 	"github.com/newhaven/backend-next/internal/domain/warehouse"
 )
 
@@ -92,6 +93,14 @@ type SocialStorage interface {
 	MarkNotificationRead(ctx context.Context, notificationID int) error
 }
 
+// ChatStorage handles private chat rooms and messages.
+type ChatStorage interface {
+	GetOrCreateRoom(ctx context.Context, companyID1, companyID2 int) (*chat.ChatRoom, error)
+	GetUserRooms(ctx context.Context, companyID int) ([]*chat.ChatRoom, error)
+	GetRoomMessages(ctx context.Context, roomID string, limit int) ([]chat.Message, error)
+	SaveRoomMessage(ctx context.Context, msg *chat.Message) error
+}
+
 // WarehouseStorage handles warehouse persistence.
 type WarehouseStorage interface {
 	GetWarehouse(ctx context.Context, companyID int) (*warehouse.Warehouse, error)
@@ -114,6 +123,7 @@ type Storage interface {
 	FinanceStorage
 	ResearchStorage
 	SocialStorage
+	ChatStorage
 	WarehouseStorage
 	SnapshotStorage
 	Close() error

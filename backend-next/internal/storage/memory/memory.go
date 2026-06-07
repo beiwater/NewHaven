@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sort"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/research"
 	"github.com/newhaven/backend-next/internal/domain/social"
+	"github.com/newhaven/backend-next/internal/domain/chat"
 	"github.com/newhaven/backend-next/internal/domain/warehouse"
 	"github.com/newhaven/backend-next/internal/storage"
 )
@@ -24,6 +26,13 @@ import (
 // Store is an in-memory implementation of storage.Storage.
 // Thread-safe via sync.RWMutex per domain.
 // Data is NOT persisted across restarts.
+type chatRoomData struct {
+	sync.RWMutex
+	rooms    map[string]*chat.ChatRoom
+	messages map[string][]chat.Message
+	nextID   int64
+}
+
 type Store struct {
 	mu         sync.RWMutex
 	snapshotPath string
@@ -42,6 +51,7 @@ type Store struct {
 	messages   []social.Message
 	notifs     []social.Notification
 	warehouses map[int]*warehouse.Warehouse
+	chatData   chatRoomData
 	nextID     int
 }
 
@@ -56,6 +66,11 @@ func New() *Store {
 		jobs:       make(map[string]*production.ProductionJob),
 		bonds:      make(map[string]*finance.Bond),
 		warehouses: make(map[int]*warehouse.Warehouse),
+		chatData: chatRoomData{
+			rooms:    make(map[string]*chat.ChatRoom),
+			messages: make(map[string][]chat.Message),
+			nextID:   1,
+		},
 		companyResearch: make(map[string]*research.ResourceResearch),
 		nextID:     1,
 		snapshotPath: envOrDefault("SIM_API_SNAPSHOT_PATH", "data/snapshot.json"),
@@ -855,6 +870,80 @@ func (s *Store) MarkNotificationRead(_ context.Context, notificationID int) erro
 			s.notifs[i].Read = true
 			break
 		}
+	}
+	return nil
+}
+
+// --- ChatStorage ---
+
+func (s *Store) GetOrCreateRoom(_ context.Context, companyID1, companyID2 int) (*chat.ChatRoom, error) {
+	s.chatData.Lock()
+	defer s.chatData.Unlock()
+
+	a, b := min(companyID1, companyID2), max(companyID1, companyID2)
+	roomID := fmt.Sprintf("p:%d-%d", a, b)
+
+	if existing, ok := s.chatData.rooms[roomID]; ok {
+		return existing, nil
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	room := &chat.ChatRoom{
+		ID:           roomID,
+		Participant1: a,
+		Participant2: b,
+		CreatedAt:    now,
+	}
+	s.chatData.rooms[roomID] = room
+	s.chatData.messages[roomID] = []chat.Message{}
+	return room, nil
+}
+
+func (s *Store) GetUserRooms(_ context.Context, companyID int) ([]*chat.ChatRoom, error) {
+	s.chatData.RLock()
+	defer s.chatData.RUnlock()
+
+	var result []*chat.ChatRoom
+	for _, r := range s.chatData.rooms {
+		if r.Participant1 == companyID || r.Participant2 == companyID {
+			result = append(result, r)
+		}
+	}
+
+	// Sort by last message time DESC
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].LastMessageAt > result[j].LastMessageAt
+	})
+
+	return result, nil
+}
+
+func (s *Store) GetRoomMessages(_ context.Context, roomID string, limit int) ([]chat.Message, error) {
+	s.chatData.RLock()
+	defer s.chatData.RUnlock()
+
+	msgs := s.chatData.messages[roomID]
+	n := len(msgs)
+	if limit > 0 && limit < n {
+		n = limit
+	}
+	if n == 0 {
+		return []chat.Message{}, nil
+	}
+	return msgs[len(msgs)-n:], nil
+}
+
+func (s *Store) SaveRoomMessage(_ context.Context, msg *chat.Message) error {
+	s.chatData.Lock()
+	defer s.chatData.Unlock()
+
+	msg.ID = s.chatData.nextID
+	s.chatData.nextID++
+	s.chatData.messages[msg.RoomID] = append(s.chatData.messages[msg.RoomID], *msg)
+
+	// Update room's last message time
+	if room, ok := s.chatData.rooms[msg.RoomID]; ok {
+		room.LastMessageAt = msg.CreatedAt
 	}
 	return nil
 }

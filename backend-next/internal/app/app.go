@@ -58,6 +58,7 @@ type App struct {
 	BondHandler        *httpapi.BondHandler
 	PlayerHandler      *httpapi.PlayerHandler
 	SocialHandler      *httpapi.SocialHandler
+	ChatHandler       *httpapi.ChatHandler
 	ContractHandler    *httpapi.ContractHandler
 	ResearchHandler    *httpapi.ResearchHandler
 	ExecutiveHandler   *httpapi.ExecutiveHandler
@@ -108,6 +109,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	leaderboardHandler := httpapi.NewLeaderboardHandler(st)
 	adminHandler := httpapi.NewAdminHandler(st)
 	socialHandler := httpapi.NewSocialHandler(st, st, cfg.Game.MaxMessageLength)
+	chatHandler := httpapi.NewChatHandler(st, st, cfg.Game.MaxMessageLength)
 	// Snapshot persistence: file-based (memory) or PostgreSQL
 	var pgStore *postgres.Store
 	var saveAll func(ctx context.Context) error
@@ -166,6 +168,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		BondHandler:        bondHandler,
 		PlayerHandler:      playerHandler,
 		SocialHandler:      socialHandler,
+		ChatHandler:        chatHandler,
 		ContractHandler:    contractHandler,
 		ResearchHandler:    researchHandler,
 		ExecutiveHandler:   executiveHandler,

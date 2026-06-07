@@ -18,6 +18,7 @@ type RouterHandlers struct {
 	Bond        *BondHandler
 	Player      *PlayerHandler
 	Social      *SocialHandler
+	Chat        *ChatHandler
 	Contract    *ContractHandler
 	Research    *ResearchHandler
 	Executive   *ExecutiveHandler
@@ -67,6 +68,11 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/message/{messageId}/read/", h.Social.handleMarkRead)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chatroom/", h.Social.handleChatroom)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/contacts/", h.Social.handleContacts)
+	// Chat routes (authenticated)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/", h.Chat.handleCreateRoom)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chat/rooms/", h.Chat.handleListRooms)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/chat/room/{roomId}/messages/", h.Chat.handleGetRoomMessages)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/chat/room/{roomId}/send/", h.Chat.handleSendMessage)
 	// API v2 domain routes (authenticated)
 	r.Route("/api/v2", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/companies/me/warehouse/", h.Warehouse.handleGetMyWarehouse)

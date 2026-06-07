@@ -20,6 +20,12 @@
       "username": "dev1",
       "password_hash": "$2a$10$lDXn5lyINVK4gAjlrtcTtuaQDhXBzjrPaAKKa1DRITs4j/1john9y",
       "created_at": "2026-06-07T01:23:07Z"
+    },
+    "40": {
+      "id": 40,
+      "username": "dev546",
+      "password_hash": "$2a$10$K4coGQSDQ/RqWmha2SXUO.Kj2jYfKb8sMdQNoDN22GU7tbk3vKfM2",
+      "created_at": "2026-06-07T02:25:09Z"
     }
   },
   "by_user": {
@@ -43,6 +49,12 @@
       "username": "dev12",
       "password_hash": "$2a$10$zX0/X8D5NVAM2khJZdLQou1cxHW.lmBO.G6aL8Oj5WHZTIARf3h9i",
       "created_at": "2026-06-07T02:00:20Z"
+    },
+    "dev546": {
+      "id": 40,
+      "username": "dev546",
+      "password_hash": "$2a$10$K4coGQSDQ/RqWmha2SXUO.Kj2jYfKb8sMdQNoDN22GU7tbk3vKfM2",
+      "created_at": "2026-06-07T02:25:09Z"
     }
   },
   "companies": {
@@ -116,7 +128,7 @@
       },
       "warehouse_level": 0,
       "created_at": "2026-06-07T00:26:41Z",
-      "last_retail_at": "2026-06-07T02:21:57Z"
+      "last_retail_at": "2026-06-07T02:29:05Z"
     },
     "1000005": {
       "id": 1000005,
@@ -206,7 +218,52 @@
       ],
       "warehouse_level": 0,
       "created_at": "2026-06-07T02:00:20Z",
-      "last_retail_at": "2026-06-07T02:19:13Z"
+      "last_retail_at": "2026-06-07T02:29:24Z"
+    },
+    "1000041": {
+      "id": 1000041,
+      "player_id": 40,
+      "name": "dev546",
+      "money": 100000,
+      "level": 1,
+      "xp": 0,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "skipped",
+            "stepId": "intro-bells"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000041-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_a1",
+          "x": 5,
+          "y": 10,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000041-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T02:25:09Z",
+      "last_retail_at": "2026-06-07T02:29:14Z"
     }
   },
   "orders": {
@@ -1086,6 +1143,14 @@
       "content": "cccc",
       "channel": "C:1000005",
       "created_at": "2026-06-07T02:18:54Z"
+    },
+    {
+      "id": 39,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "轻轻巧巧请求权请求权",
+      "channel": "C:1000012",
+      "created_at": "2026-06-07T02:24:48Z"
     }
   ],
   "notifications": null,
@@ -1114,7 +1179,13 @@
       "capacity": 1000,
       "used_capacity": 0,
       "items": []
+    },
+    "1000041": {
+      "company_id": 1000041,
+      "capacity": 1000,
+      "used_capacity": 0,
+      "items": []
     }
   },
-  "nextId": 39
+  "nextId": 42
 }

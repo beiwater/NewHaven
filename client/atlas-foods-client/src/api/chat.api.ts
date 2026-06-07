@@ -105,3 +105,57 @@ export function useContacts() {
     staleTime: 60_000,
   })
 }
+
+// --- Room-based chat types ---
+export interface ChatRoom {
+  id: string
+  participant1: number
+  participant2: number
+  last_message_at?: string
+  created_at: string
+}
+export interface CreateRoomResponse {
+  room: ChatRoom
+  messages: ChatMessage[]
+}
+export interface RoomListResponse {
+  rooms: ChatRoom[]
+}
+export interface RoomMessagesResponse {
+  messages: ChatMessage[]
+}
+export function useChatRooms() {
+  return useQuery({
+    queryKey: ['chat', 'rooms'],
+    queryFn: () => api.get<RoomListResponse>('/api/v2/chat/rooms/'),
+    refetchInterval: 15_000,
+  })
+}
+export function useCreateRoom() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (companyId: number) =>
+      api.post<CreateRoomResponse>('/api/v2/chat/room/', { companyId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chat', 'rooms'] })
+    },
+  })
+}
+export function useRoomMessages(roomId: string | null) {
+  return useQuery({
+    queryKey: ['chat', 'room', roomId, 'messages'],
+    queryFn: () => api.get<RoomMessagesResponse>(`/api/v2/chat/room/${roomId}/messages/`),
+    enabled: !!roomId,
+    refetchInterval: (data) => (data ? 15_000 : false),
+  })
+}
+export function useSendRoomMessage(roomId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: string) =>
+      api.post<ChatMessage>(`/api/v2/chat/room/${roomId}/send/`, { body }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chat', 'room', roomId, 'messages'] })
+    },
+  })
+}

@@ -45,7 +45,7 @@ export function PublicChatView() {
                 channel === ch.id
                   ? 'bg-white text-amber-900 shadow-sm border border-amber-700/50'
                   : 'text-amber-600 hover:text-amber-800 hover:bg-amber-50/50 border border-transparent'
-              }`}
+              }`}>
               {ch.label}
             </button>
           ))}
