@@ -133,7 +133,7 @@ export function MessagesView() {
           <div className="flex gap-2">
             <input
               value={input}
-              onChange={e => setInput(e.target.value.slice(0, 500))}
+              onChange={e => setInput(e.target.value.slice(0, 120))}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
               placeholder="输入消息..."
               className="flex-1 px-3 py-2 rounded-xl border border-amber-200/60 bg-white text-xs text-amber-900 placeholder-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
@@ -147,9 +147,9 @@ export function MessagesView() {
           </div>
           <div className="flex justify-end">
             <span className={`text-[10px] font-medium ${
-              input.length > 450 ? 'text-red-500' : input.length > 400 ? 'text-amber-500' : 'text-amber-400'
-            }`}>
-              {input.length} / 500
+            input.length > 100 ? 'text-red-500' : input.length > 80 ? 'text-amber-500' : 'text-amber-400'
+            `}>
+              {input.length} / 120
             </span>
           </div>
         </div>
