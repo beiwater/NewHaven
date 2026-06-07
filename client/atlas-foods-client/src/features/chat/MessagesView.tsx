@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMessages, useSendMessage, useContacts } from '@/api/chat.api'
 import { renderMessageBody } from './ChatUtils'
+import { getCompanyId } from '@/api/client'
 
 interface Contact {
   companyId: number
@@ -18,6 +19,8 @@ export function MessagesView() {
   const { data: contactsData } = useContacts()
   const sendMessage = useSendMessage()
   const listRef = useRef<HTMLDivElement>(null)
+
+  const myCompanyId = Number(getCompanyId())
 
   // Build contact list from messages
   const messages_list = messages ?? []
@@ -104,15 +107,24 @@ export function MessagesView() {
           {privateMessages.length === 0 && (
             <p className="text-center text-[11px] text-amber-500 py-8">暂无消息，发送第一条吧</p>
           )}
-          {privateMessages.map(msg => (
-            <div key={msg.id} className="bg-white/70 rounded-xl border border-amber-200/40 px-3 py-2">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-bold text-amber-800">{msg.from || 'System'}</span>
-                <span className="text-[9px] text-amber-400">{msg.at ? new Date(msg.at).toLocaleTimeString() : ''}</span>
+          {privateMessages.map(msg => {
+            const isOwn = msg.fromId !== undefined && msg.fromId === myCompanyId
+            return (
+              <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] rounded-xl px-3 py-2 ${
+                  isOwn
+                    ? 'bg-amber-100 border border-amber-200/60'
+                    : 'bg-white/70 border border-amber-200/40'
+                }`}>
+                  <div className={`flex items-center gap-1.5 mb-0.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-[10px] font-bold text-amber-800">{msg.from || 'System'}</span>
+                    <span className="text-[9px] text-amber-400">{msg.at ? new Date(msg.at).toLocaleTimeString() : ''}</span>
+                  </div>
+                  <div className="text-xs text-amber-700">{renderMessageBody(msg.body)}</div>
+                </div>
               </div>
-              <div className="text-xs text-amber-700">{renderMessageBody(msg.body)}</div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Input */}

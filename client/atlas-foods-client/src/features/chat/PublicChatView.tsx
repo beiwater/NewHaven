@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useChatroomChannel, useSendMessage } from '@/api/chat.api'
+import { getCompanyId } from '@/api/client'
 import { renderMessageBody } from './ChatUtils'
 
 const CHANNELS = [
@@ -14,6 +15,8 @@ export function PublicChatView() {
   const { data: messages } = useChatroomChannel(channel)
   const sendMessage = useSendMessage()
   const listRef = useRef<HTMLDivElement>(null)
+
+  const myCompanyId = Number(getCompanyId())
 
   const activeChannel = CHANNELS.find(c => c.id === channel)!
 
@@ -73,20 +76,31 @@ export function PublicChatView() {
             <p className="text-[10px] mt-1">发送第一条消息吧</p>
           </div>
         )}
-        {messages?.map(msg => (
-          <div key={msg.id} className="bg-white/70 rounded-xl border border-amber-200/40 px-3 py-2.5 hover:bg-white/80 transition-colors">
-            <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-[9px] font-bold text-amber-800 shrink-0">
-                {(msg.from || '?').charAt(0).toUpperCase()}
+        {messages?.map(msg => {
+          const isOwn = msg.fromId !== undefined && msg.fromId === myCompanyId
+          return (
+            <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] rounded-xl px-3 py-2.5 ${
+                isOwn
+                  ? 'bg-amber-100 border border-amber-200/60'
+                  : 'bg-white/70 border border-amber-200/40'
+              }`}>
+                <div className={`flex items-center gap-1.5 mb-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                  {!isOwn && (
+                    <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-[9px] font-bold text-amber-800 shrink-0">
+                      {(msg.from || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-[10px] font-bold text-amber-800">{msg.from || 'System'}</span>
+                  <span className={`text-[9px] text-amber-400 ${isOwn ? '' : 'ml-auto'}`}>
+                    {msg.at ? new Date(msg.at).toLocaleTimeString() : ''}
+                  </span>
+                </div>
+                <div className="text-xs text-amber-700 leading-relaxed">{renderMessageBody(msg.body)}</div>
               </div>
-              <span className="text-[10px] font-bold text-amber-800">{msg.from || 'System'}</span>
-              <span className="text-[9px] text-amber-400 ml-auto">
-                {msg.at ? new Date(msg.at).toLocaleTimeString() : ''}
-              </span>
             </div>
-            <div className="text-xs text-amber-700 leading-relaxed">{renderMessageBody(msg.body)}</div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Input */}
