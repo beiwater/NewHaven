@@ -6,6 +6,14 @@ import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { logToFile } from './lib/logger.mjs'
+import {
+  adminMoneyGive, adminMoneySet, adminMoneyRemove,
+  adminResourceGive, adminResourceRemove,
+  adminBuildingGive, adminBuildingRemove,
+  adminXpGive, adminXpSet,
+  adminResearchSet,
+  adminExecutiveGive, adminExecutiveRemove,
+} from './lib/admin.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isWindows = process.platform === 'win32'
@@ -60,6 +68,10 @@ let shuttingDown = false
 let renderTimer = null
 let commandMode = false
 let commandBuffer = ''
+let autosaveEnabled = true
+let autosaveInterval = 300000 // 5 minutes in ms
+let autosaveTimer = null
+
 
 async function main() {
   if (!existsSync(path.join(backendDir, 'go.mod'))) {
@@ -79,6 +91,8 @@ async function main() {
   await startService('backend')
   await startService('frontend')
   startInput()
+  startAutosave()
+
   render()
 }
 
@@ -197,6 +211,16 @@ async function executeCommand(input) {
       pushLog('system', '  :bn | :next         - Toggle backend-next')
       pushLog('system', '  :q | :quit          - Shutdown')
       pushLog('system', '  :help               - Show this help')
+      pushLog('system', '  :money give|set|remove <companyId> <amount>')
+      pushLog('system', '  :resource give|remove <companyId> <resourceId> <amount>')
+      pushLog('system', '  :building give <companyId> <buildingId> [level] | remove')
+      pushLog('system', '  :xp give|set <companyId> <amount>')
+      pushLog('system', '  :research set <companyId> <resourceId> <level>')
+      pushLog('system', '  :executive give|remove <companyId> ...')
+      pushLog('system', '  :autosave on|off|interval <N>  - Toggle/configure autosave')
+      pushLog('system', '  :save <name>           - Save snapshot as <name>')
+      pushLog('system', '  :load <name>           - Load snapshot from <name>')
+      pushLog('system', '  :saves                 - List named snapshots')
       break
     case 'users':
     case 'user':
@@ -222,6 +246,110 @@ async function executeCommand(input) {
     case 'quit':
       shutdown()
       break
+
+    case 'money':
+      if (args[0] === 'give' && args[1] && args[2]) {
+        try { await adminMoneyGive(args[1], args[2]); pushLog('system', `Money given to company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else if (args[0] === 'set' && args[1] && args[2]) {
+        try { await adminMoneySet(args[1], args[2]); pushLog('system', `Money set for company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else if (args[0] === 'remove' && args[1] && args[2]) {
+        try { await adminMoneyRemove(args[1], args[2]); pushLog('system', `Money removed from company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else {
+        pushLog('system', 'Usage: :money give|set|remove <companyId> <amount>')
+      }
+      break
+
+    case 'resource':
+      if (args[0] === 'give' && args[1] && args[2] && args[3]) {
+        try { await adminResourceGive(args[1], args[2], args[3]); pushLog('system', `Resource ${args[2]} given to company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else if (args[0] === 'remove' && args[1] && args[2] && args[3]) {
+        try { await adminResourceRemove(args[1], args[2], args[3]); pushLog('system', `Resource ${args[2]} removed from company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else {
+        pushLog('system', 'Usage: :resource give|remove <companyId> <resourceId> <amount>')
+      }
+      break
+
+    case 'building':
+      if (args[0] === 'give' && args[1] && args[2]) {
+        try { await adminBuildingGive(args[1], args[2], args[3]); pushLog('system', `Building ${args[2]} given to company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else if (args[0] === 'remove' && args[1] && args[2]) {
+        try { await adminBuildingRemove(args[1], args[2]); pushLog('system', `Building ${args[2]} removed from company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else {
+        pushLog('system', 'Usage: :building give <companyId> <buildingId> [level] | :building remove <companyId> <buildingId>')
+      }
+      break
+
+    case 'xp':
+      if (args[0] === 'give' && args[1] && args[2]) {
+        try { await adminXpGive(args[1], args[2]); pushLog('system', `XP given to company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else if (args[0] === 'set' && args[1] && args[2]) {
+        try { await adminXpSet(args[1], args[2]); pushLog('system', `XP set for company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else {
+        pushLog('system', 'Usage: :xp give|set <companyId> <amount>')
+      }
+      break
+
+    case 'research':
+      if (args[0] === 'set' && args[1] && args[2] && args[3]) {
+        try { await adminResearchSet(args[1], args[2], args[3]); pushLog('system', `Research level ${args[3]} set for resource ${args[2]} on company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else {
+        pushLog('system', 'Usage: :research set <companyId> <resourceId> <level>')
+      }
+      break
+
+    case 'executive':
+      if (args[0] === 'give' && args[1] && args[2] && args[3] && args[4] && args[5]) {
+        try { await adminExecutiveGive(args[1], args[2], args[3], args[4], args[5]); pushLog('system', `Executive added to company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else if (args[0] === 'remove' && args[1] && args[2]) {
+        try { await adminExecutiveRemove(args[1], args[2]); pushLog('system', `Executive ${args[2]} removed from company ${args[1]}.`) }
+        catch (e) { pushLog('system', `Failed: ${e.message}`) }
+      } else {
+        pushLog('system', 'Usage: :executive give <companyId> <name> <title> <level> <rarity> | :executive remove <companyId> <executiveId>')
+      }
+      break
+    case 'autosave':
+      if (args[0] === 'on') {
+        autosaveEnabled = true
+        startAutosave()
+        pushLog('system', 'Autosave enabled.')
+      } else if (args[0] === 'off') {
+        autosaveEnabled = false
+        stopAutosave()
+        pushLog('system', 'Autosave disabled.')
+      } else if (args[0] === 'interval' && args[1]) {
+        const minutes = Math.max(1, parseInt(args[1], 10) || 5)
+        autosaveInterval = minutes * 60000
+        if (autosaveEnabled) startAutosave()
+        pushLog('system', `Autosave interval set to ${minutes} min.`)
+      } else {
+        pushLog('system', `Autosave: ${autosaveEnabled ? 'on' : 'off'} (every ${autosaveInterval / 60000} min)`)
+        pushLog('system', 'Usage: :autosave on|off|interval <minutes>')
+      }
+      break
+
+    case 'save':
+      await saveNamedSnapshot(args[0])
+      break
+
+    case 'load':
+      await loadNamedSnapshot(args[0])
+      break
+
+    case 'saves':
+      await listNamedSnapshots()
+      break
+
     default:
       pushLog('system', `Unknown command: ${cmd}. Type :help for available commands.`)
   }
@@ -279,6 +407,89 @@ async function clearSnapshot() {
   }
 }
 
+function snapshotsDir() {
+  return path.join(__dirname, 'data', 'snapshots')
+}
+
+async function saveNamedSnapshot(name) {
+  if (!name) {
+    pushLog('system', 'Usage: :save <name>')
+    return
+  }
+  // First flush current state to primary snapshot
+  try {
+    const res = await fetch('http://127.0.0.1:8088/api/admin/snapshot/save', { method: 'POST' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  } catch (err) {
+    pushLog('system', `Failed to save state: ${err.message}`)
+    return
+  }
+
+  // Copy primary snapshot to named file
+  const dir = snapshotsDir()
+  const src = path.join(__dirname, 'data', 'snapshot.json')
+  const dst = path.join(dir, `${name}.json`)
+
+  const { copyFileSync, mkdirSync, existsSync } = await import('node:fs')
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  try {
+    copyFileSync(src, dst)
+    pushLog('system', `Saved snapshot: ${name}`)
+  } catch (err) {
+    pushLog('system', `Failed to copy snapshot: ${err.message}`)
+  }
+}
+
+async function loadNamedSnapshot(name) {
+  if (!name) {
+    pushLog('system', 'Usage: :load <name>')
+    return
+  }
+  const src = path.join(snapshotsDir(), `${name}.json`)
+  const dst = path.join(__dirname, 'data', 'snapshot.json')
+
+  const { copyFileSync, existsSync } = await import('node:fs')
+  if (!existsSync(src)) {
+    pushLog('system', `Snapshot not found: ${name}`)
+    return
+  }
+
+  try {
+    copyFileSync(src, dst)
+  } catch (err) {
+    pushLog('system', `Failed to copy snapshot: ${err.message}`)
+    return
+  }
+
+  // Load into backend
+  try {
+    const res = await fetch('http://127.0.0.1:8088/api/admin/snapshot/load', { method: 'POST' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    pushLog('system', `Loaded snapshot: ${name}`)
+  } catch (err) {
+    pushLog('system', `Failed to load snapshot: ${err.message}`)
+  }
+}
+
+async function listNamedSnapshots() {
+  const dir = snapshotsDir()
+  const { readdirSync, existsSync } = await import('node:fs')
+  if (!existsSync(dir)) {
+    pushLog('system', 'No named snapshots.')
+    return
+  }
+  try {
+    const files = readdirSync(dir).filter(f => f.endsWith('.json')).map(f => f.replace(/\.json$/, ''))
+    if (files.length === 0) {
+      pushLog('system', 'No named snapshots.')
+    } else {
+      pushLog('system', `Snapshots: ${files.join(', ')}`)
+    }
+  } catch (err) {
+    pushLog('system', `Failed to list snapshots: ${err.message}`)
+  }
+}
+
 async function toggleBackendNext() {
   const existing = services['backend']
   const bn = services['backendNext']
@@ -301,6 +512,22 @@ async function toggleBackendNext() {
   }
 }
 
+function startAutosave() {
+  stopAutosave()
+  if (!autosaveEnabled) return
+  autosaveTimer = setInterval(() => {
+    saveSnapshot()
+  }, autosaveInterval)
+  pushLog('system', `Autosave enabled (every ${autosaveInterval / 60000} min)`)
+}
+
+function stopAutosave() {
+  if (autosaveTimer) {
+    clearInterval(autosaveTimer)
+    autosaveTimer = null
+  }
+}
+
 async function shutdown() {
   if (shuttingDown) return
   shuttingDown = true
@@ -310,7 +537,9 @@ async function shutdown() {
   cleanupInput()
   if (renderTimer) clearTimeout(renderTimer)
   process.stdout.write('\x1b[?25h\x1b[0m\n')
+  stopAutosave()
   process.exit(0)
+
 }
 
 function startInput() {

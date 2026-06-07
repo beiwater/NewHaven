@@ -62,6 +62,7 @@ type App struct {
 	ResearchHandler    *httpapi.ResearchHandler
 	ExecutiveHandler   *httpapi.ExecutiveHandler
 	LeaderboardHandler *httpapi.LeaderboardHandler
+	AdminHandler      *httpapi.AdminHandler
 }
 
 // New creates a fully wired App with all services and handlers constructed.
@@ -106,8 +107,9 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	executiveHandler := httpapi.NewExecutiveHandler(st)
 	leaderboardHandler := httpapi.NewLeaderboardHandler()
 	socialHandler := httpapi.NewSocialHandler(st)
+	adminHandler := httpapi.NewAdminHandler(st)
 
-	// PostgreSQL snapshot persistence (optional)
+	// Snapshot persistence: file-based (memory) or PostgreSQL
 	var pgStore *postgres.Store
 	var saveAll func(ctx context.Context) error
 	if cfg.DatabaseURL != "" {
@@ -127,6 +129,10 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		} else {
 			slog.Warn("[app] storage is not memory-backed, skipping postgres persistence")
 		}
+	}
+	if saveAll == nil {
+		// Memory-only mode: auto-save to data/snapshot.json via scheduler
+		saveAll = st.SaveSnapshot
 	}
 
 	return &App{
@@ -165,5 +171,6 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		ResearchHandler:    researchHandler,
 		ExecutiveHandler:   executiveHandler,
 		LeaderboardHandler: leaderboardHandler,
+		AdminHandler:      adminHandler,
 	}
 }

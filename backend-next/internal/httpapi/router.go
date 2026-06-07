@@ -22,6 +22,7 @@ type RouterHandlers struct {
 	Research    *ResearchHandler
 	Executive   *ExecutiveHandler
 	Leaderboard *LeaderboardHandler
+	Admin       *AdminHandler
 }
 
 func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
@@ -148,5 +149,10 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	// Leaderboard routes (authenticated)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/v2/leaderboard/", h.Leaderboard.handleLeaderboard)
 
+	// Admin snapshot routes (dev tool, no auth)
+	r.Route("/api/admin/snapshot", func(r chi.Router) {
+		r.Post("/save", h.Admin.handleSaveSnapshot)
+		r.Post("/load", h.Admin.handleLoadSnapshot)
+	})
 	return r
 }
