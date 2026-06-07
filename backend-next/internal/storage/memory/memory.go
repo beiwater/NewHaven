@@ -796,14 +796,31 @@ func (s *Store) SaveMessage(_ context.Context, m *social.Message) error {
 	return nil
 }
 
-func (s *Store) GetMessages(_ context.Context, _ string, limit int) ([]social.Message, error) {
+func (s *Store) GetMessages(_ context.Context, channel string, limit int) ([]social.Message, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	n := len(s.messages)
+
+	// Filter by channel if specified
+	var filtered []social.Message
+	if channel == "" {
+		filtered = s.messages
+	} else {
+		filtered = make([]social.Message, 0, len(s.messages))
+		for _, m := range s.messages {
+			if m.Channel == channel {
+				filtered = append(filtered, m)
+			}
+		}
+	}
+
+	n := len(filtered)
 	if limit > 0 && limit < n {
 		n = limit
 	}
-	return s.messages[len(s.messages)-n:], nil
+	if n == 0 {
+		return []social.Message{}, nil
+	}
+	return filtered[len(filtered)-n:], nil
 }
 
 func (s *Store) CreateNotification(_ context.Context, n *social.Notification) error {
