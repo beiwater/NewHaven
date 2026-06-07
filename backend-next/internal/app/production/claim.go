@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/newhaven/backend-next/internal/apperr"
+	"github.com/newhaven/backend-next/internal/domain/company"
 	"github.com/newhaven/backend-next/internal/domain/finance"
 	proddmn "github.com/newhaven/backend-next/internal/domain/production"
 	openapi "github.com/newhaven/backend-next/internal/generated/openapi"
@@ -116,11 +117,38 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 		Xp:            &xpEarned,
 	}
 
-	// Look up current level for response.
-	company, err := s.companies.GetCompany(ctx, companyID)
-	if err == nil {
-		lvl := company.Level
+	// Look up current level for response and auto-complete arrival story if in progress.
+	comp, compErr := s.companies.GetCompany(ctx, companyID)
+	if compErr == nil {
+		lvl := comp.Level
 		resp.Level = &lvl
+
+		// Auto-complete the arrival story on the first production claim.
+		prefs := comp.Preferences
+		if prefs == nil {
+			prefs = make(map[string]any)
+		}
+		stories, _ := prefs["storyProgress"].(map[string]any)
+		if stories == nil {
+			stories = make(map[string]any)
+		}
+		current, _ := stories[company.ArrivalStoryID].(map[string]any)
+		if current != nil {
+			if status, _ := current["status"].(string); status == "in_progress" {
+				current["status"] = "completed"
+				prefs["storyProgress"] = stories
+				comp.Preferences = prefs
+
+				// Apply newbie level-up.
+				if s.cfg != nil && comp.Level < s.cfg.NewbieLevelUpTo {
+					comp.Level = s.cfg.NewbieLevelUpTo
+				}
+
+				if saveErr := s.companies.UpdateCompany(ctx, comp); saveErr != nil {
+					_ = saveErr
+				}
+			}
+		}
 	}
 
 	return resp, nil

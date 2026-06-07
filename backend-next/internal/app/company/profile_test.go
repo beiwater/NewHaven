@@ -21,7 +21,7 @@ func TestStoryProgressLifecycle(t *testing.T) {
 	if err := store.CreateCompany(ctx, c); err != nil {
 		t.Fatal(err)
 	}
-	svc := appcompany.NewService(store, platform.NewLogger(slog.Default()))
+	svc := appcompany.NewService(store, platform.NewLogger(slog.Default()), 0)
 
 	profile, err := svc.GetProfile(ctx, 7, c.ID, c.ID)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestProfileWithoutStoryProgressDoesNotStartTutorial(t *testing.T) {
 	if err := store.CreateCompany(ctx, c); err != nil {
 		t.Fatal(err)
 	}
-	svc := appcompany.NewService(store, platform.NewLogger(slog.Default()))
+	svc := appcompany.NewService(store, platform.NewLogger(slog.Default()), 0)
 	profile, err := svc.GetProfile(ctx, 8, c.ID, c.ID)
 	if err != nil {
 		t.Fatal(err)

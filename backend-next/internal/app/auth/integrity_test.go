@@ -31,6 +31,7 @@ func newAuthService(players storage.PlayerStorage, companies storage.CompanyStor
 		platform.NewIDGen(),
 		platform.NewLogger(slog.Default()),
 		"test-secret",
+		"",
 	)
 }
 

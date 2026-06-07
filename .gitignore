@@ -38,3 +38,6 @@ temp/
 backend/simapi.exe
 # Build outputs
 backend-next/dev/
+
+./log
+log/

@@ -21,12 +21,16 @@ func createProductionCompany(t *testing.T, store interface {
 	if err := store.CreatePlayer(ctx, &auth.Player{ID: playerID, Username: "producer"}); err != nil {
 		t.Fatalf("CreatePlayer: %v", err)
 	}
+	companyBuildings := []domain.Building{
+		{ID: "bld-101-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+	}
 	if err := store.CreateCompany(ctx, &domain.Company{
 		PlayerID:  playerID,
 		Name:      "Production Corp",
 		Money:     100000,
 		Level:     1,
 		Inventory: inventory,
+		Buildings: companyBuildings,
 	}); err != nil {
 		t.Fatalf("CreateCompany: %v", err)
 	}

@@ -339,30 +339,10 @@ func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 		UsedCapacity: 0,
 		Items:        []warehouse.Item{},
 	}
-	// Auto-create sample buildings for new company
-	bld1 := company.Building{
-		ID:         fmt.Sprintf("bld-%d-1", c.ID),
-		BuildingID: 1,
-		Kind:       1,
-		Name:       "Bakery",
-		Level:      1,
-		MapID:      "map_1",
-		SlotID:     "slot_a1",
-		X:          5,
-		Y:          10,
+	// Initialize empty buildings slice for new company (only if not already set)
+	if c.Buildings == nil {
+		c.Buildings = []company.Building{}
 	}
-	bld2 := company.Building{
-		ID:         fmt.Sprintf("bld-%d-2", c.ID),
-		BuildingID: 2,
-		Kind:       2,
-		Name:       "Workshop",
-		Level:      1,
-		MapID:      "map_1",
-		SlotID:     "slot_b1",
-		X:          15,
-		Y:          20,
-	}
-	c.Buildings = []company.Building{bld1, bld2}
 	return nil
 }
 

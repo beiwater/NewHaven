@@ -39,17 +39,23 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	// Rate limiter (skips /healthz and /readyz internally)
 	if cfg.RateLimitEnabled {
 		r.Use(NewRateLimiter(0, 0).Middleware)
+		// Tighter rate limiter for authentication endpoints (10 req/min per IP)
+		loginRateLimiter := NewRateLimiter(10, 0).Middleware
+		r.Route("/api", func(r chi.Router) {
+			r.With(loginRateLimiter).Post("/register", h.Auth.handleRegister)
+			r.With(loginRateLimiter).Post("/login", h.Auth.handleLogin)
+		})
+	} else {
+		// Auth routes (unauthenticated)
+		r.Route("/api", func(r chi.Router) {
+			r.Post("/register", h.Auth.handleRegister)
+			r.Post("/login", h.Auth.handleLogin)
+		})
 	}
 
 	// Health
 	r.Get("/healthz", handleHealthz)
 	r.Get("/readyz", handleReadyz)
-
-	// Auth routes (unauthenticated)
-	r.Route("/api", func(r chi.Router) {
-		r.Post("/register", h.Auth.handleRegister)
-		r.Post("/login", h.Auth.handleLogin)
-	})
 	// Bond routes (authenticated)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Get("/api/bonds/", h.Bond.handleListBonds)
 	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/bonds/", h.Bond.handleCreateBond)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/newhaven/backend-next/internal/domain/chat"
 	"github.com/newhaven/backend-next/internal/storage"
+	"github.com/newhaven/backend-next/internal/app/terminal"
 )
 
 // ChatHandler handles private room-based chat endpoints.
@@ -18,10 +19,11 @@ type ChatHandler struct {
 	chat      storage.ChatStorage
 	companies storage.CompanyStorage
 	maxMsgLen int
+	terminal  *terminal.Service
 }
 
-func NewChatHandler(chat storage.ChatStorage, companies storage.CompanyStorage, maxMsgLen int) *ChatHandler {
-	return &ChatHandler{chat: chat, companies: companies, maxMsgLen: maxMsgLen}
+func NewChatHandler(chat storage.ChatStorage, companies storage.CompanyStorage, maxMsgLen int, term *terminal.Service) *ChatHandler {
+	return &ChatHandler{chat: chat, companies: companies, maxMsgLen: maxMsgLen, terminal: term}
 }
 
 // lookupCompanyName resolves the company's display name from storage.
@@ -170,6 +172,32 @@ func (h *ChatHandler) handleSendMessage(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to save message", nil)
 		return
 	}
+
+	// Check if this message is sent to Terminal (command processing)
+	if h.terminal != nil {
+		otherID, found := h.findOtherParticipant(req.RoomId, companyID)
+		if found {
+			other, err := h.companies.GetCompany(r.Context(), otherID)
+			if err == nil && other.Name == terminal.TerminalCompanyName {
+				if strings.HasPrefix(strings.TrimSpace(req.Body), "/") {
+					result, cmdErr := h.terminal.ProcessCommand(r.Context(), companyID, req.Body)
+					if cmdErr == nil && result.Reply != "" {
+						// Save reply from Terminal
+						replyMsg := &chat.Message{
+							RoomID:     req.RoomId,
+							SenderID:   otherID,
+							SenderName: terminal.TerminalCompanyName,
+							Content:    result.Reply,
+							CreatedAt:  time.Now().UTC().Format(time.RFC3339),
+						}
+						_ = h.chat.SaveRoomMessage(r.Context(), replyMsg)
+					}
+				}
+			}
+		}
+	}
+
+	// Return the original message as response (frontend expects this)
 	writeJSON(w, http.StatusOK, msg)
 }
 

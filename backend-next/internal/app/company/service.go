@@ -15,13 +15,14 @@ var ErrNotFound = errors.New("company not found")
 
 // Service is the company application use case.
 type Service struct {
-	companies storage.CompanyStorage
-	logger    *platform.Logger
+	companies       storage.CompanyStorage
+	logger          *platform.Logger
+	newbieLevelUpTo int
 }
 
 // NewService creates a new company service.
-func NewService(companies storage.CompanyStorage, logger *platform.Logger) *Service {
-	return &Service{companies: companies, logger: logger}
+func NewService(companies storage.CompanyStorage, logger *platform.Logger, newbieLevelUpTo int) *Service {
+	return &Service{companies: companies, logger: logger, newbieLevelUpTo: newbieLevelUpTo}
 }
 
 // ListMyCompanies returns the companies owned by the given player.

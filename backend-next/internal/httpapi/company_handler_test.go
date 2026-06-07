@@ -20,7 +20,7 @@ func TestListMyCompanies_NoToken_401(t *testing.T) {
 	}
 	store := memory.New()
 	a := app.New(cfg, store, nil, nil, nil)
-	companySvc := company.NewService(store, a.Logger)
+	companySvc := company.NewService(store, a.Logger, 0)
 	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
@@ -52,7 +52,7 @@ func TestListMyCompanies_WithToken_200(t *testing.T) {
 	}
 	store := memory.New()
 	a := app.New(cfg, store, nil, nil, nil)
-	companySvc := company.NewService(store, a.Logger)
+	companySvc := company.NewService(store, a.Logger, 0)
 	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
@@ -132,7 +132,7 @@ func TestListMyCompanies_ReturnsEnvelope(t *testing.T) {
 	}
 	store := memory.New()
 	a := app.New(cfg, store, nil, nil, nil)
-	companySvc := company.NewService(store, a.Logger)
+	companySvc := company.NewService(store, a.Logger, 0)
 	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 

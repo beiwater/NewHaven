@@ -2,6 +2,7 @@ package httpapi_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
+	domcompany "github.com/newhaven/backend-next/internal/domain/company"
 	proddmn "github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/platform"
@@ -328,16 +330,22 @@ func TestStartProduction_Success_200(t *testing.T) {
 		t.Fatalf("seed inventory: %v", err)
 	}
 
-	// Change first building to Mill (type 3) to match our catalog
+	// Add a building for production (no longer auto-created on register)
 	company, err := store.GetCompany(nil, companyID)
 	if err != nil {
 		t.Fatalf("get company: %v", err)
 	}
+	company.Buildings = []domcompany.Building{
+		{ID: "bld-" + fmt.Sprint(companyID) + "-1", BuildingID: 3, Kind: 3, Name: "My Mill", Level: 1},
+	}
+	if err := store.UpdateCompany(nil, company); err != nil {
+		t.Fatalf("add building: %v", err)
+	}
+	company, err = store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("re-get company: %v", err)
+	}
 	bldID := company.Buildings[0].ID
-	company.Buildings[0].BuildingID = 3
-	company.Buildings[0].Level = 1
-	company.Buildings[0].Name = "My Mill"
-	_ = store.UpdateCompany(nil, company)
 
 	// Send start production request
 	body := `{"building_id":"` + bldID + `","resource_id":3,"quantity":5}`

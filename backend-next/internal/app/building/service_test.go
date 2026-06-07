@@ -30,6 +30,10 @@ func TestListMyBuildings_ReturnsBuildings(t *testing.T) {
 		Level:     1,
 		XP:        0,
 		Inventory: make(map[int]int),
+		Buildings: []domain.Building{
+			{ID: "bld-1-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+			{ID: "bld-1-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+		},
 	})
 	if err != nil {
 		t.Fatalf("CreateCompany: %v", err)
@@ -220,6 +224,10 @@ func TestRollbackUpgradeBuildingOnFailure(t *testing.T) {
 		Level:     5,
 		XP:        0,
 		Inventory: make(map[int]int),
+		Buildings: []domain.Building{
+			{ID: "bld-21-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+			{ID: "bld-21-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+		},
 	})
 	if err != nil {
 		t.Fatalf("CreateCompany: %v", err)
@@ -269,6 +277,10 @@ func TestRollbackPlaceBuildingOnFailure(t *testing.T) {
 		Level:     5,
 		XP:        0,
 		Inventory: make(map[int]int),
+		Buildings: []domain.Building{
+			{ID: "bld-22-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+			{ID: "bld-22-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+		},
 	})
 	if err != nil {
 		t.Fatalf("CreateCompany: %v", err)
@@ -351,6 +363,10 @@ func TestRollbackMoveBuildingOnFailure(t *testing.T) {
 		Level:     5,
 		XP:        0,
 		Inventory: make(map[int]int),
+		Buildings: []domain.Building{
+			{ID: "bld-23-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+			{ID: "bld-23-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+		},
 	})
 	if err != nil {
 		t.Fatalf("CreateCompany: %v", err)
@@ -424,6 +440,10 @@ func TestRollbackDemolishBuildingOnFailure(t *testing.T) {
 		Level:     5,
 		XP:        0,
 		Inventory: make(map[int]int),
+		Buildings: []domain.Building{
+			{ID: "bld-24-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+			{ID: "bld-24-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+		},
 	})
 	if err != nil {
 		t.Fatalf("CreateCompany: %v", err)

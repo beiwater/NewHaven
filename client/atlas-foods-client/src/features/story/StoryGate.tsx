@@ -24,7 +24,7 @@ export function StoryGate({ children }: { children: ReactNode }) {
     )
   }
 
-  const closeStory = (status: 'completed' | 'skipped') => {
+  const closeStory = (status: 'in_progress' | 'completed' | 'skipped') => {
     setClosedThisSession(true)
     useUIStore.getState().setActiveView('map')
     updateProgress.mutate({
@@ -32,6 +32,12 @@ export function StoryGate({ children }: { children: ReactNode }) {
       stepId: storyProgress?.stepId ?? chapter1ArrivalStory.firstStepId,
       status,
     })
+  }
+
+  // When the last story step is reached, set in_progress (not completed)
+  // so the backend auto-completes on first production claim.
+  const handleLastStep = () => {
+    closeStory('in_progress')
   }
 
   if (shouldShowStory) {
@@ -44,7 +50,7 @@ export function StoryGate({ children }: { children: ReactNode }) {
           stepId,
           status: 'in_progress',
         })}
-        onComplete={() => closeStory('completed')}
+        onComplete={() => handleLastStep()}
         onSkip={() => closeStory('skipped')}
       />
     )

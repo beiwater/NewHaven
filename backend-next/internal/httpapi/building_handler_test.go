@@ -1,6 +1,7 @@
 package httpapi_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app"
 	"github.com/newhaven/backend-next/internal/app/building"
 	"github.com/newhaven/backend-next/internal/config"
+	"github.com/newhaven/backend-next/internal/domain/company"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
@@ -84,6 +86,21 @@ func TestListMyBuildings_WithToken_200(t *testing.T) {
 	token, ok := regData["token"]
 	if !ok || token == "" {
 		t.Fatal("register did not return a token")
+	}
+
+	// Add buildings to the newly registered company
+	companyID := int(regData["company_id"].(float64))
+	ctx := context.Background()
+	comp, err := store.GetCompany(ctx, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+	comp.Buildings = []company.Building{
+		{ID: "bld-1-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+		{ID: "bld-1-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+	}
+	if err := store.UpdateCompany(ctx, comp); err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
 	}
 
 	// Now hit the buildings endpoint with the token
@@ -169,6 +186,21 @@ func TestListMyBuildings_EmptyArray_200(t *testing.T) {
 	token, ok := regData["token"]
 	if !ok || token == "" {
 		t.Fatal("register did not return a token")
+	}
+
+	// Add buildings to the newly registered company
+	companyID := int(regData["company_id"].(float64))
+	ctx := context.Background()
+	comp, err := store.GetCompany(ctx, companyID)
+	if err != nil {
+		t.Fatalf("GetCompany: %v", err)
+	}
+	comp.Buildings = []company.Building{
+		{ID: "bld-2-1", BuildingID: 1, Kind: 1, Name: "Bakery", Level: 1, MapID: "map_1", SlotID: "slot_a1", X: 5, Y: 10},
+		{ID: "bld-2-2", BuildingID: 2, Kind: 2, Name: "Workshop", Level: 1, MapID: "map_1", SlotID: "slot_b1", X: 15, Y: 20},
+	}
+	if err := store.UpdateCompany(ctx, comp); err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
 	}
 
 	// Now hit the buildings endpoint with the token

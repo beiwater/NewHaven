@@ -94,8 +94,8 @@ export function useCompleteTutorial() {
 }
 
 export function useLogin() {
+  const qc = useQueryClient()
   return useMutation({
-
     mutationFn: ({ username, password }: { username: string; password: string }) =>
       api.post<LoginResponse>('/api/login', { username, password }),
     onSuccess: (data) => {
@@ -104,12 +104,14 @@ export function useLogin() {
       if (!token || !companyId) {
         throw new Error('Login response missing token or company id')
       }
+      qc.clear()
       setAuth(token, String(companyId), false)
     },
   })
 }
 
 export function useRegister() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ username, password, name, gender, email }: { username: string; password: string; name?: string; gender?: string; email?: string }) =>
       api.post<RegisterResponse>('/api/register', { username, password, name, gender, email }),
@@ -119,6 +121,7 @@ export function useRegister() {
       if (!token || !companyId) {
         throw new Error('Register response missing token or company id')
       }
+      qc.clear()
       setAuth(token, String(companyId), true)
     },
   })

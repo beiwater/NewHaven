@@ -65,6 +65,11 @@ func main() {
 		}
 	}
 
+		// Ensure Terminal system company exists
+		if _, err := application.TerminalService.EnsureTerminalCompany(context.Background()); err != nil {
+			slog.Warn("terminal bootstrap skipped", "error", err)
+		}
+
 	srv := &http.Server{
 		Addr:         cfg.Addr,
 		Handler:      mux,

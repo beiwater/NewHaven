@@ -98,6 +98,14 @@ func (s *Service) UpdateStoryProgress(ctx context.Context, companyID int, req St
 	stories[req.StoryID] = map[string]any{"status": progress.Status, "stepId": progress.StepID}
 	preferences["storyProgress"] = stories
 	c.Preferences = preferences
+
+	// Auto level-up when the arrival story is completed for the first time.
+	if req.StoryID == domain.ArrivalStoryID && req.Status == "completed" && currentStatus != "completed" && currentStatus != "skipped" {
+		if c.Level < s.newbieLevelUpTo {
+			c.Level = s.newbieLevelUpTo
+		}
+	}
+
 	if err := s.companies.UpdateCompany(ctx, c); err != nil {
 		return nil, apperr.WrapMsg(apperr.KindInternal, "save story progress", err)
 	}

@@ -23,12 +23,13 @@ var (
 
 // Service is the auth application use case.
 type Service struct {
-	players   storage.PlayerStorage
-	companies storage.CompanyStorage
-	clock     platform.Clock
-	idgen     *platform.IDGen
-	logger    *platform.Logger
-	jwtKey    string
+	players      storage.PlayerStorage
+	companies    storage.CompanyStorage
+	clock        platform.Clock
+	idgen        *platform.IDGen
+	logger       *platform.Logger
+	jwtKey       string
+	devPassword  string
 }
 
 func NewService(
@@ -38,14 +39,16 @@ func NewService(
 	idgen *platform.IDGen,
 	logger *platform.Logger,
 	jwtKey string,
+	devPassword string,
 ) *Service {
 	return &Service{
-		players:   players,
-		companies: companies,
-		clock:     clock,
-		idgen:     idgen,
-		logger:    logger,
-		jwtKey:    jwtKey,
+		players:     players,
+		companies:   companies,
+		clock:       clock,
+		idgen:       idgen,
+		logger:      logger,
+		jwtKey:      jwtKey,
+		devPassword: devPassword,
 	}
 }
 
@@ -177,10 +180,9 @@ func (s *Service) DevBootstrap(ctx context.Context) error {
 		// dev user already exists
 		return nil
 	}
-
 	req := &domain.RegisterRequest{
 		Username: "dev",
-		Password: "dev",
+		Password: s.devPassword,
 		Name:     "Dev Player",
 		Gender:   "other",
 		Email:    "dev@newhaven.game",

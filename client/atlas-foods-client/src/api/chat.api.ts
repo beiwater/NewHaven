@@ -53,6 +53,7 @@ export function useSendMessage() {
       api.post<ChatMessage>('/api/v2/message/', payload),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['chat', 'messages'] })
+      qc.invalidateQueries({ queryKey: ['chat', 'chatroom'] })
       if (variables.chatroom.startsWith('C:')) {
         qc.invalidateQueries({ queryKey: ['chat', 'private'] })
       }

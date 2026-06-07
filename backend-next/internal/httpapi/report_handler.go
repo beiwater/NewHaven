@@ -6,10 +6,31 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/newhaven/backend-next/internal/platform"
 )
+
+// sanitizePlainText strips HTML tags and trims whitespace.
+// This prevents stored XSS if report descriptions are ever rendered in a UI.
+func sanitizePlainText(s string) string {
+	// Simple but effective: strip anything that looks like an HTML tag.
+	var buf strings.Builder
+	buf.Grow(len(s))
+	inTag := false
+	for _, r := range s {
+		switch {
+		case r == '<':
+			inTag = true
+		case r == '>':
+			inTag = false
+		case !inTag:
+			buf.WriteRune(r)
+		}
+	}
+	return strings.TrimSpace(buf.String())
+}
 
 // --- Types ---
 
@@ -66,6 +87,13 @@ func (h *ReportHandler) handleSubmitReport(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Sanitize: strip HTML tags to prevent stored XSS
+	req.Description = sanitizePlainText(req.Description)
+
+	if req.Description == "" {
+		writeErr(w, http.StatusBadRequest, ErrorValidation, "description cannot be empty after filtering", nil)
+		return
+	}
 	playerID, _ := PlayerIDFromCtx(r.Context())
 	companyID, _ := CompanyIDFromCtx(r.Context())
 

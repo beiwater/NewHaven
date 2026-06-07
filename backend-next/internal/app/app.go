@@ -12,6 +12,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app/market"
 	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/app/research"
+	"github.com/newhaven/backend-next/internal/app/terminal"
 	"github.com/newhaven/backend-next/internal/app/warehouse"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
@@ -43,6 +44,7 @@ type App struct {
 	MarketService     *market.Service
 	ResearchService   *research.Service
 	FinanceService    *finance.Service
+	TerminalService   *terminal.Service
 
 	// Scheduler dependencies
 	PostgresStore *postgres.Store
@@ -98,14 +100,14 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	}
 
 	// Auth
-	authSvc := auth.NewService(st, st, clock, idgen, logger, cfg.JWTSigningKey)
+	authSvc := auth.NewService(st, st, clock, idgen, logger, cfg.JWTSigningKey, cfg.DevPassword)
 
 	// Market
 	marketSvc := market.NewService(st, st, st, resources, economy, cfg.Game, clock, idgen)
 	marketHandler := httpapi.NewMarketHandler(marketSvc)
 
 	// Company
-	companySvc := company.NewService(st, logger)
+	companySvc := company.NewService(st, logger, cfg.Game.NewbieLevelUpTo)
 	companyHandler := httpapi.NewCompanyHandler(companySvc, marketSvc)
 	authHandler := httpapi.NewAuthHandler(authSvc)
 
@@ -133,8 +135,9 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	executiveHandler := httpapi.NewExecutiveHandler(st)
 	leaderboardHandler := httpapi.NewLeaderboardHandler(st)
 	adminHandler := httpapi.NewAdminHandler(st)
+	terminalSvc := terminal.NewService(st, logger)
 	socialHandler := httpapi.NewSocialHandler(st, st, cfg.Game.MaxMessageLength)
-	chatHandler := httpapi.NewChatHandler(st, st, cfg.Game.MaxMessageLength)
+	chatHandler := httpapi.NewChatHandler(st, st, cfg.Game.MaxMessageLength, terminalSvc)
 	logDir := filepath.Join(config.FindProjectRoot(), "log")
 	reportHandler := httpapi.NewReportHandler(logDir, idgen, clock)
 	// Snapshot persistence: file-based (memory) or PostgreSQL
@@ -181,6 +184,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		MarketService:     marketSvc,
 		FinanceService:    financeSvc,
 		ResearchService:   researchSvc,
+		TerminalService:   terminalSvc,
 
 		PostgresStore: pgStore,
 		SaveAll:       saveAll,

@@ -32,7 +32,7 @@ func TestListMyCompanies_ReturnsCompany(t *testing.T) {
 	}
 
 	logger := platform.NewLogger(slog.Default())
-	svc := company.NewService(store, logger)
+	svc := company.NewService(store, logger, 0)
 
 	resp, err := svc.ListMyCompanies(ctx, 1)
 	if err != nil {
@@ -71,7 +71,7 @@ func TestListMyCompanies_NoCompany(t *testing.T) {
 	}
 
 	logger := platform.NewLogger(slog.Default())
-	svc := company.NewService(store, logger)
+	svc := company.NewService(store, logger, 0)
 
 	_, err = svc.ListMyCompanies(ctx, 2)
 	if err == nil {

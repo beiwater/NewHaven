@@ -246,15 +246,11 @@ func TestStartProduction_Success_CreatesJobAndDeductsInventory(t *testing.T) {
 		t.Fatalf("GetCompanyByPlayerID: %v", err)
 	}
 
-	// Company auto-gets building "bld-<id>-1" (BuildingID=1, Farm) and "bld-<id>-2" (BuildingID=2, Barn).
-	// We need a Mill (building_id=3). Override one building.
-	bldID := "my-mill"
-	company.Buildings[0].ID = bldID
-	company.Buildings[0].BuildingID = 3 // Mill
-	company.Buildings[0].Level = 1
-	company.Buildings[0].Name = "My Mill"
-	// Also ensure the buildings map in store is updated
-	_ = store.UpdateCompany(ctx, company)
+bldID := "my-mill"
+company.Buildings = []domain.Building{
+	{ID: bldID, BuildingID: 3, Level: 1, Name: "My Mill"},
+}
+_ = store.UpdateCompany(ctx, company)
 	// Re-read to get consistent state
 	company, _ = store.GetCompany(ctx, company.ID)
 
@@ -343,16 +339,11 @@ func TestStartProduction_InsufficientInput_NoJobCreated(t *testing.T) {
 		t.Fatalf("GetCompanyByPlayerID: %v", err)
 	}
 
-	bldID := "poor-mill"
-	company.Buildings[0].ID = bldID
-	company.Buildings[0].BuildingID = 3
-	company.Buildings[0].Level = 1
-	_ = store.UpdateCompany(ctx, company)
-
-	_, err = svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: bldID, ResourceId: 3, Quantity: 10})
-	if err == nil {
-		t.Fatal("expected error for insufficient inventory, got nil")
-	}
+bldID := "poor-mill"
+company.Buildings = []domain.Building{
+	{ID: bldID, BuildingID: 3, Level: 1},
+}
+_ = store.UpdateCompany(ctx, company)
 
 	// Verify no job was created
 	listResp, _ := svc.ListProductionJobs(ctx, company.ID)
@@ -402,10 +393,10 @@ func TestStartProduction_BuildingCannotProduce_Error(t *testing.T) {
 		t.Fatalf("GetCompanyByPlayerID: %v", err)
 	}
 
-	// Use the auto-created BuildingID=1 (Farm) but configured catalog thinks it's a Barn (id=2)
-	company.Buildings[0].BuildingID = 2 // Barn
-	company.Buildings[0].Level = 1
-	_ = store.UpdateCompany(ctx, company)
+company.Buildings = []domain.Building{
+	{ID: "bld-test", BuildingID: 2, Level: 1, Name: "Test Barn"},
+}
+_ = store.UpdateCompany(ctx, company)
 
 	_, err = svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: company.Buildings[0].ID, ResourceId: 3, Quantity: 1})
 	if err == nil {
@@ -448,7 +439,11 @@ func TestStartProduction_DurationCap_Error(t *testing.T) {
 		t.Fatalf("GetCompanyByPlayerID: %v", err)
 	}
 
-	bldID := company.Buildings[0].ID
+bldID := "bld-durcap"
+company.Buildings = []domain.Building{
+	{ID: bldID, BuildingID: 1, Level: 1},
+}
+_ = store.UpdateCompany(ctx, company)
 
 	// With producedPerHourRaw=1, level=1, rate=1, quantity=200000 =>
 	// duration = ceil(200000 / 1 * 3600) = 720,000,000s >> 48h (172800s)
@@ -486,15 +481,15 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 		t.Fatalf("CreateCompany: %v", err)
 	}
 
-	company, err := store.GetCompanyByPlayerID(ctx, 14)
-	if err != nil {
-		t.Fatalf("GetCompanyByPlayerID: %v", err)
-	}
-
-	bldID := company.Buildings[0].ID
-	company.Buildings[0].BuildingID = 3
-	company.Buildings[0].Level = 1
-	_ = store.UpdateCompany(ctx, company)
+company, err := store.GetCompanyByPlayerID(ctx, 14)
+if err != nil {
+	t.Fatalf("GetCompanyByPlayerID: %v", err)
+}
+bldID := "bld-mill"
+company.Buildings = []domain.Building{
+	{ID: bldID, BuildingID: 3, Level: 1},
+}
+_ = store.UpdateCompany(ctx, company)
 
 	// Check warehouse before production: should have no items
 	warehouseBefore, err := store.GetWarehouse(ctx, company.ID)

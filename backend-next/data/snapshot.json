@@ -3,22 +3,94 @@
     "1": {
       "id": 1,
       "username": "dev",
-      "password_hash": "$2a$10$WC0ctBofSD0jhwFrh49L2OYUSm782vWFEEZztBdR/YKPmFffsoVAC",
+      "password_hash": "$2a$10$Pz2AumWLvWOYxRFS7.M88.wvtQJqk32u2ksPjyERTcTf04lndV8kO",
       "display_name": "Dev Player",
       "gender": "other",
       "email": "dev@newhaven.game",
-      "created_at": "2026-06-07T03:00:39Z"
+      "created_at": "2026-06-07T00:26:41Z"
+    },
+    "11": {
+      "id": 11,
+      "username": "dev12",
+      "password_hash": "$2a$10$zX0/X8D5NVAM2khJZdLQou1cxHW.lmBO.G6aL8Oj5WHZTIARf3h9i",
+      "created_at": "2026-06-07T02:00:20Z"
+    },
+    "4": {
+      "id": 4,
+      "username": "dev1",
+      "password_hash": "$2a$10$lDXn5lyINVK4gAjlrtcTtuaQDhXBzjrPaAKKa1DRITs4j/1john9y",
+      "created_at": "2026-06-07T01:23:07Z"
+    },
+    "40": {
+      "id": 40,
+      "username": "dev546",
+      "password_hash": "$2a$10$K4coGQSDQ/RqWmha2SXUO.Kj2jYfKb8sMdQNoDN22GU7tbk3vKfM2",
+      "created_at": "2026-06-07T02:25:09Z"
+    },
+    "47": {
+      "id": 47,
+      "username": "dev000",
+      "password_hash": "$2a$10$kAB152dmfhIywFfaMajnUeiI2qYu3WeA/kpDyopvIES3Yh/PJToGK",
+      "created_at": "2026-06-07T03:14:38Z"
+    },
+    "49": {
+      "id": 49,
+      "username": "12222",
+      "password_hash": "$2a$10$KyGA6TB.cmqrExL/9RKM2.yR4o2ui0SlVYDb7GoKng7I33OW4Ssfe",
+      "created_at": "2026-06-07T03:23:52Z"
+    },
+    "57": {
+      "id": 57,
+      "username": "dev123123123123123",
+      "password_hash": "$2a$10$k7YIOqZa/0LfHkdg.srqJ.PAXVImkf6x..RNFJr8VCqD0YiZ/mnT6",
+      "created_at": "2026-06-07T03:37:32Z"
     }
   },
   "by_user": {
+    "12222": {
+      "id": 49,
+      "username": "12222",
+      "password_hash": "$2a$10$KyGA6TB.cmqrExL/9RKM2.yR4o2ui0SlVYDb7GoKng7I33OW4Ssfe",
+      "created_at": "2026-06-07T03:23:52Z"
+    },
     "dev": {
       "id": 1,
       "username": "dev",
-      "password_hash": "$2a$10$WC0ctBofSD0jhwFrh49L2OYUSm782vWFEEZztBdR/YKPmFffsoVAC",
+      "password_hash": "$2a$10$Pz2AumWLvWOYxRFS7.M88.wvtQJqk32u2ksPjyERTcTf04lndV8kO",
       "display_name": "Dev Player",
       "gender": "other",
       "email": "dev@newhaven.game",
-      "created_at": "2026-06-07T03:00:39Z"
+      "created_at": "2026-06-07T00:26:41Z"
+    },
+    "dev000": {
+      "id": 47,
+      "username": "dev000",
+      "password_hash": "$2a$10$kAB152dmfhIywFfaMajnUeiI2qYu3WeA/kpDyopvIES3Yh/PJToGK",
+      "created_at": "2026-06-07T03:14:38Z"
+    },
+    "dev1": {
+      "id": 4,
+      "username": "dev1",
+      "password_hash": "$2a$10$lDXn5lyINVK4gAjlrtcTtuaQDhXBzjrPaAKKa1DRITs4j/1john9y",
+      "created_at": "2026-06-07T01:23:07Z"
+    },
+    "dev12": {
+      "id": 11,
+      "username": "dev12",
+      "password_hash": "$2a$10$zX0/X8D5NVAM2khJZdLQou1cxHW.lmBO.G6aL8Oj5WHZTIARf3h9i",
+      "created_at": "2026-06-07T02:00:20Z"
+    },
+    "dev123123123123123": {
+      "id": 57,
+      "username": "dev123123123123123",
+      "password_hash": "$2a$10$k7YIOqZa/0LfHkdg.srqJ.PAXVImkf6x..RNFJr8VCqD0YiZ/mnT6",
+      "created_at": "2026-06-07T03:37:32Z"
+    },
+    "dev546": {
+      "id": 40,
+      "username": "dev546",
+      "password_hash": "$2a$10$K4coGQSDQ/RqWmha2SXUO.Kj2jYfKb8sMdQNoDN22GU7tbk3vKfM2",
+      "created_at": "2026-06-07T02:25:09Z"
     }
   },
   "companies": {
@@ -26,9 +98,9 @@
       "id": 1000002,
       "player_id": 1,
       "name": "Dev Player",
-      "money": 1000000000,
+      "money": 999980000,
       "level": 100,
-      "xp": 1000000000,
+      "xp": 1000000010,
       "preferences": {
         "storyProgress": {
           "chapter1Arrival": {
@@ -61,175 +133,1492 @@
           "x": 15,
           "y": 20,
           "robot_count": 0
+        },
+        {
+          "id": "b-1780792200156232100-19",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Farm",
+          "level": 1,
+          "map_id": "harbor",
+          "slot_id": "harbor-plot-01",
+          "x": 1,
+          "y": 1,
+          "robot_count": 0
+        },
+        {
+          "id": "b-1780795261752240100-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Farm",
+          "level": 1,
+          "map_id": "harbor",
+          "slot_id": "harbor-plot-02",
+          "x": 2,
+          "y": 1,
+          "robot_count": 0
+        }
+      ],
+      "inventory": {
+        "1": 10
+      },
+      "executives": [
+        {
+          "id": "exec-market-1-1780800125756",
+          "name": "James Tanaka",
+          "title": "Warehouse Manager",
+          "level": 8,
+          "rarity": "Common",
+          "stage": "Director",
+          "salary": 1794.2822291671137,
+          "productionBonus": 12.639999999999997,
+          "salesBonus": 26.399999999999995,
+          "mgmtDiscount": 11.800000000000002,
+          "morale": 100
         }
       ],
       "warehouse_level": 0,
-      "created_at": "2026-06-07T03:00:39Z",
-      "last_retail_at": "2026-06-07T03:02:36Z"
+      "created_at": "2026-06-07T00:26:41Z",
+      "last_retail_at": "2026-06-07T03:28:59Z"
+    },
+    "1000005": {
+      "id": 1000005,
+      "player_id": 4,
+      "name": "dev1",
+      "money": 100000,
+      "level": 1,
+      "xp": 0,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "completed",
+            "stepId": "system-objective"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000005-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_a1",
+          "x": 5,
+          "y": 10,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000005-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T01:23:07Z",
+      "last_retail_at": "2026-06-07T02:00:02Z"
+    },
+    "1000012": {
+      "id": 1000012,
+      "player_id": 11,
+      "name": "dev12",
+      "money": 100000,
+      "level": 1,
+      "xp": 0,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "skipped",
+            "stepId": "chapter-title"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000012-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_a1",
+          "x": 5,
+          "y": 10,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000012-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T02:00:20Z",
+      "last_retail_at": "2026-06-07T02:56:51Z"
+    },
+    "1000041": {
+      "id": 1000041,
+      "player_id": 40,
+      "name": "dev546",
+      "money": 100000,
+      "level": 1,
+      "xp": 0,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "skipped",
+            "stepId": "intro-bells"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000041-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_a1",
+          "x": 5,
+          "y": 10,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000041-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T02:25:09Z",
+      "last_retail_at": "2026-06-07T02:57:56Z"
+    },
+    "1000048": {
+      "id": 1000048,
+      "player_id": 47,
+      "name": "dev000",
+      "money": 100000,
+      "level": 1,
+      "xp": 0,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "skipped",
+            "stepId": "chapter-title"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000048-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "",
+          "slot_id": "",
+          "x": 0,
+          "y": 0,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000048-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T03:14:38Z",
+      "last_retail_at": "2026-06-07T03:16:56Z"
+    },
+    "1000050": {
+      "id": 1000050,
+      "player_id": 49,
+      "name": "12222",
+      "money": 100000,
+      "level": 1,
+      "xp": 20,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "skipped",
+            "stepId": "chapter-title"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "bld-1000050-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Bakery",
+          "level": 1,
+          "map_id": "harbor",
+          "slot_id": "harbor-plot-01",
+          "x": 1,
+          "y": 1,
+          "robot_count": 0
+        },
+        {
+          "id": "bld-1000050-2",
+          "building_id": 2,
+          "kind": 2,
+          "name": "Workshop",
+          "level": 1,
+          "map_id": "map_1",
+          "slot_id": "slot_b1",
+          "x": 15,
+          "y": 20,
+          "robot_count": 0
+        }
+      ],
+      "inventory": {
+        "1": 10,
+        "2": 10
+      },
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T03:23:52Z",
+      "last_retail_at": "2026-06-07T03:37:22Z"
+    },
+    "1000058": {
+      "id": 1000058,
+      "player_id": 57,
+      "name": "dev123123123123123",
+      "money": 90000,
+      "level": 1,
+      "xp": 10,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "skipped",
+            "stepId": "chapter-title"
+          }
+        }
+      },
+      "buildings": [
+        {
+          "id": "b-1780803464171094800-1",
+          "building_id": 1,
+          "kind": 1,
+          "name": "Farm",
+          "level": 1,
+          "map_id": "harbor",
+          "slot_id": "harbor-plot-03",
+          "x": 3,
+          "y": 1,
+          "robot_count": 0
+        }
+      ],
+      "inventory": {
+        "1": 10
+      },
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T03:37:32Z",
+      "last_retail_at": "2026-06-07T03:44:19Z"
     }
   },
   "orders": {
-    "bot-buy-1780801299554770100-19": {
-      "id": "bot-buy-1780801299554770100-19",
-      "company_id": 900001,
-      "resource_id": 9,
-      "is_buy": true,
-      "price": 52.83787335585733,
-      "quantity": 453,
-      "filled_quantity": 0,
-      "quality": 0,
-      "status": "open",
-      "created_at": "2026-06-07T03:01:39Z"
-    },
-    "bot-buy-1780801299554770100-21": {
-      "id": "bot-buy-1780801299554770100-21",
-      "company_id": 900001,
-      "resource_id": 3,
-      "is_buy": true,
-      "price": 23.147617538541514,
-      "quantity": 327,
-      "filled_quantity": 0,
-      "quality": 0,
-      "status": "open",
-      "created_at": "2026-06-07T03:01:39Z"
-    },
-    "bot-buy-1780801299554770100-23": {
-      "id": "bot-buy-1780801299554770100-23",
-      "company_id": 900001,
-      "resource_id": 2,
-      "is_buy": true,
-      "price": 17.41246965664717,
-      "quantity": 426,
-      "filled_quantity": 0,
-      "quality": 0,
-      "status": "open",
-      "created_at": "2026-06-07T03:01:39Z"
-    },
-    "bot-buy-1780801359554379200-28": {
-      "id": "bot-buy-1780801359554379200-28",
-      "company_id": 900001,
-      "resource_id": 4,
-      "is_buy": true,
-      "price": 31.263152194279954,
-      "quantity": 184,
-      "filled_quantity": 0,
-      "quality": 0,
-      "status": "open",
-      "created_at": "2026-06-07T03:02:39Z"
-    },
-    "bot-buy-1780801359554379200-30": {
-      "id": "bot-buy-1780801359554379200-30",
-      "company_id": 900001,
-      "resource_id": 5,
-      "is_buy": true,
-      "price": 35.052002806379654,
-      "quantity": 71,
-      "filled_quantity": 0,
-      "quality": 0,
-      "status": "open",
-      "created_at": "2026-06-07T03:02:39Z"
-    },
-    "bot-buy-1780801359554379200-32": {
-      "id": "bot-buy-1780801359554379200-32",
+    "bot-buy-1780792061374045100-1": {
+      "id": "bot-buy-1780792061374045100-1",
       "company_id": 900001,
       "resource_id": 8,
       "is_buy": true,
-      "price": 51.1087594147445,
+      "price": 51.15865360153458,
+      "quantity": 51,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-buy-1780792061374045100-3": {
+      "id": "bot-buy-1780792061374045100-3",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 41.568966994179725,
+      "quantity": 225,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-buy-1780792061374045100-5": {
+      "id": "bot-buy-1780792061374045100-5",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 22.732535756362896,
+      "quantity": 332,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-buy-1780792121373912100-11": {
+      "id": "bot-buy-1780792121373912100-11",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": true,
+      "price": 20.737150030986125,
+      "quantity": 240,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-buy-1780792121373912100-7": {
+      "id": "bot-buy-1780792121373912100-7",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 22.732535756362896,
+      "quantity": 405,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-buy-1780792121373912100-9": {
+      "id": "bot-buy-1780792121373912100-9",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 55.446214557792324,
+      "quantity": 116,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-buy-1780792181373865300-13": {
+      "id": "bot-buy-1780792181373865300-13",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 32.30607798585608,
+      "quantity": 437,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-buy-1780792181373865300-15": {
+      "id": "bot-buy-1780792181373865300-15",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 60.336294698767944,
+      "quantity": 61,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-buy-1780792181373865300-17": {
+      "id": "bot-buy-1780792181373865300-17",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 40.24179498921404,
+      "quantity": 287,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-buy-1780792241374141600-20": {
+      "id": "bot-buy-1780792241374141600-20",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 55.446214557792324,
+      "quantity": 135,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-buy-1780792241374141600-22": {
+      "id": "bot-buy-1780792241374141600-22",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 41.568966994179725,
+      "quantity": 253,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-buy-1780792241374141600-24": {
+      "id": "bot-buy-1780792241374141600-24",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 48.83868115765714,
+      "quantity": 197,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-buy-1780792301373981500-26": {
+      "id": "bot-buy-1780792301373981500-26",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 32.30607798585608,
+      "quantity": 322,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-buy-1780792301373981500-28": {
+      "id": "bot-buy-1780792301373981500-28",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 48.83868115765714,
+      "quantity": 265,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-buy-1780792361373856700-30": {
+      "id": "bot-buy-1780792361373856700-30",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 60.336294698767944,
+      "quantity": 114,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-buy-1780792361373856700-32": {
+      "id": "bot-buy-1780792361373856700-32",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 60.598988041686844,
       "quantity": 419,
       "filled_quantity": 0,
       "quality": 0,
       "status": "open",
-      "created_at": "2026-06-07T03:02:39Z"
+      "created_at": "2026-06-07T00:32:41Z"
     },
-    "bot-sell-1780801299554770100-20": {
-      "id": "bot-sell-1780801299554770100-20",
+    "bot-buy-1780792361373856700-34": {
+      "id": "bot-buy-1780792361373856700-34",
       "company_id": 900001,
-      "resource_id": 9,
-      "is_buy": false,
-      "price": 58.399754761737064,
-      "quantity": 289,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 40.24179498921404,
+      "quantity": 177,
       "filled_quantity": 0,
       "quality": 0,
       "status": "open",
-      "created_at": "2026-06-07T03:01:39Z"
+      "created_at": "2026-06-07T00:32:41Z"
     },
-    "bot-sell-1780801299554770100-22": {
-      "id": "bot-sell-1780801299554770100-22",
+    "bot-buy-1780795305168901500-3": {
+      "id": "bot-buy-1780795305168901500-3",
       "company_id": 900001,
-      "resource_id": 3,
-      "is_buy": false,
-      "price": 25.584208858387992,
-      "quantity": 365,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 51.15865360153458,
+      "quantity": 109,
       "filled_quantity": 0,
       "quality": 0,
       "status": "open",
-      "created_at": "2026-06-07T03:01:39Z"
+      "created_at": "2026-06-07T01:21:45Z"
     },
-    "bot-sell-1780801299554770100-24": {
-      "id": "bot-sell-1780801299554770100-24",
+    "bot-buy-1780795305168901500-5": {
+      "id": "bot-buy-1780795305168901500-5",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 60.598988041686844,
+      "quantity": 288,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-buy-1780795365169212200-7": {
+      "id": "bot-buy-1780795365169212200-7",
       "company_id": 900001,
       "resource_id": 2,
-      "is_buy": false,
-      "price": 19.245361199452134,
-      "quantity": 455,
+      "is_buy": true,
+      "price": 20.737150030986125,
+      "quantity": 145,
       "filled_quantity": 0,
       "quality": 0,
       "status": "open",
-      "created_at": "2026-06-07T03:01:39Z"
+      "created_at": "2026-06-07T01:22:45Z"
     },
-    "bot-sell-1780801359554379200-29": {
-      "id": "bot-sell-1780801359554379200-29",
+    "bot-buy-1780795485168903900-10": {
+      "id": "bot-buy-1780795485168903900-10",
       "company_id": 900001,
       "resource_id": 4,
-      "is_buy": false,
-      "price": 34.55401031999364,
+      "is_buy": true,
+      "price": 31.12850134857707,
+      "quantity": 133,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:24:45Z"
+    },
+    "bot-buy-1780795545168938900-12": {
+      "id": "bot-buy-1780795545168938900-12",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 31.12850134857707,
+      "quantity": 310,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-buy-1780795545168938900-14": {
+      "id": "bot-buy-1780795545168938900-14",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 13.106381557339253,
+      "quantity": 176,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-buy-1780795665169316200-16": {
+      "id": "bot-buy-1780795665169316200-16",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 13.106381557339253,
       "quantity": 209,
       "filled_quantity": 0,
       "quality": 0,
       "status": "open",
-      "created_at": "2026-06-07T03:02:39Z"
+      "created_at": "2026-06-07T01:27:45Z"
     },
-    "bot-sell-1780801359554379200-31": {
-      "id": "bot-sell-1780801359554379200-31",
-      "company_id": 900001,
-      "resource_id": 5,
-      "is_buy": false,
-      "price": 38.74168731231436,
-      "quantity": 388,
-      "filled_quantity": 0,
-      "quality": 0,
-      "status": "open",
-      "created_at": "2026-06-07T03:02:39Z"
-    },
-    "bot-sell-1780801359554379200-33": {
-      "id": "bot-sell-1780801359554379200-33",
+    "bot-sell-1780792061374045100-2": {
+      "id": "bot-sell-1780792061374045100-2",
       "company_id": 900001,
       "resource_id": 8,
       "is_buy": false,
-      "price": 56.488628826822875,
-      "quantity": 268,
+      "price": 56.54377503327507,
+      "quantity": 312,
       "filled_quantity": 0,
       "quality": 0,
       "status": "open",
-      "created_at": "2026-06-07T03:02:39Z"
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-sell-1780792061374045100-4": {
+      "id": "bot-sell-1780792061374045100-4",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 45.94464773040918,
+      "quantity": 138,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-sell-1780792061374045100-6": {
+      "id": "bot-sell-1780792061374045100-6",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 25.125434257032676,
+      "quantity": 435,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:27:41Z"
+    },
+    "bot-sell-1780792121373912100-10": {
+      "id": "bot-sell-1780792121373912100-10",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 61.28265819545468,
+      "quantity": 193,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792121373912100-12": {
+      "id": "bot-sell-1780792121373912100-12",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 22.920007928984663,
+      "quantity": 179,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792121373912100-8": {
+      "id": "bot-sell-1780792121373912100-8",
+      "company_id": 900001,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 25.125434257032676,
+      "quantity": 284,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:28:41Z"
+    },
+    "bot-sell-1780792181373865300-14": {
+      "id": "bot-sell-1780792181373865300-14",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 35.706717773840936,
+      "quantity": 87,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-sell-1780792181373865300-16": {
+      "id": "bot-sell-1780792181373865300-16",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 66.68748361442773,
+      "quantity": 238,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-sell-1780792181373865300-18": {
+      "id": "bot-sell-1780792181373865300-18",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 44.477773409131316,
+      "quantity": 64,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:29:41Z"
+    },
+    "bot-sell-1780792241374141600-21": {
+      "id": "bot-sell-1780792241374141600-21",
+      "company_id": 900001,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 61.28265819545468,
+      "quantity": 91,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-sell-1780792241374141600-23": {
+      "id": "bot-sell-1780792241374141600-23",
+      "company_id": 900001,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 45.94464773040918,
+      "quantity": 359,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-sell-1780792241374141600-25": {
+      "id": "bot-sell-1780792241374141600-25",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 53.97959496372632,
+      "quantity": 111,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:30:41Z"
+    },
+    "bot-sell-1780792301373981500-27": {
+      "id": "bot-sell-1780792301373981500-27",
+      "company_id": 900001,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 35.706717773840936,
+      "quantity": 103,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-sell-1780792301373981500-29": {
+      "id": "bot-sell-1780792301373981500-29",
+      "company_id": 900001,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 53.97959496372632,
+      "quantity": 442,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:31:41Z"
+    },
+    "bot-sell-1780792361373856700-31": {
+      "id": "bot-sell-1780792361373856700-31",
+      "company_id": 900001,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 66.68748361442773,
+      "quantity": 252,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-sell-1780792361373856700-33": {
+      "id": "bot-sell-1780792361373856700-33",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 66.9778288881802,
+      "quantity": 163,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-sell-1780792361373856700-35": {
+      "id": "bot-sell-1780792361373856700-35",
+      "company_id": 900001,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 44.477773409131316,
+      "quantity": 434,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T00:32:41Z"
+    },
+    "bot-sell-1780795305168901500-4": {
+      "id": "bot-sell-1780795305168901500-4",
+      "company_id": 900001,
+      "resource_id": 8,
+      "is_buy": false,
+      "price": 56.54377503327507,
+      "quantity": 373,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-sell-1780795305168901500-6": {
+      "id": "bot-sell-1780795305168901500-6",
+      "company_id": 900001,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 66.9778288881802,
+      "quantity": 164,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:21:45Z"
+    },
+    "bot-sell-1780795365169212200-8": {
+      "id": "bot-sell-1780795365169212200-8",
+      "company_id": 900001,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 22.920007928984663,
+      "quantity": 292,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:22:45Z"
+    },
+    "bot-sell-1780795485168903900-11": {
+      "id": "bot-sell-1780795485168903900-11",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 34.40518570105887,
+      "quantity": 363,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:24:45Z"
+    },
+    "bot-sell-1780795545168938900-13": {
+      "id": "bot-sell-1780795545168938900-13",
+      "company_id": 900001,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 34.40518570105887,
+      "quantity": 355,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-sell-1780795545168938900-15": {
+      "id": "bot-sell-1780795545168938900-15",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 14.486000668638122,
+      "quantity": 308,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:25:45Z"
+    },
+    "bot-sell-1780795665169316200-17": {
+      "id": "bot-sell-1780795665169316200-17",
+      "company_id": 900001,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 14.486000668638122,
+      "quantity": 380,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T01:27:45Z"
     }
   },
   "trades": null,
   "tickers": {},
-  "jobs": {},
-  "ledger": null,
+  "jobs": {
+    "prod-1780795267270288800-2": {
+      "id": "prod-1780795267270288800-2",
+      "company_id": 1000002,
+      "building_id": "b-1780795261752240100-1",
+      "resource_id": 1,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T11:21:07.2702888+10:00",
+      "duration_seconds": 71,
+      "claimed_amount": 10,
+      "claimable_amount": 0,
+      "xp_awarded": 10,
+      "status": "claimed"
+    },
+    "prod-1780795401766966500-9": {
+      "id": "prod-1780795401766966500-9",
+      "company_id": 1000005,
+      "building_id": "bld-1000005-2",
+      "resource_id": 2,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T11:23:21.7669665+10:00",
+      "duration_seconds": 85,
+      "claimed_amount": 0,
+      "claimable_amount": 10,
+      "xp_awarded": 0,
+      "status": "ready"
+    },
+    "prod-1780802641165404900-1": {
+      "id": "prod-1780802641165404900-1",
+      "company_id": 1000050,
+      "building_id": "bld-1000050-2",
+      "resource_id": 2,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T13:24:01.1654049+10:00",
+      "duration_seconds": 86,
+      "claimed_amount": 10,
+      "claimable_amount": 0,
+      "xp_awarded": 10,
+      "status": "claimed"
+    },
+    "prod-1780802735634774600-2": {
+      "id": "prod-1780802735634774600-2",
+      "company_id": 1000050,
+      "building_id": "bld-1000050-1",
+      "resource_id": 1,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T13:25:35.6347746+10:00",
+      "duration_seconds": 72,
+      "claimed_amount": 10,
+      "claimable_amount": 0,
+      "xp_awarded": 10,
+      "status": "claimed"
+    },
+    "prod-1780803470661433600-2": {
+      "id": "prod-1780803470661433600-2",
+      "company_id": 1000058,
+      "building_id": "b-1780803464171094800-1",
+      "resource_id": 1,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T13:37:50.6614336+10:00",
+      "duration_seconds": 72,
+      "claimed_amount": 10,
+      "claimable_amount": 0,
+      "xp_awarded": 10,
+      "status": "claimed"
+    },
+    "prod-1780803614043242600-1": {
+      "id": "prod-1780803614043242600-1",
+      "company_id": 1000058,
+      "building_id": "b-1780803464171094800-1",
+      "resource_id": 1,
+      "quantity": 10,
+      "target_quantity": 10,
+      "started_at": "2026-06-07T13:40:14.0432426+10:00",
+      "duration_seconds": 72,
+      "claimed_amount": 0,
+      "claimable_amount": 10,
+      "xp_awarded": 0,
+      "status": "ready"
+    }
+  },
+  "ledger": [
+    {
+      "id": 3,
+      "company_id": 1000002,
+      "kind": "production_output",
+      "amount": 1,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780795267270288800-2",
+        "partial": true,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 46,
+      "company_id": 1000002,
+      "kind": "production_output",
+      "amount": 9,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780795267270288800-2",
+        "partial": false,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 51,
+      "company_id": 1000050,
+      "kind": "production_output",
+      "amount": 3,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780802641165404900-1",
+        "partial": true,
+        "resourceId": 2
+      },
+      "created_at": ""
+    },
+    {
+      "id": 52,
+      "company_id": 1000050,
+      "kind": "production_output",
+      "amount": 1,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780802641165404900-1",
+        "partial": true,
+        "resourceId": 2
+      },
+      "created_at": ""
+    },
+    {
+      "id": 53,
+      "company_id": 1000050,
+      "kind": "production_output",
+      "amount": 1,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780802641165404900-1",
+        "partial": true,
+        "resourceId": 2
+      },
+      "created_at": ""
+    },
+    {
+      "id": 54,
+      "company_id": 1000050,
+      "kind": "production_output",
+      "amount": 3,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780802641165404900-1",
+        "partial": true,
+        "resourceId": 2
+      },
+      "created_at": ""
+    },
+    {
+      "id": 55,
+      "company_id": 1000050,
+      "kind": "production_output",
+      "amount": 2,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780802641165404900-1",
+        "partial": false,
+        "resourceId": 2
+      },
+      "created_at": ""
+    },
+    {
+      "id": 56,
+      "company_id": 1000050,
+      "kind": "production_output",
+      "amount": 10,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780802735634774600-2",
+        "partial": false,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 59,
+      "company_id": 1000058,
+      "kind": "production_output",
+      "amount": 1,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780803470661433600-2",
+        "partial": true,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 60,
+      "company_id": 1000058,
+      "kind": "production_output",
+      "amount": 9,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "jobId": "prod-1780803470661433600-2",
+        "partial": false,
+        "resourceId": 1
+      },
+      "created_at": ""
+    }
+  ],
   "bonds": {},
   "holdings": null,
   "companyResearch": {},
-  "messages": null,
+  "messages": [
+    {
+      "id": 6,
+      "company_id": 1000002,
+      "sender_name": "Company-1000002",
+      "content": "111",
+      "channel": "N",
+      "created_at": "2026-06-07T01:32:44Z"
+    },
+    {
+      "id": 7,
+      "company_id": 1000002,
+      "sender_name": "Company-1000002",
+      "content": "111",
+      "channel": "sales",
+      "created_at": "2026-06-07T01:47:51Z"
+    },
+    {
+      "id": 8,
+      "company_id": 1000002,
+      "sender_name": "Company-1000002",
+      "content": "12",
+      "channel": "sales",
+      "created_at": "2026-06-07T01:53:45Z"
+    },
+    {
+      "id": 9,
+      "company_id": 1000002,
+      "sender_name": "Company-1000002",
+      "content": "11111111111111",
+      "channel": "general",
+      "created_at": "2026-06-07T01:53:52Z"
+    },
+    {
+      "id": 10,
+      "company_id": 1000002,
+      "sender_name": "Company-1000002",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "sales",
+      "created_at": "2026-06-07T01:57:16Z"
+    },
+    {
+      "id": 13,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "测测试",
+      "channel": "N",
+      "created_at": "2026-06-07T02:00:29Z"
+    },
+    {
+      "id": 14,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的",
+      "channel": "help",
+      "created_at": "2026-06-07T02:01:23Z"
+    },
+    {
+      "id": 15,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的",
+      "channel": "help",
+      "created_at": "2026-06-07T02:01:30Z"
+    },
+    {
+      "id": 16,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的",
+      "channel": "help",
+      "created_at": "2026-06-07T02:01:36Z"
+    },
+    {
+      "id": 17,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的",
+      "channel": "help",
+      "created_at": "2026-06-07T02:02:11Z"
+    },
+    {
+      "id": 18,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的测试测试 撒丁岛的",
+      "channel": "help",
+      "created_at": "2026-06-07T02:02:29Z"
+    },
+    {
+      "id": 19,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测鹅鹅鹅鹅鹅鹅",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:09Z"
+    },
+    {
+      "id": 20,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测呃呃",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:11Z"
+    },
+    {
+      "id": 21,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:13Z"
+    },
+    {
+      "id": 22,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:18Z"
+    },
+    {
+      "id": 23,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:22Z"
+    },
+    {
+      "id": 24,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:25Z"
+    },
+    {
+      "id": 25,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
+      "channel": "N",
+      "created_at": "2026-06-07T02:03:29Z"
+    },
+    {
+      "id": 26,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "在吗",
+      "channel": "C:1000002",
+      "created_at": "2026-06-07T02:13:14Z"
+    },
+    {
+      "id": 27,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "在吗",
+      "channel": "C:1000012",
+      "created_at": "2026-06-07T02:13:23Z"
+    },
+    {
+      "id": 28,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "不是哥们",
+      "channel": "C:1000002",
+      "created_at": "2026-06-07T02:13:42Z"
+    },
+    {
+      "id": 29,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "再",
+      "channel": "C:1000012",
+      "created_at": "2026-06-07T02:13:55Z"
+    },
+    {
+      "id": 30,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:11Z"
+    },
+    {
+      "id": 31,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:19Z"
+    },
+    {
+      "id": 32,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:23Z"
+    },
+    {
+      "id": 33,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:27Z"
+    },
+    {
+      "id": 34,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:35Z"
+    },
+    {
+      "id": 35,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "ces",
+      "channel": "C:1000005",
+      "created_at": "2026-06-07T02:18:05Z"
+    },
+    {
+      "id": 36,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "ce",
+      "channel": "C:1000002",
+      "created_at": "2026-06-07T02:18:17Z"
+    },
+    {
+      "id": 37,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "ddd",
+      "channel": "C:1000005",
+      "created_at": "2026-06-07T02:18:36Z"
+    },
+    {
+      "id": 38,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "cccc",
+      "channel": "C:1000005",
+      "created_at": "2026-06-07T02:18:54Z"
+    },
+    {
+      "id": 39,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "轻轻巧巧请求权请求权",
+      "channel": "C:1000012",
+      "created_at": "2026-06-07T02:24:48Z"
+    },
+    {
+      "id": 42,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "测试测试测试",
+      "channel": "help",
+      "created_at": "2026-06-07T02:40:33Z"
+    },
+    {
+      "id": 43,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
+      "channel": "help",
+      "created_at": "2026-06-07T02:40:44Z"
+    },
+    {
+      "id": 44,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "D\u0026D",
+      "channel": "help",
+      "created_at": "2026-06-07T02:42:40Z"
+    },
+    {
+      "id": 45,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "点点滴滴点点滴滴",
+      "channel": "general",
+      "created_at": "2026-06-07T02:50:00Z"
+    }
+  ],
   "notifications": null,
   "warehouses": {
     "1000002": {
       "company_id": 1000002,
       "capacity": 1000,
+      "used_capacity": 10,
+      "items": [
+        {
+          "resource_id": 1,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 10
+        }
+      ]
+    },
+    "1000005": {
+      "company_id": 1000005,
+      "capacity": 1000,
       "used_capacity": 0,
       "items": []
+    },
+    "1000012": {
+      "company_id": 1000012,
+      "capacity": 1000,
+      "used_capacity": 0,
+      "items": []
+    },
+    "1000041": {
+      "company_id": 1000041,
+      "capacity": 1000,
+      "used_capacity": 0,
+      "items": []
+    },
+    "1000048": {
+      "company_id": 1000048,
+      "capacity": 1000,
+      "used_capacity": 0,
+      "items": []
+    },
+    "1000050": {
+      "company_id": 1000050,
+      "capacity": 1000,
+      "used_capacity": 20,
+      "items": [
+        {
+          "resource_id": 2,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 10
+        },
+        {
+          "resource_id": 1,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 10
+        }
+      ]
+    },
+    "1000058": {
+      "company_id": 1000058,
+      "capacity": 1000,
+      "used_capacity": 10,
+      "items": [
+        {
+          "resource_id": 1,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 10
+        }
+      ]
     }
   },
-  "nextId": 3
+  "nextId": 61
 }

@@ -54,5 +54,22 @@
   "sweet_spot_level": 7,
   "base_output": 100,
   "max_buildings": 20,
-  "max_message_length": 120
+  "max_message_length": 120,
+  "newbie_level_up_to": 7,
+  "image_host_allowlist": [
+    "imgse.com", "www.imgse.com",
+    "imgchr.com", "www.imgchr.com",
+    "superbed.cn", "www.superbed.cn",
+    "superbed.cc", "www.superbed.cc",
+    "imgurl.org", "www.imgurl.org",
+    "imgbed.cn", "www.imgbed.cn",
+    "img.st", "www.img.st",
+    "postimages.org", "postimg.cc",
+    "i.postimg.cc",
+    "imgbb.com", "ibb.co", "i.ibb.co",
+    "freeimage.host", "iili.io",
+    "imgbox.com", "images2.imgbox.com",
+    "thumbs2.imgbox.com",
+    "catbox.moe", "files.catbox.moe"
+  ]
 }

@@ -24,6 +24,7 @@ type Config struct {
 
 	// Dev mode (creates dev user/company)
 	DevMode bool
+	DevPassword       string
 
 	// Game tuning (from game.json)
 	Game *GameConfig
@@ -46,7 +47,9 @@ type GameConfig struct {
 	ResearchBaseCost   float64 `json:"research_base_cost"`
 	ResearchCostGrowth float64 `json:"research_cost_growth"`
 	ResearchSpeedBonus float64 `json:"research_speed_bonus"`
-	MaxMessageLength int `json:"max_message_length"`
+	NewbieLevelUpTo     int      `json:"newbie_level_up_to"`
+	MaxMessageLength    int      `json:"max_message_length"`
+	ImageHostAllowlist  []string `json:"image_host_allowlist"`
 }
 
 func Load() *Config {
@@ -56,6 +59,7 @@ func Load() *Config {
 		DatabaseURL:       os.Getenv("SIM_API_DATABASE_URL"),
 		RateLimitEnabled:  envStr("SIM_API_RATE_LIMIT", "false") == "true",
 		DevMode:           envStr("SIM_API_DEV_MODE", "true") == "true",
+		DevPassword:       envStr("SIM_API_DEV_PASSWORD", "123"),
 		Game:              loadGameConfig(FindProjectRoot()),
 	}
 }
@@ -134,9 +138,28 @@ func defaultGameConfig() *GameConfig {
 		BaseOutput:           100,
 		MaxBuildings:         20,
 		ResearchBaseCost:   1000,
+		NewbieLevelUpTo:      7,
 		MaxMessageLength:     500,
 		ResearchCostGrowth: 1.2,
 		ResearchSpeedBonus: 0.002,
+		ImageHostAllowlist: []string{
+			// 国内图床
+			"imgse.com", "www.imgse.com",
+			"imgchr.com", "www.imgchr.com",
+			"superbed.cn", "www.superbed.cn",
+			"superbed.cc", "www.superbed.cc",
+			"imgurl.org", "www.imgurl.org",
+			"imgbed.cn", "www.imgbed.cn",
+			"img.st", "www.img.st",
+			// 海外图床
+			"postimages.org", "postimg.cc",
+			"i.postimg.cc",
+			"imgbb.com", "ibb.co", "i.ibb.co",
+			"freeimage.host", "iili.io",
+			"imgbox.com", "images2.imgbox.com",
+			"thumbs2.imgbox.com",
+			"catbox.moe", "files.catbox.moe",
+		},
 	}
 }
 
