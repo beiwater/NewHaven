@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"path/filepath"
 	"log/slog"
 
 	"github.com/newhaven/backend-next/internal/app/auth"
@@ -64,6 +65,7 @@ type App struct {
 	ExecutiveHandler   *httpapi.ExecutiveHandler
 	LeaderboardHandler *httpapi.LeaderboardHandler
 	AdminHandler      *httpapi.AdminHandler
+	ReportHandler     *httpapi.ReportHandler
 }
 
 // New creates a fully wired App with all services and handlers constructed.
@@ -71,6 +73,29 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	clock := platform.RealClock{}
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
+
+	// Ensure game config is non-nil (tests may pass nil)
+	if cfg.Game == nil {
+		cfg.Game = &config.GameConfig{
+			MaxMessageLength:     500,
+			BondFaceValue:        5000,
+			ExchangeFeePct:       0.04,
+			BotReplacementRate:   0.33,
+			BondMinInterest:      0.5,
+			BondMaxInterest:      2.0,
+			ProductionMod:        1.0,
+			AdminOverheadBase:    1.35,
+			BaseBuildingCost:     50000,
+			BaseProductionSlots:  3,
+			WarehouseBaseCap:     1000,
+			WarehouseUpgradeCost: 25000,
+			BaseOutput:           100,
+			MaxBuildings:         20,
+			ResearchBaseCost:   1000,
+			ResearchCostGrowth: 1.2,
+			ResearchSpeedBonus: 0.002,
+		}
+	}
 
 	// Auth
 	authSvc := auth.NewService(st, st, clock, idgen, logger, cfg.JWTSigningKey)
@@ -110,6 +135,8 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	adminHandler := httpapi.NewAdminHandler(st)
 	socialHandler := httpapi.NewSocialHandler(st, st, cfg.Game.MaxMessageLength)
 	chatHandler := httpapi.NewChatHandler(st, st, cfg.Game.MaxMessageLength)
+	logDir := filepath.Join(config.FindProjectRoot(), "log")
+	reportHandler := httpapi.NewReportHandler(logDir, idgen, clock)
 	// Snapshot persistence: file-based (memory) or PostgreSQL
 	var pgStore *postgres.Store
 	var saveAll func(ctx context.Context) error
@@ -174,5 +201,6 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		ExecutiveHandler:   executiveHandler,
 		LeaderboardHandler: leaderboardHandler,
 		AdminHandler:      adminHandler,
+		ReportHandler:     reportHandler,
 	}
 }

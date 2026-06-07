@@ -24,6 +24,7 @@ type RouterHandlers struct {
 	Executive   *ExecutiveHandler
 	Leaderboard *LeaderboardHandler
 	Admin       *AdminHandler
+	Report      *ReportHandler
 }
 
 func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
@@ -162,5 +163,8 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 		r.Post("/save", h.Admin.handleSaveSnapshot)
 		r.Post("/load", h.Admin.handleLoadSnapshot)
 	})
+
+	// Report route (authenticated)
+	r.With(AuthRequired(cfg.JWTSigningKey)).Post("/api/v2/report/", h.Report.handleSubmitReport)
 	return r
 }

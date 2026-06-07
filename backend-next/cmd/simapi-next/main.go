@@ -56,7 +56,7 @@ func main() {
 		Building: application.BuildingHandler, Production: application.ProductionHandler, Market: application.MarketHandler,
 		Finance: application.FinanceHandler, Bond: application.BondHandler, Player: application.PlayerHandler,
 		Social: application.SocialHandler, Chat: application.ChatHandler, Contract: application.ContractHandler, Research: application.ResearchHandler,
-		Executive: application.ExecutiveHandler, Leaderboard: application.LeaderboardHandler, Admin: application.AdminHandler,
+		Executive: application.ExecutiveHandler, Leaderboard: application.LeaderboardHandler, Admin: application.AdminHandler, Report: application.ReportHandler,
 	})
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")

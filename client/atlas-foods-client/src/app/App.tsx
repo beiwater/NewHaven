@@ -10,6 +10,7 @@ import { MarketPage } from '@/features/market/MarketPage'
 import { InventoryBar } from '@/features/inventory/InventoryBar'
 import { ContractList } from '@/features/contracts/ContractList'
 import { ChatPanel } from '@/features/chat/ChatPanel'
+import { ReportPanel } from '@/features/report/ReportPanel'
 import { PowerPanel } from '@/features/powerups/PowerPanel'
 import { useMarketWebSocket, useProductionWebSocket } from '@/api/websocket'
 import { BuildView } from '@/features/buildings/BuildView'
@@ -173,6 +174,7 @@ function GameLayout() {
         </button>
       )}
       <ChatPanel />
+      <ReportPanel />
       <PowerPanel />
     </div>
   )
