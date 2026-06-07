@@ -9,6 +9,7 @@ import { audio } from '@/audio/AudioManager'
 import { isMapUnlocked } from '@/game/map.config'
 import { availableMaps, findBestPlacement } from '@/game/map/mapPlacement'
 import { MapPicker } from './MapPicker'
+import { resourceName } from '@/game/resources'
 import type { Building } from '@/game/types'
 
 interface BuildingMarketItem {
@@ -123,7 +124,7 @@ export function BuildView() {
           <div key={item.id} className={'rounded-xl p-4 border transition-all duration-200 ' + (locked ? 'bg-amber-50/40 border-amber-200/20 opacity-50' : 'bg-white border-amber-200/60 shadow-sm hover:shadow-md hover:border-amber-300')}>
             <div className="flex items-start justify-between mb-2">
               <span className="text-sm font-bold text-amber-900">{item.name}</span>
-              <span className="text-xs font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">{item.cost.toLocaleString()}¥</span>
+              <span className="text-xs font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full whitespace-nowrap ml-2">{item.cost.toLocaleString()}$</span>
             </div>
             <p className="text-[11px] text-amber-600/80 leading-relaxed mb-3 min-h-[2em]">{item.description ?? ''}</p>
             <div className="flex items-center gap-2">
@@ -132,14 +133,14 @@ export function BuildView() {
                 disabled={locked || buyBuilding.isPending}
                 className="flex-1 py-2 bg-amber-700 hover:bg-amber-800 active:bg-amber-900 disabled:bg-amber-300 text-white text-xs font-bold rounded-lg transition-colors"
               >
-                {locked ? `Lv.${item.unlockLevel} 解锁` : buyBuilding.isPending ? '购买中...' : `购买 ${item.cost.toLocaleString()}¥`}
+                {locked ? `Lv.${item.unlockLevel} 解锁` : buyBuilding.isPending ? '购买中...' : `购买 ${item.cost.toLocaleString()}$`}
               </button>
             </div>
             {item.produces && (
               <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-amber-100">
                 <span className="text-[10px] text-amber-500 font-medium">生产:</span>
                 {item.produces.map((r) => (
-                  <span key={r} className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{r}</span>
+                  <span key={r} className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{resourceName(r)}</span>
                 ))}
               </div>
             )}

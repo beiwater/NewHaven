@@ -12,6 +12,7 @@ import {
   useCancelOrder,
   useTakeOrder,
   useResources,
+  useMyOrders,
 } from '@/api/market.api'
 import {
   ALL_RESOURCE_IDS,
@@ -48,6 +49,7 @@ export function MarketPage() {
   const { data: warehouse } = useWarehouse()
   const createOrder = useCreateOrder()
   const cancelOrder = useCancelOrder()
+  const { data: myAllOrders } = useMyOrders()
   const takeOrder = useTakeOrder()
 
   const series = ticker?.series ?? []
@@ -286,24 +288,27 @@ export function MarketPage() {
 
             <section className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
               <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-amber-800">
-                {t('market.myOpenOrders', { count: myOrders.length })}
+                {t('market.myOpenOrders', { count: (myAllOrders ?? []).length })}
               </h3>
               <div className="space-y-2">
-                {myOrders.length === 0 && (
+                {(!myAllOrders || myAllOrders.length === 0) && (
                   <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">
                     {t('market.noOpenOrders', { name: selectedName })}
                   </div>
                 )}
-                {myOrders.map((order, index) => (
+                {Array.isArray(myAllOrders) && myAllOrders.map((order, index) => (
                   <div key={`${order.id}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-amber-200/70 bg-white/70 px-3 py-2 text-xs">
-                    <span className={order.kind === 1 ? 'font-black text-green-700' : 'font-black text-red-600'}>
-                      {order.kind === 1 ? t('market.buyKind').toUpperCase() : t('market.sellKind').toUpperCase()}
-                    </span>
-                    <span className="text-amber-900">${order.price.toFixed(2)} x {order.remaining}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={order.kind === 1 ? 'font-black text-green-700' : 'font-black text-red-600'}>
+                        {order.kind === 1 ? t('market.buyKind').toUpperCase() : t('market.sellKind').toUpperCase()}
+                      </span>
+                      <span className="text-amber-700 truncate">{formatResourceName(order.resourceId, resources)}</span>
+                    </div>
+                    <span className="text-amber-900 shrink-0">${order.price.toFixed(2)} x {order.remaining}</span>
                     <button
                       onClick={() => cancelOrder.mutate(order.id)}
                       disabled={cancelOrder.isPending}
-                      className="rounded bg-red-50 px-2 py-1 font-bold text-red-600 hover:bg-red-100 disabled:text-red-300"
+                      className="rounded bg-red-50 px-2 py-1 font-bold text-red-600 hover:bg-red-100 disabled:text-red-300 shrink-0"
                     >
                       {t('market.cancel')}
                     </button>
@@ -311,7 +316,6 @@ export function MarketPage() {
                 ))}
               </div>
             </section>
-          </main>
         </div>
       </div>
     </div>

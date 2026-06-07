@@ -26,6 +26,18 @@ export function useAllMarketTickers() {
 }
 
 // /api/v3/market-depth/{id}/{quality}/ returns { buys, sells }
+
+// /api/v3/companies/me/orders/ returns all active orders for the current company.
+export function useMyOrders() {
+  return useQuery({
+    queryKey: ['myOrders'],
+    queryFn: async () => {
+      const resp = await api.get<{ orders: MarketOrder[] }>('/api/v3/companies/me/orders/');
+      return resp.orders ?? [];
+    },
+    refetchInterval: 10_000,
+  })
+}
 export function useMarketDepth(resourceId: number, quality = 0) {
   return useQuery({
     queryKey: ['marketDepth', resourceId, quality],
@@ -34,12 +46,14 @@ export function useMarketDepth(resourceId: number, quality = 0) {
   })
 }
 
-// /api/v3/market/{id}/{quality}/ returns MarketOrder[] directly
+// /api/v3/market/{id}/{quality}/ returns { orders: MarketOrder[] }
 export function useMarketOrders(resourceId: number, quality = 0) {
   return useQuery({
     queryKey: ['marketOrders', resourceId, quality],
-    queryFn: () =>
-      api.get<MarketOrder[]>(`/api/v3/market/${resourceId}/${quality}/`),
+    queryFn: async () => {
+      const resp = await api.get<{ orders: MarketOrder[] }>(`/api/v3/market/${resourceId}/${quality}/`);
+      return resp.orders ?? [];
+    },
     refetchInterval: 10_000,
   })
 }

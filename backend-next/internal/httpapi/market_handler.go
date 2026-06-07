@@ -111,6 +111,23 @@ func (h *MarketHandler) handleMarketDepth(w http.ResponseWriter, r *http.Request
 	writeSuccess(w, 200, resp)
 }
 
+// handleListMyOrders returns the current company's active orders across all resources.
+func (h *MarketHandler) handleListMyOrders(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	resp, err := h.svc.ListMyOrders(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+
+	writeSuccess(w, 200, resp)
+}
+
 // handleMarketOrders returns market orders for a resource and quality.
 func (h *MarketHandler) handleMarketOrders(w http.ResponseWriter, r *http.Request) {
 	_, ok := CompanyIDFromCtx(r.Context())

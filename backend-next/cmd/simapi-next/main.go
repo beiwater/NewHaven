@@ -63,12 +63,17 @@ func main() {
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {
 			slog.Warn("dev bootstrap skipped", "error", err)
 		}
-	}
 
-		// Ensure Terminal system company exists
+		// Ensure Terminal system company exists.
 		if _, err := application.TerminalService.EnsureTerminalCompany(context.Background()); err != nil {
 			slog.Warn("terminal bootstrap skipped", "error", err)
 		}
+
+		// Ensure bot company exists for market liquidity.
+		if err := application.MarketService.EnsureBotCompanies(context.Background()); err != nil {
+			slog.Warn("[main] bot company init skipped", "error", err)
+		}
+	}
 
 	srv := &http.Server{
 		Addr:         cfg.Addr,

@@ -79,7 +79,7 @@ export function BuildingPanel() {
                       {b.name ?? `${t('building.building')} ${b.kind}`}
                     </div>
                     <div className="text-[10px] text-amber-600/70">
-                      Lv.{b.level} · {b.status ?? t('building.idle')}
+                      {t('building.level', { level: b.level })} · {b.status ?? t('building.idle')}
                     </div>
                   </div>
                 </div>

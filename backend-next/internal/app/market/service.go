@@ -17,15 +17,16 @@ import (
 
 // Service is the market application use case.
 type Service struct {
-	mu        sync.Mutex
-	market    storage.MarketStorage
-	companies storage.CompanyStorage
-	finance   storage.FinanceStorage
-	resources map[int]*catalog.ResourceEntry
-	economy   map[int]*catalog.EconomyModelEntry
-	cfg       *config.GameConfig
-	clock     platform.Clock
-	idgen     *platform.IDGen
+	mu           sync.Mutex
+	market       storage.MarketStorage
+	companies    storage.CompanyStorage
+	finance      storage.FinanceStorage
+	resources    map[int]*catalog.ResourceEntry
+	economy      map[int]*catalog.EconomyModelEntry
+	cfg          *config.GameConfig
+	clock        platform.Clock
+	idgen        *platform.IDGen
+	botCompanyID int // set by EnsureBotCompanies, used by RunBotCycle
 }
 
 // NewService creates a new market service.
@@ -269,6 +270,57 @@ func (s *Service) GetMarketDepth(ctx context.Context, resourceID int, quality in
 	}, nil
 }
 
+// ListMyOrders returns all open/partial orders for a company across all resources.
+func (s *Service) ListMyOrders(ctx context.Context, companyID int) (*openapi.MarketOrderListResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	orders, err := s.market.GetOrdersByCompany(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+
+	dtos := make([]openapi.MarketOrderDTO, 0)
+	for i := range orders {
+		o := orders[i]
+		if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
+			continue
+		}
+		remaining := o.Remaining()
+		if remaining <= 0 {
+			continue
+		}
+		kind := 0
+		if o.IsBuy {
+			kind = 1
+		}
+		kindVal := openapi.MarketOrderDTOKind(kind)
+
+		var createdAt time.Time
+		if o.CreatedAt != "" {
+			createdAt, _ = time.Parse(time.RFC3339, o.CreatedAt)
+		}
+		statusStr := string(o.Status)
+
+		dto := openapi.MarketOrderDTO{
+			Id:         &o.ID,
+			ResourceId: &o.ResourceID,
+			Kind:       &kindVal,
+			Price:      float32Ptr(o.Price),
+			Quality:    &o.Quality,
+			Quantity:   &o.Quantity,
+			Remaining:  &remaining,
+			CompanyId:  &o.CompanyID,
+			CreatedAt:  &createdAt,
+			Status:     &statusStr,
+		}
+		dtos = append(dtos, dto)
+	}
+	return &openapi.MarketOrderListResponse{
+		Orders: &dtos,
+	}, nil
+}
+
 // ListMarketOrders returns orders for a resource and quality as DTOs.
 func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality int) (*openapi.MarketOrderListResponse, error) {
 	s.mu.Lock()
@@ -292,8 +344,16 @@ func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality 
 		}
 		return orders[i].ID < orders[j].ID
 	})
-	for _, o := range orders {
+	for i := range orders {
+		o := orders[i]
 		if o.Quality != quality {
+			continue
+		}
+		if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
+			continue
+		}
+		remaining := o.Remaining()
+		if remaining <= 0 {
 			continue
 		}
 		kind := 0
@@ -302,7 +362,6 @@ func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality 
 		}
 		kindVal := openapi.MarketOrderDTOKind(kind)
 
-		remaining := o.Remaining()
 
 		// Parse CreatedAt string to time.Time.
 		var createdAt time.Time

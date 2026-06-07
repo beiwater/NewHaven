@@ -2,12 +2,14 @@ package market
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math"
 	"math/rand"
 	"sort"
 	"time"
 
+	"github.com/newhaven/backend-next/internal/domain/company"
 	domainmarket "github.com/newhaven/backend-next/internal/domain/market"
 )
 
@@ -28,6 +30,52 @@ var botCfg = botConfig{
 	resourcesPerTick: 3,
 }
 
+// EnsureBotCompanies creates the bot player and company needed for market liquidity.
+// Must be called once before RunBotCycle. Idempotent.
+func (s *Service) EnsureBotCompanies(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.botCompanyID != 0 {
+		return nil // already initialized
+	}
+
+	const botPlayerID = -900001 // sentinel; no real player uses this
+
+	// Check if already created by a previous run.
+	existing, err := s.companies.GetCompanyByPlayerID(ctx, botPlayerID)
+	if err == nil && existing != nil {
+		s.botCompanyID = existing.ID
+		// Top up inventory for any new resources.
+		for rid := range s.resources {
+			if existing.Inventory == nil {
+				existing.Inventory = make(map[int]int)
+			}
+			existing.Inventory[rid] = 999999
+		}
+		_ = s.companies.UpdateCompany(ctx, existing)
+		return nil
+	}
+
+	bot := &company.Company{
+		PlayerID:  botPlayerID,
+		Name:      "Atlas Trading Bot",
+		Money:     5_000_000,
+		Level:     99,
+		XP:        0,
+		Inventory: make(map[int]int),
+	}
+	for rid := range s.resources {
+		bot.Inventory[rid] = 999999
+	}
+	if err := s.companies.CreateCompany(ctx, bot); err != nil {
+		return fmt.Errorf("create bot company: %w", err)
+	}
+	s.botCompanyID = bot.ID
+	slog.Info("bot company created", "company_id", s.botCompanyID)
+	return nil
+}
+
 // RunBotCycle generates NPC buy/sell orders to maintain market liquidity.
 func (s *Service) RunBotCycle(ctx context.Context) error {
 	if !botCfg.enabled {
@@ -36,6 +84,11 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if s.botCompanyID == 0 {
+		slog.Warn("[bot] company not initialized, skipping cycle")
+		return nil
+	}
 
 	var ids []int
 	for id := range s.resources {
@@ -55,7 +108,6 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 	selected := ids[:n]
 
 	now := s.clock.Now().UTC()
-	botCompanyID := 900001
 
 	for _, resourceID := range selected {
 		midPrice := s.estimateMidPrice(ctx, resourceID, rng)
@@ -66,7 +118,7 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 		existing, _ := s.market.GetOrdersByResource(ctx, resourceID)
 		botOrderCount := 0
 		for _, o := range existing {
-			if o.CompanyID == botCompanyID && o.Remaining() > 0 {
+			if o.CompanyID == s.botCompanyID && o.Remaining() > 0 {
 				botOrderCount++
 			}
 		}
@@ -78,7 +130,7 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 		buyQty := botCfg.orderSizeMin + rng.Intn(botCfg.orderSizeMax-botCfg.orderSizeMin+1)
 		buyOrder := &domainmarket.MarketOrder{
 			ID:         s.idgen.Next("bot-buy"),
-			CompanyID:  botCompanyID,
+			CompanyID:  s.botCompanyID,
 			ResourceID: resourceID,
 			IsBuy:      true,
 			Price:      buyPrice,
@@ -92,7 +144,7 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 		sellQty := botCfg.orderSizeMin + rng.Intn(botCfg.orderSizeMax-botCfg.orderSizeMin+1)
 		sellOrder := &domainmarket.MarketOrder{
 			ID:         s.idgen.Next("bot-sell"),
-			CompanyID:  botCompanyID,
+			CompanyID:  s.botCompanyID,
 			ResourceID: resourceID,
 			IsBuy:      false,
 			Price:      sellPrice,
@@ -154,13 +206,10 @@ func (s *Service) RefreshDailyOrders(_ context.Context) error {
 	return nil
 }
 
-// CleanupMarket removes stale orders (filled/cancelled/expired)
-// and refreshes daily orders.
+// CleanupMarket removes stale orders (filled/cancelled/expired) and refreshes daily orders.
 func (s *Service) CleanupMarket(_ context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// No-op for memory storage — orders are cleaned during matching/CancelOrder.
-	// This method exists as a hook for persistent storage implementations.
 	return nil
 }
 
