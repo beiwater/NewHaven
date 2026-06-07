@@ -106,8 +106,13 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 	if n > len(ids) {
 		n = len(ids)
 	}
-	rng.Shuffle(len(ids), func(i, j int) { ids[i], ids[j] = ids[j], ids[i] })
-	selected := ids[:n]
+	// Round-robin selection — ensures every resource gets regular coverage.
+	tickNum := s.clock.Now().Unix() / 60
+	startIdx := (int(tickNum) * n) % len(ids)
+	selected := make([]int, n)
+	for i := 0; i < n; i++ {
+		selected[i] = ids[(startIdx+i)%len(ids)]
+	}
 
 	now := s.clock.Now().UTC()
 

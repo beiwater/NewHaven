@@ -182,6 +182,7 @@ export function MarketPage() {
             </div>
           </aside>
 
+          <main className="space-y-4">
             {/* Tab buttons */}
             <div className="flex gap-2 border-b border-amber-200/60 pb-2">
               <button
@@ -205,7 +206,6 @@ export function MarketPage() {
                 {t('market.myOrders')}
               </button>
             </div>
-          <main className="space-y-4">
             {activeTab === 'market' && (<>
             <section className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -229,7 +229,7 @@ export function MarketPage() {
                   <Metric label={t('common.inventory')} value={`${selectedInventory.toLocaleString()}`} subtle />
                   <Metric label={t('market.cash')} value={`$${Math.floor(cash).toLocaleString()}`} subtle />
                 </div>
-              <PriceCurve series={series} />
+              <PriceCurve series={series} selectedResource={selectedResource} />
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
