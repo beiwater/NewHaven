@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,14 +42,18 @@ func (h *SocialHandler) handleMessages(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case http.MethodGet:
-		msgs, err := h.social.GetMessages(r.Context(), "", 50)
+		chatroom := r.URL.Query().Get("chatroom")
+		msgs, err := h.social.GetMessages(r.Context(), chatroom, 50)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to fetch messages", nil)
 			return
 		}
-		// Map to the format the frontend expects
+		// Filter: if no chatroom specified, only return public messages
 		result := make([]map[string]any, 0, len(msgs))
 		for _, m := range msgs {
+			if chatroom == "" && strings.HasPrefix(m.Channel, "C:") {
+				continue
+			}
 			result = append(result, map[string]any{
 				"id":       fmt.Sprintf("msg-%d", m.ID),
 				"chatroom": m.Channel,
@@ -71,6 +76,14 @@ func (h *SocialHandler) handleMessages(w http.ResponseWriter, r *http.Request) {
 		if len([]rune(req.Body)) > h.maxMessageLen {
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "message too long", nil)
 			return
+		}
+		if strings.HasPrefix(req.Chatroom, "C:") {
+			otherIDStr := strings.TrimPrefix(req.Chatroom, "C:")
+			otherID, err := strconv.Atoi(otherIDStr)
+			if err != nil || otherID == companyID {
+				writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid private chat room", nil)
+				return
+			}
 		}
 		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{
@@ -118,6 +131,14 @@ func (h *SocialHandler) handleV2Message(w http.ResponseWriter, r *http.Request) 
 		if len([]rune(req.Body)) > h.maxMessageLen {
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "message too long", nil)
 			return
+		}
+		if strings.HasPrefix(req.Chatroom, "C:") {
+			otherIDStr := strings.TrimPrefix(req.Chatroom, "C:")
+			otherID, err := strconv.Atoi(otherIDStr)
+			if err != nil || otherID == companyID {
+				writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid private chat room", nil)
+				return
+			}
 		}
 		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{

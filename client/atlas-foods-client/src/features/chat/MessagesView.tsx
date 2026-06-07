@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useMessages, useSendMessage, useContacts } from '@/api/chat.api'
+import { useMessages, usePrivateMessages, useSendMessage, useContacts } from '@/api/chat.api'
 import { renderMessageBody } from './ChatUtils'
 import { getCompanyId } from '@/api/client'
 
@@ -16,6 +16,7 @@ export function MessagesView() {
   const [selectedContact, setSelectedContact] = useState<{ companyId: number; companyName: string } | null>(null)
   const [input, setInput] = useState('')
   const { data: messages } = useMessages()
+  const { data: privateMessages } = usePrivateMessages(selectedContact?.companyId ?? null)
   const { data: contactsData } = useContacts()
   const sendMessage = useSendMessage()
   const listRef = useRef<HTMLDivElement>(null)
@@ -63,10 +64,6 @@ export function MessagesView() {
     .filter(c => c.companyName.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => b.lastTime.localeCompare(a.lastTime))
 
-  // Filter messages for selected contact
-  const privateMessages = selectedContact
-    ? messages_list.filter(msg => msg.chatroom === `C:${selectedContact.companyId}`)
-    : []
 
   // Auto-scroll
   useEffect(() => {

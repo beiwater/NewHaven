@@ -51,8 +51,11 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: (payload: SendMessagePayload) =>
       api.post<ChatMessage>('/api/v2/message/', payload),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['chat', 'messages'] })
+      if (variables.chatroom.startsWith('C:')) {
+        qc.invalidateQueries({ queryKey: ['chat', 'private'] })
+      }
     },
   })
 }
@@ -78,6 +81,17 @@ export function useChatroomChannel(channel: string) {
   return useQuery({
     queryKey: ['chat', 'chatroom', channel],
     queryFn: () => api.get<ChatMessage[]>(`/api/v2/chatroom/?channel=${channel}`),
+    refetchInterval: (data) => (data ? 15_000 : false),
+    retry: 2,
+    retryDelay: 5000,
+  })
+}
+
+export function usePrivateMessages(companyId: number | null) {
+  return useQuery({
+    queryKey: ['chat', 'private', companyId],
+    queryFn: () => api.get<ChatMessage[]>(`/api/messages/?chatroom=C:${companyId}`),
+    enabled: companyId !== null,
     refetchInterval: (data) => (data ? 15_000 : false),
     retry: 2,
     retryDelay: 5000,
