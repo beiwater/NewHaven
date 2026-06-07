@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react'
 import { useUIStore } from '@/store/ui.store'
 import { useMessages, useSendMessage, useMarkRead, useContacts } from '@/api/chat.api'
 import { audio } from '@/audio/AudioManager'
+import { renderMessageBody } from './ChatUtils'
 
 function formatTime(at: string): string {
   try {
@@ -216,7 +217,7 @@ export function ChatPanel() {
             <span className="font-semibold text-amber-800">
               {msg.from || (msg.chatroom === 'N' ? 'System' : msg.chatroom.replace('C:', ''))}:
             </span>{' '}
-            <span className="text-amber-700">{msg.body}</span>
+            {renderMessageBody(msg.body)}
             <span className="text-[9px] text-amber-400 ml-1">{formatTime(msg.at)}</span>
           </div>
         ))}

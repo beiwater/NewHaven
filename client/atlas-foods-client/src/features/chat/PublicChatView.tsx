@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useChatroomChannel, useSendMessage } from '@/api/chat.api'
+import { renderMessageBody } from './ChatUtils'
 
 export function PublicChatView() {
   const [channel, setChannel] = useState('general')
@@ -52,7 +53,7 @@ export function PublicChatView() {
           <div key={msg.id} className="text-xs">
             <span className="font-bold text-amber-800">{msg.from || 'System'}:</span>
             {' '}
-            <span className="text-amber-700">{msg.body}</span>
+            {renderMessageBody(msg.body)}
             <span className="text-[9px] text-amber-400 ml-1">
               {msg.at ? new Date(msg.at).toLocaleTimeString() : ''}
             </span>
