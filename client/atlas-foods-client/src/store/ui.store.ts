@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { MAPS, type MapId } from '@/game/map.config'
 
-export type ActiveView = 'map' | 'build' | 'warehouse' | 'chain' | 'production' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect'
+export type ActiveView = 'map' | 'build' | 'warehouse' | 'chain' | 'production' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect' | 'chat'
 
 interface UIState {
   activeView: ActiveView
@@ -14,6 +14,7 @@ interface UIState {
   powerupOpen: boolean
   currentMapId: MapId
   syncingRetail: boolean
+  chatTab: 'messages' | 'public'
 
   setActiveView: (view: ActiveView) => void
   selectBuilding: (id: string | null) => void
@@ -25,6 +26,7 @@ interface UIState {
   setMarketPanelOpen: (open: boolean) => void
   setChatOpen: (open: boolean) => void
   setPowerupOpen: (open: boolean) => void
+  setChatTab: (tab: 'messages' | 'public') => void
   setCurrentMapId: (mapId: MapId) => void
   setSyncingRetail: (syncing: boolean) => void
 }
@@ -43,6 +45,7 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   marketPanelOpen: false,
   chatOpen: false,
+  chatTab: 'messages',
   powerupOpen: false,
   syncingRetail: false,
   currentMapId: initialMapId(),
@@ -56,6 +59,7 @@ export const useUIStore = create<UIState>((set) => ({
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   setMarketPanelOpen: (open) => set({ marketPanelOpen: open }),
   setChatOpen: (open) => set({ chatOpen: open }),
+  setChatTab: (tab) => set({ chatTab: tab }),
   setPowerupOpen: (open) => set({ powerupOpen: open }),
   setCurrentMapId: (mapId) => {
     localStorage.setItem('newhaven_current_map', mapId)

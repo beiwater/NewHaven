@@ -74,6 +74,16 @@ export function useChatroom() {
   })
 }
 
+export function useChatroomChannel(channel: string) {
+  return useQuery({
+    queryKey: ['chat', 'chatroom', channel],
+    queryFn: () => api.get<ChatMessage[]>(`/api/v2/chatroom/?channel=${channel}`),
+    refetchInterval: (data) => (data ? 15_000 : false),
+    retry: 2,
+    retryDelay: 5000,
+  })
+}
+
 export function useContacts() {
   return useQuery({
     queryKey: ['chat', 'contacts'],

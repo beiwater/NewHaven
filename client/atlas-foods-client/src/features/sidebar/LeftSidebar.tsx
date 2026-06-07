@@ -10,6 +10,7 @@ const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature:
   { id: 'warehouse', label: 'warehouse', sysIcon: 'inventory', feature: 'warehouse' },
   { id: 'market', label: 'market', sysIcon: 'market', feature: 'market' },
   { id: 'contracts', label: 'contracts', sysIcon: 'quest', feature: 'contracts' },
+  { id: 'chat', label: 'chat', sysIcon: 'chat', feature: '__always__' },
   { id: 'research', label: 'research', sysIcon: 'research', feature: 'research' },
   { id: 'executives', label: 'executives', sysIcon: 'executive', feature: 'executives' },
   { id: 'finance', label: 'finance', sysIcon: 'financial', feature: 'finance' },

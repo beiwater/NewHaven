@@ -20,6 +20,7 @@ import { ResearchPage } from '@/features/research/ResearchPage'
 import { ErrorBoundary } from './ErrorBoundary'
 import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { ChatPage } from '@/features/chat/ChatPage'
 import { InspectPage } from '@/features/inspect/InspectPage'
 import { FarmNotes } from '@/features/guidance/FarmNotes'
 import { ProductionQueue } from '@/features/production/ProductionQueue'
@@ -56,6 +57,9 @@ function PageContent() {
       return <LeaderboardPage />
     case 'settings':
       return <SettingsPage />
+    case 'chat':
+      return <ChatPage />
+
     case 'inspect':
       return <InspectPage />
     case 'map':
@@ -155,7 +159,7 @@ function GameLayout() {
       <FarmNotes />
       {isMapView ? <BuildingPanel /> : <div className="right-panel page-spacer" />}
       <MarketTicker />
-      {!chatOpen && (
+      {!chatOpen && activeView !== 'chat' && (
         <button
           onClick={(e) => {
             e.stopPropagation()

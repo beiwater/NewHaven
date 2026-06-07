@@ -142,7 +142,11 @@ func (h *SocialHandler) handleV2Message(w http.ResponseWriter, r *http.Request) 
 func (h *SocialHandler) handleChatroom(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		msgs, err := h.social.GetMessages(r.Context(), "global", 50)
+		channel := r.URL.Query().Get("channel")
+		if channel == "" {
+			channel = "general"
+		}
+		msgs, err := h.social.GetMessages(r.Context(), channel, 50)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to fetch messages", nil)
 			return
