@@ -25,6 +25,7 @@ func TestGameConfigValidation(t *testing.T) {
 				BondMinInterest: -1,
 				BaseOutput:       0,
 				MaxBuildings:     0,
+				MaxMessageLength: -1,
 			},
 		}
 		err := cfg.Validate()
@@ -37,6 +38,7 @@ func TestGameConfigValidation(t *testing.T) {
 			"bond_min_interest must be >= 0",
 			"base_output must be positive",
 			"max_buildings must be > 0",
+			"max_message_length must be > 0",
 		} {
 			if !strings.Contains(errStr, want) {
 				t.Errorf("expected error to contain %q", want)
@@ -52,6 +54,7 @@ func TestGameConfigValidation(t *testing.T) {
 				BondMinInterest: 0.5,
 				BaseOutput:      100,
 				MaxBuildings:    20,
+				MaxMessageLength: 500,
 			},
 		}
 		if err := cfg.Validate(); err != nil {

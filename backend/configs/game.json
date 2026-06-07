@@ -53,5 +53,6 @@
   "base_management_cost": 500,
   "sweet_spot_level": 7,
   "base_output": 100,
-  "max_buildings": 20
+  "max_buildings": 20,
+  "max_message_length": 500
 }

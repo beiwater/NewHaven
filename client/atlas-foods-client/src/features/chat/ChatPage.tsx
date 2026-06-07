@@ -7,8 +7,8 @@ export function ChatPage() {
   const setChatTab = useUIStore(s => s.setChatTab)
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl p-4 md:p-6 flex flex-col h-full">
+    <div className="h-full flex flex-col">
+      <div className="mx-auto w-full max-w-3xl p-4 md:p-6 flex flex-col flex-1 min-h-0">
         {/* Header */}
         <div className="mb-5 flex items-center gap-3 shrink-0">
           <svg className="h-7 w-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

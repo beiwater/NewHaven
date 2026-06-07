@@ -14,12 +14,13 @@ import (
 
 // SocialHandler handles chat, message, and contact HTTP endpoints.
 type SocialHandler struct {
-	social    storage.SocialStorage
-	companies storage.CompanyStorage
+	social          storage.SocialStorage
+	companies       storage.CompanyStorage
+	maxMessageLen   int
 }
 
-func NewSocialHandler(social storage.SocialStorage, companies storage.CompanyStorage) *SocialHandler {
-	return &SocialHandler{social: social, companies: companies}
+func NewSocialHandler(social storage.SocialStorage, companies storage.CompanyStorage, maxMessageLen int) *SocialHandler {
+	return &SocialHandler{social: social, companies: companies, maxMessageLen: maxMessageLen}
 }
 
 // lookupCompanyName resolves the company's display name from storage.
@@ -67,6 +68,10 @@ func (h *SocialHandler) handleMessages(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request body", nil)
 			return
 		}
+		if len([]rune(req.Body)) > h.maxMessageLen {
+			writeErr(w, http.StatusBadRequest, ErrorValidation, "message too long", nil)
+			return
+		}
 		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{
 			CompanyID:  companyID,
@@ -108,6 +113,10 @@ func (h *SocialHandler) handleV2Message(w http.ResponseWriter, r *http.Request) 
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request body", nil)
+			return
+		}
+		if len([]rune(req.Body)) > h.maxMessageLen {
+			writeErr(w, http.StatusBadRequest, ErrorValidation, "message too long", nil)
 			return
 		}
 		companyName := h.lookupCompanyName(r.Context(), companyID)

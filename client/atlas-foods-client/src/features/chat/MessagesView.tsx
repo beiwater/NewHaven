@@ -128,20 +128,30 @@ export function MessagesView() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-amber-200/60 p-3 flex gap-2 bg-amber-50/80">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder="输入消息..."
-            className="flex-1 px-3 py-2 rounded-xl border border-amber-200/60 bg-white text-xs text-amber-900 placeholder-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
-          />
-          <button
-            onClick={handleSend}
-            className="px-5 py-2 rounded-xl bg-amber-800 text-white text-xs font-bold hover:bg-amber-900 transition-colors active:scale-95"
-          >
-            发送
-          </button>
+        {/* Input */}
+        <div className="border-t border-amber-200/60 p-3 flex flex-col gap-2 bg-amber-50/80">
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value.slice(0, 500))}
+              onKeyDown={e => e.key === 'Enter' && handleSend()}
+              placeholder="输入消息..."
+              className="flex-1 px-3 py-2 rounded-xl border border-amber-200/60 bg-white text-xs text-amber-900 placeholder-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+            />
+            <button
+              onClick={handleSend}
+              className="px-5 py-2 rounded-xl bg-amber-800 text-white text-xs font-bold hover:bg-amber-900 transition-colors active:scale-95"
+            >
+              发送
+            </button>
+          </div>
+          <div className="flex justify-end">
+            <span className={`text-[10px] font-medium ${
+              input.length > 450 ? 'text-red-500' : input.length > 400 ? 'text-amber-500' : 'text-amber-400'
+            }`}>
+              {input.length} / 500
+            </span>
+          </div>
         </div>
       </div>
     )

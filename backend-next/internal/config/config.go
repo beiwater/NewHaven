@@ -46,6 +46,7 @@ type GameConfig struct {
 	ResearchBaseCost   float64 `json:"research_base_cost"`
 	ResearchCostGrowth float64 `json:"research_cost_growth"`
 	ResearchSpeedBonus float64 `json:"research_speed_bonus"`
+	MaxMessageLength int `json:"max_message_length"`
 }
 
 func Load() *Config {
@@ -81,6 +82,9 @@ func (c *Config) Validate() error {
 		}
 		if c.Game.MaxBuildings <= 0 {
 			errs = append(errs, errors.New("max_buildings must be > 0"))
+		}
+		if c.Game.MaxMessageLength <= 0 {
+			errs = append(errs, errors.New("max_message_length must be > 0"))
 		}
 	}
 	return errors.Join(errs...)
@@ -130,6 +134,7 @@ func defaultGameConfig() *GameConfig {
 		BaseOutput:           100,
 		MaxBuildings:         20,
 		ResearchBaseCost:   1000,
+		MaxMessageLength:     500,
 		ResearchCostGrowth: 1.2,
 		ResearchSpeedBonus: 0.002,
 	}
