@@ -116,7 +116,7 @@
       },
       "warehouse_level": 0,
       "created_at": "2026-06-07T00:26:41Z",
-      "last_retail_at": "2026-06-07T02:04:25Z"
+      "last_retail_at": "2026-06-07T02:21:57Z"
     },
     "1000005": {
       "id": 1000005,
@@ -206,7 +206,7 @@
       ],
       "warehouse_level": 0,
       "created_at": "2026-06-07T02:00:20Z",
-      "last_retail_at": "2026-06-07T02:04:25Z"
+      "last_retail_at": "2026-06-07T02:19:13Z"
     }
   },
   "orders": {
@@ -982,6 +982,110 @@
       "content": "啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",
       "channel": "N",
       "created_at": "2026-06-07T02:03:29Z"
+    },
+    {
+      "id": 26,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "在吗",
+      "channel": "C:1000002",
+      "created_at": "2026-06-07T02:13:14Z"
+    },
+    {
+      "id": 27,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "在吗",
+      "channel": "C:1000012",
+      "created_at": "2026-06-07T02:13:23Z"
+    },
+    {
+      "id": 28,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "不是哥们",
+      "channel": "C:1000002",
+      "created_at": "2026-06-07T02:13:42Z"
+    },
+    {
+      "id": 29,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "再",
+      "channel": "C:1000012",
+      "created_at": "2026-06-07T02:13:55Z"
+    },
+    {
+      "id": 30,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:11Z"
+    },
+    {
+      "id": 31,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:19Z"
+    },
+    {
+      "id": 32,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:23Z"
+    },
+    {
+      "id": 33,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:27Z"
+    },
+    {
+      "id": 34,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",
+      "channel": "general",
+      "created_at": "2026-06-07T02:15:35Z"
+    },
+    {
+      "id": 35,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "ces",
+      "channel": "C:1000005",
+      "created_at": "2026-06-07T02:18:05Z"
+    },
+    {
+      "id": 36,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "ce",
+      "channel": "C:1000002",
+      "created_at": "2026-06-07T02:18:17Z"
+    },
+    {
+      "id": 37,
+      "company_id": 1000002,
+      "sender_name": "Dev Player",
+      "content": "ddd",
+      "channel": "C:1000005",
+      "created_at": "2026-06-07T02:18:36Z"
+    },
+    {
+      "id": 38,
+      "company_id": 1000012,
+      "sender_name": "dev12",
+      "content": "cccc",
+      "channel": "C:1000005",
+      "created_at": "2026-06-07T02:18:54Z"
     }
   ],
   "notifications": null,
@@ -1012,5 +1116,5 @@
       "items": []
     }
   },
-  "nextId": 26
+  "nextId": 39
 }

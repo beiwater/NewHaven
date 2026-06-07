@@ -16,7 +16,7 @@ export function MessagesView() {
   const [selectedContact, setSelectedContact] = useState<{ companyId: number; companyName: string } | null>(null)
   const [input, setInput] = useState('')
   const { data: messages } = useMessages()
-  const { data: privateMessages } = usePrivateMessages(selectedContact?.companyId ?? null)
+  const { data: privateMessages = [] } = usePrivateMessages(selectedContact?.companyId ?? null)
   const { data: contactsData } = useContacts()
   const sendMessage = useSendMessage()
   const listRef = useRef<HTMLDivElement>(null)
@@ -100,7 +100,7 @@ export function MessagesView() {
         </div>
 
         {/* Messages */}
-        <div ref={listRef} className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 p-4 space-y-2">
           {privateMessages.length === 0 && (
             <p className="text-center text-[11px] text-amber-500 py-8">暂无消息，发送第一条吧</p>
           )}

@@ -43,13 +43,9 @@ export function PublicChatView() {
               onClick={() => setChannel(ch.id)}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                 channel === ch.id
-                  ? 'bg-white text-amber-900 shadow-sm'
-                  : 'text-amber-600 hover:text-amber-800 hover:bg-amber-50/50'
+                  ? 'bg-white text-amber-900 shadow-sm border border-amber-700/50'
+                  : 'text-amber-600 hover:text-amber-800 hover:bg-amber-50/50 border border-transparent'
               }`}
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={ch.icon} />
-              </svg>
               {ch.label}
             </button>
           ))}
@@ -66,7 +62,7 @@ export function PublicChatView() {
       </div>
 
       {/* Messages */}
-      <div ref={listRef} className="flex-1 overflow-y-auto px-4 space-y-2 pb-2">
+      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 px-4 space-y-2 pb-2">
         {(!messages || messages.length === 0) && (
           <div className="flex flex-col items-center justify-center py-12 text-amber-500">
             <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
