@@ -31,6 +31,7 @@ type chatRoomData struct {
 	rooms    map[string]*chat.ChatRoom
 	messages map[string][]chat.Message
 	nextID   int64
+	readAt   map[string]int64
 }
 
 type Store struct {
@@ -70,6 +71,7 @@ func New() *Store {
 			rooms:    make(map[string]*chat.ChatRoom),
 			messages: make(map[string][]chat.Message),
 			nextID:   1,
+			readAt:   make(map[string]int64),
 		},
 		companyResearch: make(map[string]*research.ResourceResearch),
 		nextID:     1,
@@ -944,6 +946,22 @@ func (s *Store) SaveRoomMessage(_ context.Context, msg *chat.Message) error {
 	// Update room's last message time
 	if room, ok := s.chatData.rooms[msg.RoomID]; ok {
 		room.LastMessageAt = msg.CreatedAt
+		room.LastMessage = msg.Content
 	}
 	return nil
+}
+
+func (s *Store) MarkRoomRead(_ context.Context, roomID string, companyID, lastMessageID int64) error {
+	s.chatData.Lock()
+	defer s.chatData.Unlock()
+	key := fmt.Sprintf("%s:%d", roomID, companyID)
+	s.chatData.readAt[key] = lastMessageID
+	return nil
+}
+
+func (s *Store) GetRoomReadStatus(_ context.Context, roomID string, companyID int) int64 {
+	s.chatData.RLock()
+	defer s.chatData.RUnlock()
+	key := fmt.Sprintf("%s:%d", roomID, companyID)
+	return s.chatData.readAt[key]
 }

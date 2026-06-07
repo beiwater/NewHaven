@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useChatRooms, useRoomMessages, useSendRoomMessage, useCreateRoom, useContacts } from '@/api/chat.api'
+import { useChatRooms, useRoomMessages, useSendRoomMessage, useContacts } from '@/api/chat.api'
 import { renderMessageBody } from './ChatUtils'
 import { getCompanyId } from '@/api/client'
 
@@ -16,20 +16,20 @@ export function MessagesView() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [selectedPartnerName, setSelectedPartnerName] = useState('')
   const [input, setInput] = useState('')
+  const [chatError, setChatError] = useState('')
   const myCompanyId = Number(getCompanyId())
 
   const { data: roomsData } = useChatRooms()
   const { data: contactsData } = useContacts()
   const { data: roomMessages } = useRoomMessages(selectedRoomId)
   const sendMessage = useSendRoomMessage(selectedRoomId ?? '')
-  const createRoom = useCreateRoom()
   const listRef = useRef<HTMLDivElement>(null)
 
   const rooms = roomsData?.rooms ?? []
   const contacts = contactsData?.contacts ?? []
   const messages = roomMessages?.messages ?? []
 
-  // Build contact list from rooms
+  // Build contact list from rooms (existing conversations)
   const chatEntries: (Contact & { roomId: string })[] = rooms
     .map(room => {
       const otherId = room.participant1 === myCompanyId ? room.participant2 : room.participant1
@@ -38,13 +38,20 @@ export function MessagesView() {
         roomId: room.id,
         companyId: otherId,
         companyName: contact?.company ?? `Company-${otherId}`,
-        lastMessage: '',
+		lastMessage: room.last_message ?? '',
         lastTime: room.last_message_at ?? '',
         unread: 0,
       }
     })
-    .filter(entry => entry.companyName.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => b.lastTime.localeCompare(a.lastTime))
+
+  // Search results: when 3+ chars, search ALL companies from contacts
+  const chatRoomIds = new Set(rooms.map(r => r.participant1 === myCompanyId ? r.participant2 : r.participant1))
+  const searchResults = search.length >= 3
+    ? contacts
+        .filter(c => !chatRoomIds.has(c.companyId) && c.company.toLowerCase().includes(search.toLowerCase()))
+        .slice(0, 10)
+    : []
 
   // Auto-scroll
   useEffect(() => {
@@ -53,7 +60,19 @@ export function MessagesView() {
     }
   }, [messages])
 
-  const handleSelectContact = (contact: Contact) => {
+  // Mark messages as read when room opens
+  useEffect(() => {
+    if (selectedRoomId && messages.length > 0) {
+      const lastId = messages[messages.length - 1].id
+      fetch(`/api/v2/chat/room/${selectedRoomId}/read/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('atlas_auth_token')}` },
+        body: JSON.stringify({ lastMessageId: lastId }),
+      })
+    }
+  }, [selectedRoomId, messages])
+  const handleSelectContact = async (contact: Contact) => {
+    setChatError('')
     setSelectedPartnerName(contact.companyName)
     const existing = rooms.find(r =>
       (r.participant1 === myCompanyId && r.participant2 === contact.companyId) ||
@@ -61,15 +80,27 @@ export function MessagesView() {
     )
     if (existing) {
       setSelectedRoomId(existing.id)
-    } else {
-      createRoom.mutate(contact.companyId, {
-        onSuccess: (data) => {
-          setSelectedRoomId(data.room.id)
-        },
+      return
+    }
+    // Create room via direct fetch (bypass mutation to avoid state issues)
+    try {
+      const res = await fetch('/api/v2/chat/room/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('atlas_auth_token')}` },
+        body: JSON.stringify({ companyId: contact.companyId }),
       })
+      if (!res.ok) {
+        setChatError(`创建聊天室失败 (${res.status})`)
+        return
+      }
+      const data = await res.json()
+      if (data?.room?.id) {
+        setSelectedRoomId(data.room.id)
+      }
+    } catch (err) {
+      setChatError('网络错误')
     }
   }
-
   const handleSend = () => {
     if (!input.trim() || !selectedRoomId) return
     sendMessage.mutate(input.trim())
@@ -79,7 +110,7 @@ export function MessagesView() {
   // Back to contacts list
   if (selectedRoomId) {
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Chat header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-200/60 bg-amber-50/80">
           <button
@@ -116,6 +147,9 @@ export function MessagesView() {
                     <span className="text-[9px] text-amber-400">{msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : ''}</span>
                   </div>
                   <div className="text-xs text-amber-700">{renderMessageBody(msg.content)}</div>
+                  {isOwn && (msg as any).read && (
+                    <span className="text-[9px] text-amber-400 text-right block mt-0.5">已读</span>
+                  )}
                 </div>
               </div>
             )
@@ -153,7 +187,7 @@ export function MessagesView() {
 
   // Contacts list view
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Search */}
       <div className="px-4 pt-3 pb-2">
         <div className="relative">
@@ -169,18 +203,17 @@ export function MessagesView() {
         </div>
       </div>
 
+      {/* Error message */}
+      {chatError && (
+        <div className="px-4 py-2 text-[10px] text-red-500 font-medium bg-red-50 border-b border-red-200/60">
+          {chatError}
+        </div>
+      )}
+
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto">
-        {chatEntries.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-amber-500">
-            <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <p className="text-[11px] font-semibold">暂无联系人</p>
-            <p className="text-[10px] mt-1">在排行榜私聊或公屏聊天后会出现在这里</p>
-          </div>
-        )}
-        {chatEntries.map(c => (
+        {/* Existing conversations */}
+        {chatEntries.length > 0 && chatEntries.map(c => (
           <button
             key={c.roomId}
             onClick={() => handleSelectContact(c)}
@@ -200,6 +233,41 @@ export function MessagesView() {
             </div>
           </button>
         ))}
+
+        {/* Search results (companies not yet chatted with) */}
+        {searchResults.length > 0 && (
+          <>
+            <div className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider text-amber-500 bg-amber-50/50">
+              搜索到 {search.length >= 3 ? `${contacts.filter(c => c.company.toLowerCase().includes(search.toLowerCase())).length} 个结果` : ''}
+            </div>
+            {searchResults.map(c => (
+              <button
+                key={`sr-${c.companyId}`}
+                onClick={() => handleSelectContact({ companyId: c.companyId, companyName: c.company, lastMessage: '', lastTime: '', unread: 0 })}
+                className="w-full flex items-center gap-3 px-4 py-3 border-b border-amber-100/60 hover:bg-amber-50/80 transition-colors text-left"
+              >
+                <div className="w-9 h-9 rounded-full bg-amber-300/60 flex items-center justify-center text-sm font-bold text-amber-700 shrink-0">
+                  {c.company.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold text-amber-900 truncate">{c.company}</span>
+                  <p className="text-[10px] text-amber-500 mt-0.5">开始聊天</p>
+                </div>
+              </button>
+            ))}
+          </>
+        )}
+
+        {/* Empty state */}
+        {chatEntries.length === 0 && searchResults.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-amber-500">
+            <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <p className="text-[11px] font-semibold">暂无联系人</p>
+            <p className="text-[10px] mt-1">搜索公司名称开始聊天</p>
+          </div>
+        )}
       </div>
     </div>
   )

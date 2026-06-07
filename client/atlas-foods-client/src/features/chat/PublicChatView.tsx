@@ -33,7 +33,7 @@ export function PublicChatView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Channel tabs */}
       <div className="px-4 pt-3 pb-2">
         <div className="flex gap-1.5 p-0.5 rounded-xl bg-amber-100/60 border border-amber-200/40">

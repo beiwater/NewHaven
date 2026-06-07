@@ -86,6 +86,7 @@ func (h *ChatHandler) handleListRooms(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetRoomMessages returns messages for a room (with participant check).
+// handleGetRoomMessages returns messages for a room (with participant check and read receipts).
 func (h *ChatHandler) handleGetRoomMessages(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := CompanyIDFromCtx(r.Context())
 	if !ok {
@@ -105,9 +106,26 @@ func (h *ChatHandler) handleGetRoomMessages(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"messages": msgs,
-	})
+	// Get read status of the OTHER participant
+	otherID, found := h.findOtherParticipant(roomID, companyID)
+	var readUpTo int64
+	if found {
+		readUpTo = h.chat.GetRoomReadStatus(r.Context(), roomID, otherID)
+	}
+
+	result := make([]map[string]any, 0, len(msgs))
+	for _, m := range msgs {
+		result = append(result, map[string]any{
+			"id":          m.ID,
+			"room_id":     m.RoomID,
+			"sender_id":   m.SenderID,
+			"sender_name": m.SenderName,
+			"content":     m.Content,
+			"created_at":  m.CreatedAt,
+			"read":        m.ID <= readUpTo,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"messages": result})
 }
 
 // handleSendMessage sends a message to a room (with participant check).
@@ -158,15 +176,67 @@ func (h *ChatHandler) handleSendMessage(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, msg)
 }
 
-// isParticipant checks if the given company ID is a participant in the room.
-func (h *ChatHandler) isParticipant(roomID string, companyID int) bool {
+
+func (h *ChatHandler) getParticipants(roomID string) (int, int, bool) {
 	parts := strings.SplitN(strings.TrimPrefix(roomID, "p:"), "-", 2)
 	if len(parts) != 2 {
-		return false
+		return 0, 0, false
 	}
 	a, _ := strconv.Atoi(parts[0])
 	b, _ := strconv.Atoi(parts[1])
-	return companyID == a || companyID == b
+	if a == 0 || b == 0 {
+		return 0, 0, false
+	}
+	return a, b, true
+}
+
+// isParticipant checks if the given company ID is a participant in the room.
+func (h *ChatHandler) isParticipant(roomID string, companyID int) bool {
+	a, b, ok := h.getParticipants(roomID)
+	return ok && (companyID == a || companyID == b)
+}
+
+func (h *ChatHandler) findOtherParticipant(roomID string, companyID int) (int, bool) {
+	a, b, ok := h.getParticipants(roomID)
+	if !ok {
+		return 0, false
+	}
+	if a == companyID {
+		return b, true
+	}
+	if b == companyID {
+		return a, true
+	}
+	return 0, false
+}
+
+func (h *ChatHandler) handleMarkRead(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "not authenticated", nil)
+		return
+	}
+
+	roomID := extractRoomID(r.URL.Path)
+	if !h.isParticipant(roomID, companyID) {
+		writeErr(w, http.StatusForbidden, ErrorForbidden, "not a participant", nil)
+		return
+	}
+
+	var req struct {
+		LastMessageId int64 `json:"lastMessageId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid request", nil)
+		return
+	}
+
+	if err := h.chat.MarkRoomRead(r.Context(), roomID, int64(companyID), req.LastMessageId); err != nil {
+		writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to mark read", nil)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 // extractRoomID extracts the room ID from a URL path like

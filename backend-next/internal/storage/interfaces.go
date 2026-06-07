@@ -99,6 +99,8 @@ type ChatStorage interface {
 	GetUserRooms(ctx context.Context, companyID int) ([]*chat.ChatRoom, error)
 	GetRoomMessages(ctx context.Context, roomID string, limit int) ([]chat.Message, error)
 	SaveRoomMessage(ctx context.Context, msg *chat.Message) error
+	MarkRoomRead(ctx context.Context, roomID string, companyID, lastMessageID int64) error
+	GetRoomReadStatus(ctx context.Context, roomID string, companyID int) int64
 }
 
 // WarehouseStorage handles warehouse persistence.
