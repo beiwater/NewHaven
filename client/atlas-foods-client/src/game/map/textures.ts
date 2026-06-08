@@ -51,3 +51,16 @@ export async function preloadResourceTextures(): Promise<Record<number, Texture>
   }
   return cache
 }
+
+/**
+ * Preload all game textures (buildings + resources + default map background)
+ * before the player enters the game. Call early during login loading screen.
+ * Errors are swallowed — individual GameCanvas fallbacks still apply.
+ */
+export async function preloadGameAssets(): Promise<void> {
+  await Promise.allSettled([
+    preloadBuildingTextures(),
+    preloadResourceTextures(),
+    loadImage('/assets/backgrounds/map_harbor_v1.png'),
+  ])
+}

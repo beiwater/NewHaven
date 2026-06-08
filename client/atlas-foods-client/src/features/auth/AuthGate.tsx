@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLogin, useRegister } from '@/api/company.api'
 import { SUPPORTED_LOCALES, LOCALE_LABELS, getStoredLocale, setStoredLocale } from '@/i18n'
 import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
 import { audio } from '@/audio/AudioManager'
 import { LoadingScreen } from './LoadingScreen'
+import { preloadGameAssets } from '@/game/map/textures'
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -20,6 +21,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const register = useRegister()
   // Initialize from stored token so refresh doesn't show login flash.
   const [authenticated, setAuthenticated] = useState(isAuthenticated)
+  const preloadPromiseRef = useRef<Promise<void> | null>(null)
   const [showLoading, setShowLoading] = useState(false)
 
   useEffect(() => {
@@ -43,9 +45,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (authenticated && !showLoading) {
     return <>{children}</>
   }
-
   if (authenticated && showLoading) {
-    return <LoadingScreen onFinished={() => setShowLoading(false)} />
+    return (
+      <LoadingScreen
+        onFinished={() => setShowLoading(false)}
+        readyPromise={preloadPromiseRef.current ?? undefined}
+      />
+    )
   }
 
   const isPending = login.isPending || register.isPending
@@ -55,6 +61,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     e.preventDefault()
     if (!username.trim() || !password.trim()) return
     setShowLoading(true)
+    // Start preloading game assets in parallel with login API call
+    preloadPromiseRef.current = preloadGameAssets()
     audio.unlockAudio()
     audio.playSfx('ui_confirm')
     if (mode === 'login') {

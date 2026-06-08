@@ -4,12 +4,18 @@ interface LoadingScreenProps {
   statusText?: string
   onFinished: () => void
   minDurationMs?: number
+  /**
+   * Optional promise the loading screen waits for before finishing.
+   * Use to coordinate asset preloading — the player only enters the game
+   * after both minDurationMs and this promise resolve.
+   */
+  readyPromise?: Promise<void>
 }
-
 export function LoadingScreen({
   statusText = '四处奔走 筹措物资中',
   onFinished,
   minDurationMs = 3000,
+  readyPromise,
 }: LoadingScreenProps) {
   const [visible, setVisible] = useState(true)
   const spriteRef = useRef<HTMLDivElement>(null)
@@ -42,24 +48,32 @@ export function LoadingScreen({
       frameRef.current = (frameRef.current + 1) % FRAMES.length
       show(frameRef.current)
     }, RATE)
-
     function onResize() {
       show(frameRef.current)
     }
     window.addEventListener('resize', onResize)
-
-    // Minimum duration timer
-    const minTimer = setTimeout(() => {
-      setVisible(false)
-      onFinished()
-    }, minDurationMs)
+    // Wait for minimum duration + optional ready promise before finishing
+    let cancelled = false
+    const done = async () => {
+      const minWait = new Promise<void>((r) => setTimeout(r, minDurationMs))
+      if (readyPromise) {
+        await Promise.all([minWait, readyPromise])
+      } else {
+        await minWait
+      }
+      if (!cancelled) {
+        setVisible(false)
+        onFinished()
+      }
+    }
+    done()
 
     return () => {
+      cancelled = true
       clearInterval(timerRef.current)
-      clearTimeout(minTimer)
       window.removeEventListener('resize', onResize)
     }
-  }, [minDurationMs, onFinished])
+  }, [minDurationMs, onFinished, readyPromise])
 
   if (!visible) return null
 
