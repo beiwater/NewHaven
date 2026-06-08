@@ -53,12 +53,26 @@ type Store struct {
 	notifs     []social.Notification
 	warehouses map[int]*warehouse.Warehouse
 	chatData   chatRoomData
-	nextID     int
+
+	buildings  map[string]*company.Building
+
+	// Per-domain ID counters (independent, no longer shared)
+	nextPlayerID  int
+	nextCompanyID int
+	nextLedgerID  int64
+	nextMessageID int64
+	nextNotifID   int
+
+	// Per-domain locks for high-volume silos (ledger, messages, notifications)
+	// These operate independently from s.mu, so Bot ledger writes don't block player registration.
+	ledgerMu sync.Mutex
+	msgMu    sync.Mutex
+	notifMu  sync.Mutex
 }
 
 func New() *Store {
 	return &Store{
-		players:    make(map[int]*auth.Player),
+	players:    make(map[int]*auth.Player),
 		byUser:     make(map[string]*auth.Player),
 		companies:  make(map[int]*company.Company),
 		byPlayer:   make(map[int]*company.Company),
@@ -66,6 +80,7 @@ func New() *Store {
 		tickers:    make(map[int]*market.Ticker),
 		jobs:       make(map[string]*production.ProductionJob),
 		bonds:      make(map[string]*finance.Bond),
+		buildings:  make(map[string]*company.Building),
 		warehouses: make(map[int]*warehouse.Warehouse),
 		chatData: chatRoomData{
 			rooms:    make(map[string]*chat.ChatRoom),
@@ -74,7 +89,11 @@ func New() *Store {
 			readAt:   make(map[string]int64),
 		},
 		companyResearch: make(map[string]*research.ResourceResearch),
-		nextID:     1,
+		nextPlayerID:  1,
+		nextCompanyID: 1,
+		nextLedgerID:  1,
+		nextMessageID: 1,
+		nextNotifID:   1,
 		snapshotPath: envOrDefault("SIM_API_SNAPSHOT_PATH", "data/snapshot.json"),
 	}
 }
@@ -169,7 +188,7 @@ func (s *Store) collectSnapshot() *storage.GameSnapshot {
 	}
 	snap.Messages = append([]social.Message(nil), s.messages...)
 	snap.Notifs = append([]social.Notification(nil), s.notifs...)
-	snap.NextID = s.nextID
+	snap.NextID = s.nextCompanyID
 	return snap
 }
 
@@ -247,10 +266,15 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	if s.warehouses == nil {
 		s.warehouses = make(map[int]*warehouse.Warehouse)
 	}
-	s.nextID = snap.NextID
-	if s.nextID <= 0 {
-		s.nextID = 1
+	s.nextCompanyID = snap.NextID
+	if s.nextCompanyID <= 0 {
+		s.nextCompanyID = 1
 	}
+	// Legacy fallback: other counters start from a reasonable base
+	s.nextPlayerID = 1
+	s.nextLedgerID = 1
+	s.nextMessageID = 1
+	s.nextNotifID = 1
 }
 
 // GetSnapshotData returns a snapshot of the current game state for external callers (e.g. PG store).
@@ -267,7 +291,6 @@ func (s *Store) LoadFromSnapshot(snap *storage.GameSnapshot) {
 	s.applySnapshot(snap)
 }
 // --- PlayerStorage ---
-
 func (s *Store) CreatePlayer(_ context.Context, p *auth.Player) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -275,8 +298,8 @@ func (s *Store) CreatePlayer(_ context.Context, p *auth.Player) error {
 	if _, ok := s.byUser[p.Username]; ok {
 		return fmt.Errorf("%w: username", storage.ErrAlreadyExists)
 	}
-	p.ID = s.nextID
-	s.nextID++
+	p.ID = s.nextPlayerID
+	s.nextPlayerID++
 	p.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	s.players[p.ID] = p
 	s.byUser[p.Username] = p
@@ -320,15 +343,11 @@ func (s *Store) GetPlayerByID(_ context.Context, id int) (*auth.Player, error) {
 }
 
 // --- CompanyStorage ---
-
 func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.byPlayer[c.PlayerID]; ok {
-		return fmt.Errorf("%w: player company", storage.ErrAlreadyExists)
-	}
-	c.ID = s.nextID + 1000000
-	s.nextID++
+	c.ID = s.nextCompanyID + 1000000
+	s.nextCompanyID++
 	c.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	s.companies[c.ID] = c
 	s.byPlayer[c.PlayerID] = c
@@ -642,19 +661,17 @@ func (s *Store) DeleteJob(_ context.Context, jobID string) error {
 }
 
 // --- FinanceStorage ---
-
 func (s *Store) AppendLedgerEntry(_ context.Context, e *finance.LedgerEntry) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	e.ID = int64(s.nextID)
-	s.nextID++
+	s.ledgerMu.Lock()
+	defer s.ledgerMu.Unlock()
+	e.ID = s.nextLedgerID
+	s.nextLedgerID++
 	s.ledger = append(s.ledger, *e)
 	return nil
 }
-
 func (s *Store) GetLedgerEntries(_ context.Context, companyID int, limit int) ([]finance.LedgerEntry, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.ledgerMu.Lock()
+	defer s.ledgerMu.Unlock()
 	var result []finance.LedgerEntry
 	for i := len(s.ledger) - 1; i >= 0; i-- {
 		if s.ledger[i].CompanyID == companyID {
@@ -785,17 +802,17 @@ func (s *Store) SaveResourceResearch(_ context.Context, rr *research.ResourceRes
 // --- SocialStorage ---
 
 func (s *Store) SaveMessage(_ context.Context, m *social.Message) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	m.ID = int64(s.nextID)
-	s.nextID++
+	s.msgMu.Lock()
+	defer s.msgMu.Unlock()
+	m.ID = s.nextMessageID
+	s.nextMessageID++
 	s.messages = append(s.messages, *m)
 	return nil
 }
 
 func (s *Store) GetMessages(_ context.Context, channel string, limit int) ([]social.Message, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.msgMu.Lock()
+	defer s.msgMu.Unlock()
 
 	// Filter by channel if specified
 	var filtered []social.Message
@@ -821,17 +838,17 @@ func (s *Store) GetMessages(_ context.Context, channel string, limit int) ([]soc
 }
 
 func (s *Store) CreateNotification(_ context.Context, n *social.Notification) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	n.ID = s.nextID
-	s.nextID++
+	s.notifMu.Lock()
+	defer s.notifMu.Unlock()
+	n.ID = s.nextNotifID
+	s.nextNotifID++
 	s.notifs = append(s.notifs, *n)
 	return nil
 }
 
 func (s *Store) GetNotifications(_ context.Context, companyID int, limit int) ([]social.Notification, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.notifMu.Lock()
+	defer s.notifMu.Unlock()
 	var result []social.Notification
 	for i := len(s.notifs) - 1; i >= 0; i-- {
 		if s.notifs[i].CompanyID == companyID {
@@ -845,8 +862,8 @@ func (s *Store) GetNotifications(_ context.Context, companyID int, limit int) ([
 }
 
 func (s *Store) MarkNotificationRead(_ context.Context, notificationID int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.notifMu.Lock()
+	defer s.notifMu.Unlock()
 	for i := range s.notifs {
 		if s.notifs[i].ID == notificationID {
 			s.notifs[i].Read = true
