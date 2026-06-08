@@ -24,6 +24,15 @@ function stringMap(value: unknown): Record<string, number> {
 export function normalizeBuilding(value: unknown): Building {
   const raw = record(value)
   const starterProduces = raw.starterProduces ?? raw.starter_produces
+  const shelvesRaw = raw.shelves
+  const shelves = Array.isArray(shelvesRaw) ? shelvesRaw.map(sh => ({
+    resourceId: number(sh.resourceId ?? sh.resource_id),
+    quantity: number(sh.quantity),
+    maxQty: number(sh.maxQty ?? sh.max_qty),
+    price: number(sh.price),
+    priceLock: Boolean(sh.priceLock ?? sh.price_lock),
+    revenue: number(sh.revenue, 0),
+  })) : undefined
   return {
     id: string(raw.id),
     kind: number(raw.kind ?? raw.buildingId ?? raw.building_id),
@@ -40,6 +49,8 @@ export function normalizeBuilding(value: unknown): Building {
       ? starterProduces.filter((v): v is number => typeof v === 'number')
       : undefined,
     starterRole: string(raw.starterRole ?? raw.starter_role) || undefined,
+    isRetail: typeof raw.isRetail === 'boolean' ? raw.isRetail : undefined,
+    shelves,
   }
 }
 

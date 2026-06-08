@@ -22,6 +22,7 @@ type Service struct {
 	companies    storage.CompanyStorage
 	finance      storage.FinanceStorage
 	resources    map[int]*catalog.ResourceEntry
+	buildings    map[int]*catalog.BuildingEntry
 	economy      map[int]*catalog.EconomyModelEntry
 	cfg          *config.GameConfig
 	clock        platform.Clock
@@ -29,13 +30,13 @@ type Service struct {
 	botCompanyID int // set by EnsureBotCompanies, used by RunBotCycle
 }
 
-// NewService creates a new market service.
-func NewService(market storage.MarketStorage, companies storage.CompanyStorage, finance storage.FinanceStorage, resources map[int]*catalog.ResourceEntry, economy map[int]*catalog.EconomyModelEntry, cfg *config.GameConfig, clock platform.Clock, idgen *platform.IDGen) *Service {
+func NewService(market storage.MarketStorage, companies storage.CompanyStorage, finance storage.FinanceStorage, resources map[int]*catalog.ResourceEntry, buildings map[int]*catalog.BuildingEntry, economy map[int]*catalog.EconomyModelEntry, cfg *config.GameConfig, clock platform.Clock, idgen *platform.IDGen) *Service {
 	return &Service{
 		market:    market,
 		companies: companies,
 		finance:   finance,
 		resources: resources,
+		buildings: buildings,
 		economy:   economy,
 		cfg:       cfg,
 		clock:     clock,

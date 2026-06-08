@@ -16,6 +16,17 @@ export interface Building {
   starterProduces?: number[]
   starterRole?: string
   status?: 'idle' | 'running' | 'ready'
+  isRetail?: boolean
+  shelves?: ShelfItem[]
+}
+
+export interface ShelfItem {
+  resourceId: number
+  quantity: number
+  maxQty: number
+  price: number
+  priceLock: boolean
+  revenue: number
 }
 
 /** Production job */

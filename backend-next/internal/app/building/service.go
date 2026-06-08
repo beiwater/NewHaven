@@ -72,6 +72,7 @@ func (s *Service) BuildingMarket(ctx context.Context) ([]openapi.BuildingMarketI
 		if produces == nil {
 			produces = []int{}
 		}
+		isRetail := entry.Type == "retail"
 		item := openapi.BuildingMarketItem{
 			Id:          &id,
 			Name:        &entry.Name,
@@ -80,6 +81,7 @@ func (s *Service) BuildingMarket(ctx context.Context) ([]openapi.BuildingMarketI
 			UnlockLevel: &unlockLevel,
 			Description: &entry.Description,
 			Produces:    &produces,
+			IsRetail:    &isRetail,
 		}
 		items = append(items, item)
 	}
@@ -97,6 +99,30 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 	y := b.Y
 	robotCount := b.RobotCount
 	placed := b.MapID != ""
+	isRetail := false
+	if entry, ok := s.buildings[b.Kind]; ok {
+		isRetail = entry.Type == "retail"
+	}
+	var shelfDTOs []openapi.ShelfItem
+	if len(b.Shelves) > 0 {
+		shelfDTOs = make([]openapi.ShelfItem, 0, len(b.Shelves))
+		for _, sh := range b.Shelves {
+			resourceID := sh.ResourceID
+			qty := sh.Quantity
+			maxQty := sh.MaxQty
+			price := sh.Price
+			priceLock := sh.PriceLock
+			revenue := sh.Revenue
+			shelfDTOs = append(shelfDTOs, openapi.ShelfItem{
+				ResourceId: &resourceID,
+				Quantity:   &qty,
+				MaxQty:     &maxQty,
+				Price:      &price,
+				PriceLock:  &priceLock,
+				Revenue:    &revenue,
+			})
+		}
+	}
 	return openapi.BuildingDTO{
 		Id:         &id,
 		BuildingId: &buildingID,
@@ -108,6 +134,8 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 		Y:          &y,
 		RobotCount: &robotCount,
 		Placed:     &placed,
+		IsRetail:   &isRetail,
+		Shelves:    &shelfDTOs,
 	}
 }
 

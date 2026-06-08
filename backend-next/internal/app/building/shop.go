@@ -64,6 +64,11 @@ func (s *Service) BuyBuilding(ctx context.Context, companyID int, buildingID str
 		Y:          0,
 		RobotCount: 0,
 	}
+
+	// Initialize empty shelves for retail buildings
+	if entry, ok := s.buildings[kind]; ok && entry.Type == "retail" {
+		b.Shelves = []domain.ShelfItem{}
+	}
 	company.Buildings = append(company.Buildings, *b)
 
 	if err := s.companies.UpdateCompany(ctx, company); err != nil {

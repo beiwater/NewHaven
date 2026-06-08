@@ -27,7 +27,7 @@ func newTestSvc(resources map[int]*catalog.ResourceEntry) (*appmarket.Service, *
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
 	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
-	svc := appmarket.NewService(store, store, store, resources, nil, cfg, clock, idgen)
+	svc := appmarket.NewService(store, store, store, resources, nil, nil, cfg, clock, idgen)
 	return svc, store
 }
 
@@ -481,7 +481,7 @@ func TestCreateOrder_Buy_RollsBackCashWhenOrderCreateFails(t *testing.T) {
 	failingStore := &createOrderFailStore{Store: store}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
 	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
-	svc := appmarket.NewService(failingStore, failingStore, failingStore, resources, nil, cfg, clock, platform.NewIDGen())
+	svc := appmarket.NewService(failingStore, failingStore, failingStore, resources, nil, nil, cfg, clock, platform.NewIDGen())
 	cid := newTestCompany(t, store, 110, "rollbackbuyer", 1000)
 
 	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{

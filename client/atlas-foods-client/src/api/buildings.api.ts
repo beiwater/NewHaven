@@ -110,3 +110,52 @@ export function useStashBuilding() {
     },
   })
 }
+
+export function useStockShelf() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { buildingId: string; resourceId: number; quantity: number; price?: number }) =>
+      api.post<{ shelf: import('@/game/types').ShelfItem }>(`/api/v2/buildings/${params.buildingId}/stock/`, {
+        building_id: params.buildingId,
+        resource_id: params.resourceId,
+        quantity: params.quantity,
+        price: params.price,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['buildings'] })
+      qc.invalidateQueries({ queryKey: ['warehouse'] })
+    },
+  })
+}
+
+export function useUnstockShelf() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { buildingId: string; resourceId: number; quantity: number }) =>
+      api.post<{ shelf: import('@/game/types').ShelfItem | null }>(`/api/v2/buildings/${params.buildingId}/unstock/`, {
+        building_id: params.buildingId,
+        resource_id: params.resourceId,
+        quantity: params.quantity,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['buildings'] })
+      qc.invalidateQueries({ queryKey: ['warehouse'] })
+    },
+  })
+}
+
+export function useSetShelfPrice() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { buildingId: string; resourceId: number; price: number; lock: boolean }) =>
+      api.post<{ shelf: import('@/game/types').ShelfItem }>(`/api/v2/buildings/${params.buildingId}/shelf-price/`, {
+        building_id: params.buildingId,
+        resource_id: params.resourceId,
+        price: params.price,
+        lock: params.lock,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['buildings'] })
+    },
+  })
+}

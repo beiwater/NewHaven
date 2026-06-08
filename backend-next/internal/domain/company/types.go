@@ -42,16 +42,27 @@ func NewPlayerPreferences() map[string]any {
 
 // Building represents a building placed on a map.
 type Building struct {
-	ID         string `json:"id"`
-	BuildingID int    `json:"building_id"`
-	Kind       int    `json:"kind"`
-	Name       string `json:"name"`
-	Level      int    `json:"level"`
-	MapID      string `json:"map_id"`
-	SlotID     string `json:"slot_id"`
-	X          int    `json:"x"`
-	Y          int    `json:"y"`
-	RobotCount int    `json:"robot_count"`
+	ID         string      `json:"id"`
+	BuildingID int         `json:"building_id"`
+	Kind       int         `json:"kind"`
+	Name       string      `json:"name"`
+	Level      int         `json:"level"`
+	MapID      string      `json:"map_id"`
+	SlotID     string      `json:"slot_id"`
+	X          int         `json:"x"`
+	Y          int         `json:"y"`
+	RobotCount int         `json:"robot_count"`
+	Shelves    []ShelfItem `json:"shelves,omitempty"`
+}
+
+// ShelfItem represents items stocked in a retail building's shelf.
+type ShelfItem struct {
+	ResourceID int     `json:"resource_id"`
+	Quantity   int     `json:"quantity"`
+	MaxQty     int     `json:"max_qty"`
+	Price      float64 `json:"price"`
+	PriceLock  bool    `json:"price_lock"`
+	Revenue    float64 `json:"revenue,omitempty"`
 }
 
 // Executive represents a hired executive for a company.

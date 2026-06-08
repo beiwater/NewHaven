@@ -96,6 +96,54 @@ func (e ProductionJobDTOStatus) Valid() bool {
 	}
 }
 
+// Defines values for StoryProgressStatus.
+const (
+	StoryProgressStatusCompleted  StoryProgressStatus = "completed"
+	StoryProgressStatusInProgress StoryProgressStatus = "in_progress"
+	StoryProgressStatusNotStarted StoryProgressStatus = "not_started"
+	StoryProgressStatusSkipped    StoryProgressStatus = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the StoryProgressStatus enum.
+func (e StoryProgressStatus) Valid() bool {
+	switch e {
+	case StoryProgressStatusCompleted:
+		return true
+	case StoryProgressStatusInProgress:
+		return true
+	case StoryProgressStatusNotStarted:
+		return true
+	case StoryProgressStatusSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StoryProgressRequestStatus.
+const (
+	StoryProgressRequestStatusCompleted  StoryProgressRequestStatus = "completed"
+	StoryProgressRequestStatusInProgress StoryProgressRequestStatus = "in_progress"
+	StoryProgressRequestStatusNotStarted StoryProgressRequestStatus = "not_started"
+	StoryProgressRequestStatusSkipped    StoryProgressRequestStatus = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the StoryProgressRequestStatus enum.
+func (e StoryProgressRequestStatus) Valid() bool {
+	switch e {
+	case StoryProgressRequestStatusCompleted:
+		return true
+	case StoryProgressRequestStatusInProgress:
+		return true
+	case StoryProgressRequestStatusNotStarted:
+		return true
+	case StoryProgressRequestStatusSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
 // BalanceSheetResponse defines model for BalanceSheetResponse.
 type BalanceSheetResponse struct {
 	Assets      *float32 `json:"assets,omitempty"`
@@ -127,16 +175,18 @@ type BondListResponse struct {
 
 // BuildingDTO defines model for BuildingDTO.
 type BuildingDTO struct {
-	BuildingId *int    `json:"building_id,omitempty"`
-	Id         *string `json:"id,omitempty"`
-	Level      *int    `json:"level,omitempty"`
-	MapId      *string `json:"map_id,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	Placed     *bool   `json:"placed,omitempty"`
-	RobotCount *int    `json:"robot_count,omitempty"`
-	SlotId     *string `json:"slot_id,omitempty"`
-	X          *int    `json:"x,omitempty"`
-	Y          *int    `json:"y,omitempty"`
+	BuildingId *int         `json:"building_id,omitempty"`
+	Id         *string      `json:"id,omitempty"`
+	IsRetail   *bool        `json:"is_retail,omitempty"`
+	Level      *int         `json:"level,omitempty"`
+	MapId      *string      `json:"map_id,omitempty"`
+	Name       *string      `json:"name,omitempty"`
+	Placed     *bool        `json:"placed,omitempty"`
+	RobotCount *int         `json:"robot_count,omitempty"`
+	Shelves    *[]ShelfItem `json:"shelves,omitempty"`
+	SlotId     *string      `json:"slot_id,omitempty"`
+	X          *int         `json:"x,omitempty"`
+	Y          *int         `json:"y,omitempty"`
 }
 
 // BuildingListResponse defines model for BuildingListResponse.
@@ -149,6 +199,7 @@ type BuildingMarketItem struct {
 	Cost            *float64 `json:"cost,omitempty"`
 	Description     *string  `json:"description,omitempty"`
 	Id              *string  `json:"id,omitempty"`
+	IsRetail        *bool    `json:"is_retail,omitempty"`
 	Kind            *int     `json:"kind,omitempty"`
 	Name            *string  `json:"name,omitempty"`
 	Produces        *[]int   `json:"produces,omitempty"`
@@ -242,6 +293,14 @@ type ClaimableJobDTO struct {
 // ClaimableJobListResponse defines model for ClaimableJobListResponse.
 type ClaimableJobListResponse struct {
 	Jobs *[]ClaimableJobDTO `json:"jobs,omitempty"`
+}
+
+// CompanyProfileResponse defines model for CompanyProfileResponse.
+type CompanyProfileResponse struct {
+	AuthCompany map[string]interface{} `json:"authCompany"`
+	AuthUser    map[string]interface{} `json:"authUser"`
+	LevelInfo   map[string]interface{} `json:"levelInfo"`
+	Preferences map[string]interface{} `json:"preferences"`
 }
 
 // CompanySummary defines model for CompanySummary.
@@ -496,6 +555,29 @@ type ResourcesResponse struct {
 	Resources *[]ResourceDefinition `json:"resources,omitempty"`
 }
 
+// SetShelfPriceRequest defines model for SetShelfPriceRequest.
+type SetShelfPriceRequest struct {
+	BuildingId string  `json:"building_id"`
+	Lock       *bool   `json:"lock,omitempty"`
+	Price      float64 `json:"price"`
+	ResourceId int     `json:"resource_id"`
+}
+
+// ShelfActionResponse defines model for ShelfActionResponse.
+type ShelfActionResponse struct {
+	Shelf *ShelfItem `json:"shelf,omitempty"`
+}
+
+// ShelfItem defines model for ShelfItem.
+type ShelfItem struct {
+	MaxQty     *int     `json:"max_qty,omitempty"`
+	Price      *float64 `json:"price,omitempty"`
+	PriceLock  *bool    `json:"price_lock,omitempty"`
+	Quantity   *int     `json:"quantity,omitempty"`
+	ResourceId *int     `json:"resource_id,omitempty"`
+	Revenue    *float64 `json:"revenue,omitempty"`
+}
+
 // StartProductionRequest defines model for StartProductionRequest.
 type StartProductionRequest struct {
 	BuildingId string `json:"building_id"`
@@ -515,6 +597,33 @@ type StartProductionV1Request struct {
 	EstimatedSecondsToFinish *int `json:"estimatedSecondsToFinish,omitempty"`
 	Kind                     int  `json:"kind"`
 }
+
+// StockShelfRequest defines model for StockShelfRequest.
+type StockShelfRequest struct {
+	BuildingId string   `json:"building_id"`
+	Price      *float64 `json:"price,omitempty"`
+	Quantity   int      `json:"quantity"`
+	ResourceId int      `json:"resource_id"`
+}
+
+// StoryProgress defines model for StoryProgress.
+type StoryProgress struct {
+	Status StoryProgressStatus `json:"status"`
+	StepId string              `json:"stepId"`
+}
+
+// StoryProgressStatus defines model for StoryProgress.Status.
+type StoryProgressStatus string
+
+// StoryProgressRequest defines model for StoryProgressRequest.
+type StoryProgressRequest struct {
+	Status  StoryProgressRequestStatus `json:"status"`
+	StepId  string                     `json:"stepId"`
+	StoryId string                     `json:"storyId"`
+}
+
+// StoryProgressRequestStatus defines model for StoryProgressRequest.Status.
+type StoryProgressRequestStatus string
 
 // TakeOrderRequest defines model for TakeOrderRequest.
 type TakeOrderRequest struct {
@@ -542,6 +651,13 @@ type TradeDTO struct {
 	Quantity    *int       `json:"quantity,omitempty"`
 	ResourceId  *int       `json:"resourceId,omitempty"`
 	SellOrderId *string    `json:"sellOrderId,omitempty"`
+}
+
+// UnstockShelfRequest defines model for UnstockShelfRequest.
+type UnstockShelfRequest struct {
+	BuildingId string `json:"building_id"`
+	Quantity   int    `json:"quantity"`
+	ResourceId int    `json:"resource_id"`
 }
 
 // UpgradeBuildingResponse defines model for UpgradeBuildingResponse.
@@ -600,6 +716,18 @@ type MoveBuildingJSONRequestBody = MoveBuildingRequest
 // PlaceBuildingJSONRequestBody defines body for PlaceBuilding for application/json ContentType.
 type PlaceBuildingJSONRequestBody = PlaceBuildingRequest
 
+// SetShelfPriceJSONRequestBody defines body for SetShelfPrice for application/json ContentType.
+type SetShelfPriceJSONRequestBody = SetShelfPriceRequest
+
+// StockShelfJSONRequestBody defines body for StockShelf for application/json ContentType.
+type StockShelfJSONRequestBody = StockShelfRequest
+
+// UnstockShelfJSONRequestBody defines body for UnstockShelf for application/json ContentType.
+type UnstockShelfJSONRequestBody = UnstockShelfRequest
+
+// UpdateStoryProgressJSONRequestBody defines body for UpdateStoryProgress for application/json ContentType.
+type UpdateStoryProgressJSONRequestBody = StoryProgressRequest
+
 // CreateMarketOrderJSONRequestBody defines body for CreateMarketOrder for application/json ContentType.
 type CreateMarketOrderJSONRequestBody = CreateOrderRequestFrontend
 
@@ -653,6 +781,15 @@ type ServerInterface interface {
 	// List production options for a building
 	// (GET /api/v2/buildings/{buildingId}/production-options/)
 	GetProductionOptions(w http.ResponseWriter, r *http.Request, buildingId string)
+	// Set price for a shelf item
+	// (POST /api/v2/buildings/{buildingId}/shelf-price/)
+	SetShelfPrice(w http.ResponseWriter, r *http.Request, buildingId string)
+	// Stock items into a retail building's shelf
+	// (POST /api/v2/buildings/{buildingId}/stock/)
+	StockShelf(w http.ResponseWriter, r *http.Request, buildingId string)
+	// Unstock items from a retail building's shelf back to warehouse
+	// (POST /api/v2/buildings/{buildingId}/unstock/)
+	UnstockShelf(w http.ResponseWriter, r *http.Request, buildingId string)
 	// Balance sheet
 	// (GET /api/v2/companies/me/balance-sheet/)
 	GetBalanceSheet(w http.ResponseWriter, r *http.Request)
@@ -671,6 +808,9 @@ type ServerInterface interface {
 	// Income statement
 	// (GET /api/v2/companies/me/income-statement/)
 	GetIncomeStatement(w http.ResponseWriter, r *http.Request)
+	// Save the authenticated company's current story position
+	// (PATCH /api/v2/companies/me/story-progress/)
+	UpdateStoryProgress(w http.ResponseWriter, r *http.Request)
 	// Get my company warehouse
 	// (GET /api/v2/companies/me/warehouse/)
 	GetMyWarehouse(w http.ResponseWriter, r *http.Request)
@@ -716,6 +856,9 @@ type ServerInterface interface {
 	// Past finances (daily net series)
 	// (GET /api/v3/companies/me/past-finances/)
 	GetPastFinances(w http.ResponseWriter, r *http.Request)
+	// Get the authenticated owner's company profile
+	// (GET /api/v3/companies/{companyId}/)
+	GetCompanyProfile(w http.ResponseWriter, r *http.Request, companyId int)
 	// Get market depth (order book) for a resource and quality
 	// (GET /api/v3/market-depth/{resourceId}/{quality}/)
 	GetMarketDepth(w http.ResponseWriter, r *http.Request, resourceId int, quality int)
@@ -818,6 +961,24 @@ func (_ Unimplemented) GetProductionOptions(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Set price for a shelf item
+// (POST /api/v2/buildings/{buildingId}/shelf-price/)
+func (_ Unimplemented) SetShelfPrice(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Stock items into a retail building's shelf
+// (POST /api/v2/buildings/{buildingId}/stock/)
+func (_ Unimplemented) StockShelf(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Unstock items from a retail building's shelf back to warehouse
+// (POST /api/v2/buildings/{buildingId}/unstock/)
+func (_ Unimplemented) UnstockShelf(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Balance sheet
 // (GET /api/v2/companies/me/balance-sheet/)
 func (_ Unimplemented) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
@@ -851,6 +1012,12 @@ func (_ Unimplemented) GetRecentCashflow(w http.ResponseWriter, r *http.Request)
 // Income statement
 // (GET /api/v2/companies/me/income-statement/)
 func (_ Unimplemented) GetIncomeStatement(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Save the authenticated company's current story position
+// (PATCH /api/v2/companies/me/story-progress/)
+func (_ Unimplemented) UpdateStoryProgress(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -940,6 +1107,12 @@ func (_ Unimplemented) ListMyBuildings(w http.ResponseWriter, r *http.Request) {
 // Past finances (daily net series)
 // (GET /api/v3/companies/me/past-finances/)
 func (_ Unimplemented) GetPastFinances(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get the authenticated owner's company profile
+// (GET /api/v3/companies/{companyId}/)
+func (_ Unimplemented) GetCompanyProfile(w http.ResponseWriter, r *http.Request, companyId int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1303,6 +1476,102 @@ func (siw *ServerInterfaceWrapper) GetProductionOptions(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// SetShelfPrice operation middleware
+func (siw *ServerInterfaceWrapper) SetShelfPrice(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetShelfPrice(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StockShelf operation middleware
+func (siw *ServerInterfaceWrapper) StockShelf(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StockShelf(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UnstockShelf operation middleware
+func (siw *ServerInterfaceWrapper) UnstockShelf(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UnstockShelf(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetBalanceSheet operation middleware
 func (siw *ServerInterfaceWrapper) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
 
@@ -1414,6 +1683,26 @@ func (siw *ServerInterfaceWrapper) GetIncomeStatement(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetIncomeStatement(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateStoryProgress operation middleware
+func (siw *ServerInterfaceWrapper) UpdateStoryProgress(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateStoryProgress(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1747,6 +2036,38 @@ func (siw *ServerInterfaceWrapper) GetPastFinances(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetCompanyProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetCompanyProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "companyId" -------------
+	var companyId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "companyId", chi.URLParam(r, "companyId"), &companyId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "companyId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCompanyProfile(w, r, companyId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMarketDepth operation middleware
 func (siw *ServerInterfaceWrapper) GetMarketDepth(w http.ResponseWriter, r *http.Request) {
 
@@ -2062,6 +2383,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/buildings/{buildingId}/production-options/", wrapper.GetProductionOptions)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/{buildingId}/shelf-price/", wrapper.SetShelfPrice)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/{buildingId}/stock/", wrapper.StockShelf)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/{buildingId}/unstock/", wrapper.UnstockShelf)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/balance-sheet/", wrapper.GetBalanceSheet)
 	})
 	r.Group(func(r chi.Router) {
@@ -2078,6 +2408,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/income-statement/", wrapper.GetIncomeStatement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v2/companies/me/story-progress/", wrapper.UpdateStoryProgress)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/warehouse/", wrapper.GetMyWarehouse)
@@ -2123,6 +2456,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v3/companies/me/past-finances/", wrapper.GetPastFinances)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v3/companies/{companyId}/", wrapper.GetCompanyProfile)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v3/market-depth/{resourceId}/{quality}/", wrapper.GetMarketDepth)

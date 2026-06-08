@@ -24,6 +24,7 @@ interface BuildingMarketItem {
   starterProduces?: number[]
   starterRole?: string
   unlockLevel?: number
+  isRetail?: boolean
 }
 
 export function BuildView() {
@@ -129,6 +130,7 @@ export function BuildView() {
               <div className="flex items-center gap-2 min-w-0">
                 <img src={buildingIcon(item.kind)} alt="" className="w-8 h-8 rounded bg-amber-100 object-contain p-1 shrink-0" />
                 <span className="text-sm font-bold text-amber-900 truncate">{t('building.name_' + item.kind, item.name)}</span>
+                {item.isRetail && <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold shrink-0">{t('building.retailBadge')}</span>}
               </div>
               <span className="text-xs font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">{item.cost.toLocaleString()}$</span>
             </div>

@@ -273,6 +273,99 @@ paths:
         "401":
           description: Unauthorized
 
+
+  /api/v2/buildings/{buildingId}/stock/:
+    post:
+      tags: [Buildings]
+      summary: Stock items into a retail building's shelf
+      operationId: stockShelf
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockShelfRequest'
+      responses:
+        "200":
+          description: Shelf stocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfActionResponse'
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/{buildingId}/unstock/:
+    post:
+      tags: [Buildings]
+      summary: Unstock items from a retail building's shelf back to warehouse
+      operationId: unstockShelf
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnstockShelfRequest'
+      responses:
+        "200":
+          description: Shelf unstocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfActionResponse'
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/{buildingId}/shelf-price/:
+    post:
+      tags: [Buildings]
+      summary: Set price for a shelf item
+      operationId: setShelfPrice
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetShelfPriceRequest'
+      responses:
+        "200":
+          description: Shelf price updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfActionResponse'
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
   /api/v1/buildings/{buildingId}/upgrade/:
     post:
       tags: [Buildings]
@@ -1290,6 +1383,12 @@ components:
           type: integer
         placed:
           type: boolean
+        is_retail:
+          type: boolean
+        shelves:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShelfItem'
     BuildingListResponse:
       type: object
       properties:
@@ -1325,6 +1424,8 @@ components:
             type: integer
         starter_role:
           type: string
+        is_retail:
+          type: boolean
 
 
     BuyBuildingRequest:
@@ -1421,6 +1522,69 @@ components:
           format: double
         output_multiplier:
           type: integer
+
+    ShelfItem:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        max_qty:
+          type: integer
+        price:
+          type: number
+          format: double
+        price_lock:
+          type: boolean
+        revenue:
+          type: number
+          format: double
+
+    StockShelfRequest:
+      type: object
+      required: [building_id, resource_id, quantity]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: double
+
+    UnstockShelfRequest:
+      type: object
+      required: [building_id, resource_id, quantity]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+
+    SetShelfPriceRequest:
+      type: object
+      required: [building_id, resource_id, price]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        price:
+          type: number
+          format: double
+        lock:
+          type: boolean
+
+    ShelfActionResponse:
+      type: object
+      properties:
+        shelf:
+          $ref: '#/components/schemas/ShelfItem'
 
     WarehouseUpgradeResponse:
       type: object

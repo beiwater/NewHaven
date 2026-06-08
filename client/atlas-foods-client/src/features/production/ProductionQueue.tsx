@@ -21,7 +21,7 @@ export function ProductionQueue() {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 pb-12">
       <h2 className="text-lg font-bold text-amber-900 mb-3">{t('production.title')}</h2>
 
       {queue && (
@@ -93,6 +93,9 @@ export function ProductionQueue() {
           <div className="text-xs text-amber-400 italic py-4 text-center">{t('production.noJobs')}</div>
         )}
       </div>
+
+      {/* 占位用：透明底部分隔块，宽度匹配滚动条，防止底部内容被遮挡或贴边 */}
+      <div className="h-3 w-full shrink-0" aria-hidden="true" />
     </div>
   )
 }

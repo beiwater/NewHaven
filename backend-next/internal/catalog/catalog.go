@@ -35,8 +35,10 @@ type BuildingEntry struct {
 	BaseCost          int    `json:"baseCost"`
 	BaseOutput        int    `json:"baseOutput"`
 	BaseOutputPerHour int    `json:"baseOutputPerHourLv1"`
-	Produces          []int  `json:"produces"` // resource IDs this building can produce
+	Produces          []int  `json:"produces"`
 	Description       string `json:"description"`
+	RetailSlots       int    `json:"retailSlots"`
+	SlotPerLevel      int    `json:"slotPerLevel"`
 }
 
 // LoadResources reads resources.json from the project's decompiled/data directory.

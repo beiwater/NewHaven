@@ -103,7 +103,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	authSvc := auth.NewService(st, st, clock, idgen, logger, cfg.JWTSigningKey, cfg.DevPassword)
 
 	// Market
-	marketSvc := market.NewService(st, st, st, resources, economy, cfg.Game, clock, idgen)
+	marketSvc := market.NewService(st, st, st, resources, buildings, economy, cfg.Game, clock, idgen)
 	marketHandler := httpapi.NewMarketHandler(marketSvc)
 
 	// Company

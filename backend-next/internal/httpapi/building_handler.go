@@ -213,3 +213,91 @@ func (h *BuildingHandler) handleUpgradeBuilding(w http.ResponseWriter, r *http.R
 
 	writeSuccess(w, 200, resp)
 }
+
+// handleStockShelf stocks items into a retail building's shelf.
+func (h *BuildingHandler) handleStockShelf(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	buildingID := chi.URLParam(r, "buildingId")
+	if buildingID == "" {
+		writeErr(w, 400, ErrorBadRequest, "building ID is required", nil)
+		return
+	}
+
+	var req openapi.StockShelfRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
+		return
+	}
+
+	resp, err := h.svc.StockShelf(r.Context(), companyID, buildingID, req.ResourceId, req.Quantity, req.Price)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+// handleUnstockShelf removes items from a retail building's shelf back to warehouse.
+func (h *BuildingHandler) handleUnstockShelf(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	buildingID := chi.URLParam(r, "buildingId")
+	if buildingID == "" {
+		writeErr(w, 400, ErrorBadRequest, "building ID is required", nil)
+		return
+	}
+
+	var req openapi.UnstockShelfRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
+		return
+	}
+
+	resp, err := h.svc.UnstockShelf(r.Context(), companyID, buildingID, req.ResourceId, req.Quantity)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+// handleSetShelfPrice sets the price for a shelf item.
+func (h *BuildingHandler) handleSetShelfPrice(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+
+	buildingID := chi.URLParam(r, "buildingId")
+	if buildingID == "" {
+		writeErr(w, 400, ErrorBadRequest, "building ID is required", nil)
+		return
+	}
+
+	var req openapi.SetShelfPriceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
+		return
+	}
+
+	lock := false
+	if req.Lock != nil {
+		lock = *req.Lock
+	}
+	resp, err := h.svc.SetShelfPrice(r.Context(), companyID, buildingID, req.ResourceId, req.Price, lock)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}

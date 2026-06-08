@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
-import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding } from '@/api/buildings.api'
+import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding, useStockShelf, useUnstockShelf, useSetShelfPrice } from '@/api/buildings.api'
+import { useWarehouse } from '@/api/inventory.api'
 import { useUIStore } from '@/store/ui.store'
 import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
@@ -79,6 +80,13 @@ interface BuildingCardProps {
 }
 export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardProps) {
   const [selectedResourceId, setSelectedResourceId] = useState<number | null>(null)
+  const [retailTab, setRetailTab] = useState<'sell' | 'production'>('sell')
+  const [stockQuantity, setStockQuantity] = useState('10')
+  const [shelfPrice, setShelfPrice] = useState('')
+  const { data: warehouse } = useWarehouse()
+  const stockShelf = useStockShelf()
+  const unstockShelf = useUnstockShelf()
+  const setShelfPriceMut = useSetShelfPrice()
   const [amount, setAmount] = useState('10')
   const [showDemolishConfirm, setShowDemolishConfirm] = useState(false)
   const [now, setNow] = useState(Date.now())
@@ -188,16 +196,170 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
         <img src={getBuildingPreview(building.kind)} alt={building.name ?? t('building.building')} className="max-h-[90px] object-contain" />
       </div>
 
-      {/* Produces */}
+      {/* Produces / Sells */}
       <div className="px-3 py-2 border-b border-amber-200/40 flex items-center gap-2">
-        <Icon name="icon_factory_v1" className="w-5 h-5" />
+        <Icon name={building.isRetail ? 'icon_tag_v1' : 'icon_factory_v1'} className="w-5 h-5" />
         <div>
-          <span className="text-[10px] text-amber-600 uppercase tracking-wider">{t('building.produces')}</span>
+          <span className="text-[10px] text-amber-600 uppercase tracking-wider">{building.isRetail ? t('building.sells') : t('building.produces')}</span>
           <span className="text-xs font-bold text-amber-900">
             {optionsData.length > 0 ? sortedOptions.map((o) => resourceName(o.resourceId)).slice(0, 2).join(', ') : t('building.noProductionOptions')}
           </span>
         </div>
       </div>
+
+      {/* Tab bar for retail buildings */}
+      {building.isRetail && (
+        <div className="flex border-b border-amber-200/40">
+          <button
+            onClick={() => setRetailTab('sell')}
+            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              retailTab === 'sell'
+                ? 'bg-amber-100 text-amber-900 border-b-2 border-amber-700'
+                : 'bg-white/60 text-amber-500 hover:bg-amber-50'
+            }`}
+          >
+            {t('building.sellTab')}
+          </button>
+          <button
+            onClick={() => setRetailTab('production')}
+            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              retailTab === 'production'
+                ? 'bg-amber-100 text-amber-900 border-b-2 border-amber-700'
+                : 'bg-white/60 text-amber-500 hover:bg-amber-50'
+            }`}
+          >
+            {t('building.productionTab')}
+          </button>
+        </div>
+      )}
+
+      {/* Sell Tab Content */}
+      {building.isRetail && retailTab === 'sell' && (
+        <div className="flex-1 overflow-y-auto">
+          {/* Shelves */}
+          <div className="px-3 py-3 border-b border-amber-200/40">
+            <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.shelves')}</div>
+            {building.shelves && building.shelves.length > 0 ? (
+              <div className="space-y-2">
+                {building.shelves.map((shelf) => (
+                  <div key={shelf.resourceId} className="rounded-md border border-amber-200 bg-white/60 p-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <img src={resourceIcon(shelf.resourceId)} alt="" className="h-4 w-4 object-contain" />
+                        <span className="text-xs font-bold text-amber-900">{resourceName(shelf.resourceId)}</span>
+                      </div>
+                      <span className="text-[10px] text-amber-500">{shelf.quantity} / {shelf.maxQty}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="text-amber-700">{t('building.price')}: ${shelf.price.toFixed(2)}</span>
+                      {shelf.priceLock && <span className="text-amber-400">🔒</span>}
+                      {shelf.revenue > 0 && (
+                        <span className="ml-auto text-green-600">{t('building.revenue')}: ${shelf.revenue.toFixed(2)}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-1.5 mt-2">
+                      <button
+                        onClick={() => {
+                          const qty = prompt(t('building.unstockPrompt'), '10')
+                          if (qty) {
+                            unstockShelf.mutate({ buildingId: building.id, resourceId: shelf.resourceId, quantity: parseInt(qty, 10) || 1 })
+                          }
+                        }}
+                        className="flex-1 py-1 bg-amber-200/70 hover:bg-amber-300/70 text-amber-900 text-[10px] font-bold rounded transition-colors"
+                      >
+                        {t('building.unstock')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const price = prompt(t('building.setPricePrompt'), String(shelf.price))
+                          if (price) {
+                            const numPrice = parseFloat(price)
+                            if (!isNaN(numPrice) && numPrice > 0) {
+                              setShelfPriceMut.mutate({ buildingId: building.id, resourceId: shelf.resourceId, price: numPrice, lock: true })
+                            }
+                          }
+                        }}
+                        className="flex-1 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold rounded transition-colors"
+                      >
+                        {t('building.setPrice')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShelfPriceMut.mutate({ buildingId: building.id, resourceId: shelf.resourceId, price: 0, lock: false })
+                        }}
+                        className="flex-1 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors"
+                      >
+                        {t('building.autoPrice')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-[10px] text-amber-400 italic">{t('building.noShelves')}</div>
+            )}
+          </div>
+
+          {/* Stock form */}
+          <div className="px-3 py-3 border-b border-amber-200/40">
+            <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.stockItems')}</div>
+            <div className="flex gap-2 mb-2">
+              <select
+                value={stockShelf.variables?.resourceId ?? optionsData[0]?.resourceId ?? ''}
+                onChange={(e) => {
+                  const rid = parseInt(e.target.value, 10)
+                  if (!isNaN(rid)) {
+                    stockShelf.mutate({ buildingId: building.id, resourceId: rid, quantity: parseInt(stockQuantity, 10) || 10 })
+                  }
+                }}
+                className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
+              >
+                {optionsData.map((opt) => (
+                  <option key={opt.resourceId} value={opt.resourceId}>{resourceName(opt.resourceId)}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="1"
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
+                className="w-20 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
+              />
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder={t('building.priceOptional')}
+                value={shelfPrice}
+                onChange={(e) => setShelfPrice(e.target.value)}
+                className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
+              />
+              <button
+                onClick={() => {
+                  const rid = optionsData[0]?.resourceId
+                  if (!rid) return
+                  const price = shelfPrice ? parseFloat(shelfPrice) : undefined
+                  stockShelf.mutate({
+                    buildingId: building.id,
+                    resourceId: rid,
+                    quantity: parseInt(stockQuantity, 10) || 10,
+                    price,
+                  })
+                }}
+                disabled={stockShelf.isPending}
+                className="px-3 py-1 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-[10px] font-bold rounded transition-colors"
+              >
+                {stockShelf.isPending ? t('building.stocking') : t('building.stock')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Production sections: show for non-retail OR when production tab selected */}
+      {(!building.isRetail || retailTab === 'production') && (
 
       {/* Production Recipe */}
       {optionsData.length > 0 && (
@@ -320,6 +482,8 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
           {startProd.error.message}
         </div>
       )}
+      )}
+
 
       {/* Upgrade */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/40">

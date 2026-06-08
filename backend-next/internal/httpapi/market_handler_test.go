@@ -25,7 +25,7 @@ func newMarketSvc(store *memory.Store) *market.Service {
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
 	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
-	return market.NewService(store, store, store, resources, nil, cfg, clock, idgen)
+	return market.NewService(store, store, store, resources, nil, nil, cfg, clock, idgen)
 }
 
 func registerMarketTestToken(t *testing.T, mux http.Handler, username string) string {
