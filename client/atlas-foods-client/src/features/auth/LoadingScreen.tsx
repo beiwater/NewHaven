@@ -20,11 +20,10 @@ export function LoadingScreen({
   const [visible, setVisible] = useState(true)
   const spriteRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef(0)
-  const timerRef = useRef<ReturnType<typeof setInterval>>()
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   useEffect(() => {
-    const sprite = spriteRef.current
-    if (!sprite) return
+    const sprite = spriteRef.current!
 
     const FRAMES = [0, 1, 2, 3]
     const RATE = 500
