@@ -47,10 +47,10 @@ func registerFinanceTestToken(t *testing.T, mux http.Handler, username string) s
 func TestFinanceRecentCashflow_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/cashflow/recent/", nil)
 	w := httptest.NewRecorder()
@@ -64,10 +64,10 @@ func TestFinanceRecentCashflow_NoToken_401(t *testing.T) {
 func TestFinanceRecentCashflow_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
 	token := registerFinanceTestToken(t, mux, "fin1")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/cashflow/recent/", nil)
@@ -101,10 +101,10 @@ func TestFinanceRecentCashflow_Success_200(t *testing.T) {
 func TestFinanceIncomeStatement_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
 	token := registerFinanceTestToken(t, mux, "fin2")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/income-statement/", nil)
@@ -138,10 +138,10 @@ func TestFinanceIncomeStatement_Success_200(t *testing.T) {
 func TestFinanceBalanceSheet_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
 	token := registerFinanceTestToken(t, mux, "fin3")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/balance-sheet/", nil)
@@ -172,10 +172,10 @@ func TestFinanceBalanceSheet_Success_200(t *testing.T) {
 func TestFinanceCashflowStatement_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
 	token := registerFinanceTestToken(t, mux, "fin4")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/cashflow-statement/", nil)
@@ -203,10 +203,10 @@ func TestFinanceCashflowStatement_Success_200(t *testing.T) {
 func TestFinancePastFinances_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	financeHandler := httpapi.NewFinanceHandler(newFinanceSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, financeHandler, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Finance: financeHandler})
 	token := registerFinanceTestToken(t, mux, "fin5")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/companies/me/past-finances/", nil)

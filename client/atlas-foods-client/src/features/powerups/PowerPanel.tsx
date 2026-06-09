@@ -1,20 +1,20 @@
 import { useUIStore } from '@/store/ui.store'
 import { audio } from '@/audio/AudioManager'
 import { usePowerupTypes, useActivePowerup, useActivatePowerup, type PowerupType, type ActivePowerup } from '@/api/powerup.api'
+import { useTranslation } from 'react-i18next'
 
 /** Format seconds into a human-readable duration string */
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
+function formatDuration(seconds: number, t: (...args: unknown[]) => string): string {
+  if (seconds < 60) return `${seconds}${t('powerups.timeSecond')}`
   const min = Math.floor(seconds / 60)
   const sec = seconds % 60
-  if (min < 60) return sec > 0 ? `${min}m ${sec}s` : `${min}m`
+  if (min < 60) return sec > 0 ? `${min}${t('powerups.timeMinute')} ${sec}${t('powerups.timeSecond')}` : `${min}${t('powerups.timeMinute')}`
   const h = Math.floor(min / 60)
   const m = min % 60
-  return m > 0 ? `${h}h ${m}m` : `${h}h`
+  return m > 0 ? `${h}${t('powerups.timeHour')} ${m}${t('powerups.timeMinute')}` : `${h}${t('powerups.timeHour')}`
 }
 
-/** Parse a Go-style duration string like "12m30s" into a display string */
-function formatRemaining(duration: string): string {
+function formatRemaining(duration: string, t: (...args: unknown[]) => string): string {
   if (!duration) return ''
   // Match Go duration format: XhYmZs
   const h = duration.match(/(\d+)h/)
@@ -24,7 +24,7 @@ function formatRemaining(duration: string): string {
   if (h) parts.push(`${h[1]}h`)
   if (m) parts.push(`${m[1]}m`)
   if (s) parts.push(`${s[1]}s`)
-  return parts.join(' ') || 'expiring'
+  return parts.join(' ') || t('powerups.expiring')
 }
 
 /** Format an ISO timestamp into a localized time string */
@@ -44,6 +44,7 @@ export function PowerPanel() {
   const { data: typesData, isLoading: typesLoading } = usePowerupTypes()
   const { data: activeData, isLoading: activeLoading } = useActivePowerup()
   const activate = useActivatePowerup()
+  const { t } = useTranslation()
 
   if (!powerupOpen) return null
 
@@ -61,7 +62,7 @@ export function PowerPanel() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          Power-ups
+          {t('powerups.title')}
         </span>
         <button onClick={() => setPowerupOpen(false)} className="text-amber-200 hover:text-white">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,6 +71,11 @@ export function PowerPanel() {
         </button>
       </div>
 
+
+      {/* Under development notice */}
+      <div className="mx-2 mt-1 px-2.5 py-1.5 bg-amber-100 border border-amber-300 rounded text-[10px] text-amber-700 text-center font-medium">
+        ⚡ {t('powerups.underDevelopment')}
+      </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {/* Active power-up banner */}
         {hasActive && (
@@ -78,13 +84,13 @@ export function PowerPanel() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Active
+              {t('powerups.active')}
             </div>
             {active.map((a) => (
               <div key={a.type} className="mt-1 text-xs text-green-700">
                 <span className="font-medium">{a.type.replace('boost-', '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
-                <span className="ml-2 text-green-600">ends {formatEndsAt(a.endsAt)}</span>
-                {a.remaining && <span className="ml-1 text-green-500">({formatRemaining(a.remaining)})</span>}
+                <span className="ml-2 text-green-600">{t('powerups.ends')} {formatEndsAt(a.endsAt)}</span>
+                {a.remaining && <span className="ml-1 text-green-500">({formatRemaining(a.remaining, t)})</span>}
               </div>
             ))}
           </div>
@@ -92,9 +98,9 @@ export function PowerPanel() {
 
         {/* Loading state */}
         {typesLoading || activeLoading ? (
-          <div className="text-xs text-amber-500 text-center py-4 animate-pulse">Loading...</div>
+          <div className="text-xs text-amber-500 text-center py-4 animate-pulse">{t('powerups.loading')}</div>
         ) : types.length === 0 ? (
-          <div className="text-xs text-amber-500 text-center py-4">No power-ups available</div>
+          <div className="text-xs text-amber-500 text-center py-4">{t('powerups.noAvailable')}</div>
         ) : (
           types.map((boost) => {
             const isActive = active.some((a) => a.type === boost.id)
@@ -116,15 +122,15 @@ export function PowerPanel() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-amber-900">{boost.name}</div>
-                    <div className="text-[11px] text-amber-600 mt-0.5">{boost.desc}</div>
-                    <div className="text-[10px] text-amber-400 mt-0.5">{formatDuration(boost.duration)}</div>
+                    <div className="text-xs font-semibold text-amber-900">{t('powerups.' + boost.id + '_name', boost.name)}</div>
+                    <div className="text-[11px] text-amber-600 mt-0.5">{t('powerups.' + boost.id + '_desc', boost.desc)}</div>
+                    <div className="text-[10px] text-amber-400 mt-0.5">{formatDuration(boost.duration, t)}</div>
                   </div>
                   <div className="flex flex-col items-end shrink-0">
                     {isActive ? (
-                      <span className="text-[10px] font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded">ACTIVE</span>
+                      <span className="text-[10px] font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded">{t('powerups.activeBadge')}</span>
                     ) : (
-                      <span className="text-[10px] font-semibold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">USE</span>
+                      <span className="text-[10px] font-semibold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">{t('powerups.use')}</span>
                     )}
                   </div>
                 </div>
@@ -136,14 +142,14 @@ export function PowerPanel() {
         {/* Remaining uses */}
         <div className="text-[10px] text-amber-400 text-center pt-1 border-t border-amber-200/60 mt-1">
           {remaining > 0
-            ? `${remaining} power-up${remaining !== 1 ? 's' : ''} remaining`
-            : 'No power-ups remaining'}
+            ? t('powerups.remaining', { count: remaining })
+            : t('powerups.noRemaining')}
         </div>
 
         {/* Mutation error */}
         {activate.isError && (
           <div className="text-[11px] text-red-600 text-center bg-red-50 rounded px-2 py-1">
-            {activate.error instanceof Error ? activate.error.message : 'Failed to activate power-up'}
+            {activate.error instanceof Error ? activate.error.message : t('powerups.activateFailed')}
           </div>
         )}
       </div>

@@ -10,15 +10,10 @@ import (
 	"time"
 
 	"github.com/newhaven/backend-next/internal/app"
-	"github.com/newhaven/backend-next/internal/app/building"
-	"github.com/newhaven/backend-next/internal/app/company"
-	"github.com/newhaven/backend-next/internal/app/finance"
-	"github.com/newhaven/backend-next/internal/app/market"
-	"github.com/newhaven/backend-next/internal/app/production"
-	"github.com/newhaven/backend-next/internal/app/warehouse"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
 	"github.com/newhaven/backend-next/internal/httpapi"
+	"github.com/newhaven/backend-next/internal/scheduler"
 	"github.com/newhaven/backend-next/internal/storage/memory"
 )
 
@@ -26,16 +21,11 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
 	st := memory.New()
-	application := app.New(cfg, st)
-	companySvc := company.NewService(st, application.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
-	authHandler := httpapi.NewAuthHandler(application.AuthService)
-	warehouseSvc := warehouse.NewService(st, st, application.Logger)
-	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
-	buildingSvc := building.NewService(st)
-	buildingHandler := httpapi.NewBuildingHandler(buildingSvc)
-
 	// Load static game data catalogs (best-effort in dev mode).
 	projectRoot := config.FindProjectRoot()
 	resources, err := catalog.LoadResources(projectRoot)
@@ -48,21 +38,40 @@ func main() {
 		slog.Warn("failed to load buildings catalog, production start will fail", "error", err)
 		buildings = make(map[int]*catalog.BuildingEntry)
 	}
+	economy, err := catalog.LoadEconomyModel(projectRoot)
+	if err != nil {
+		slog.Warn("failed to load economy model, retail sales will be skipped", "error", err)
+		economy = make(map[int]*catalog.EconomyModelEntry)
+	}
 
-	productionSvc := production.NewService(st, st, st, cfg.Game, resources, buildings, application.Clock, application.IDGen)
+	application := app.New(cfg, st, resources, buildings, economy)
 
-	marketSvc := market.NewService(st, st, st, resources, cfg.Game, application.Clock, application.IDGen)
-	marketHandler := httpapi.NewMarketHandler(marketSvc)
-
-	financeSvc := finance.NewService(st, st, application.Clock, application.IDGen, cfg.Game)
-	financeHandler := httpapi.NewFinanceHandler(financeSvc)
-	bondHandler := httpapi.NewBondHandler(financeSvc)
-	productionHandler := httpapi.NewProductionHandler(productionSvc)
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, warehouseHandler, buildingHandler, productionHandler, marketHandler, financeHandler, bondHandler)
+	// Scheduler for bot economy and background tasks including bond interest
+	sched := scheduler.New(application.MarketService, func(ctx context.Context) error {
+		_, err := application.FinanceService.SettleBondInterest(ctx)
+		return err
+	}, application.SaveAll)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{
+		Auth: application.AuthHandler, Company: application.CompanyHandler, Warehouse: application.WarehouseHandler,
+		Building: application.BuildingHandler, Production: application.ProductionHandler, Market: application.MarketHandler,
+		Finance: application.FinanceHandler, Bond: application.BondHandler, Player: application.PlayerHandler,
+		Social: application.SocialHandler, Chat: application.ChatHandler, Contract: application.ContractHandler, Research: application.ResearchHandler,
+		Executive: application.ExecutiveHandler, Leaderboard: application.LeaderboardHandler, Admin: application.AdminHandler, Report: application.ReportHandler,
+	})
 	if cfg.DevMode {
 		slog.Info("dev mode enabled, bootstrapping dev user")
 		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {
 			slog.Warn("dev bootstrap skipped", "error", err)
+		}
+
+		// Ensure Terminal system company exists.
+		if _, err := application.TerminalService.EnsureTerminalCompany(context.Background()); err != nil {
+			slog.Warn("terminal bootstrap skipped", "error", err)
+		}
+
+		// Ensure bot company exists for market liquidity.
+		if err := application.MarketService.EnsureBotCompanies(context.Background()); err != nil {
+			slog.Warn("[main] bot company init skipped", "error", err)
 		}
 	}
 
@@ -73,6 +82,9 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
+	// Start background scheduler
+	sched.Start()
 
 	go func() {
 		slog.Info("simapi-next starting", "addr", cfg.Addr)
@@ -92,5 +104,9 @@ func main() {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("shutdown failed", "error", err)
+	}
+
+	if application.PostgresStore != nil {
+		application.PostgresStore.Close()
 	}
 }

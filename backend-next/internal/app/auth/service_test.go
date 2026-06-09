@@ -19,7 +19,7 @@ func TestRegister_Success(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret")
+	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
 
 	resp, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "alice",
@@ -53,7 +53,7 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret")
+	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
 
 	_, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "alice",
@@ -82,7 +82,7 @@ func TestLogin_Success(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret")
+	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
 
 	_, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "bob",
@@ -115,7 +115,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret")
+	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
 
 	_, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "carol",
@@ -144,7 +144,7 @@ func TestDevBootstrap(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret")
+	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
 
 	// First call should create the dev user.
 	if err := svc.DevBootstrap(ctx); err != nil {

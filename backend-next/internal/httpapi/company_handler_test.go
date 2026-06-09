@@ -19,12 +19,12 @@ func TestListMyCompanies_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
-	companySvc := company.NewService(store, a.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	a := app.New(cfg, store, nil, nil, nil)
+	companySvc := company.NewService(store, a.Logger, 0)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Company: companyHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/players/me/companies/", nil)
 	w := httptest.NewRecorder()
@@ -51,12 +51,12 @@ func TestListMyCompanies_WithToken_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
-	companySvc := company.NewService(store, a.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	a := app.New(cfg, store, nil, nil, nil)
+	companySvc := company.NewService(store, a.Logger, 0)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Company: companyHandler})
 
 	// First, register a user to get a valid token
 	registerBody := `{"username":"testuser","password":"secret123"}`
@@ -131,12 +131,12 @@ func TestListMyCompanies_ReturnsEnvelope(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
-	companySvc := company.NewService(store, a.Logger)
-	companyHandler := httpapi.NewCompanyHandler(companySvc)
+	a := app.New(cfg, store, nil, nil, nil)
+	companySvc := company.NewService(store, a.Logger, 0)
+	companyHandler := httpapi.NewCompanyHandler(companySvc, a.MarketService)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, companyHandler, nil, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Company: companyHandler})
 
 	// Register and login
 	registerBody := `{"username":"envtest","password":"secret123"}`

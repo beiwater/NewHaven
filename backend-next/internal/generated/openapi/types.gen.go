@@ -132,6 +132,7 @@ type BuildingDTO struct {
 	Level      *int    `json:"level,omitempty"`
 	MapId      *string `json:"map_id,omitempty"`
 	Name       *string `json:"name,omitempty"`
+	Placed     *bool   `json:"placed,omitempty"`
 	RobotCount *int    `json:"robot_count,omitempty"`
 	SlotId     *string `json:"slot_id,omitempty"`
 	X          *int    `json:"x,omitempty"`
@@ -143,11 +144,47 @@ type BuildingListResponse struct {
 	Buildings *[]BuildingDTO `json:"buildings,omitempty"`
 }
 
+// BuildingMarketItem defines model for BuildingMarketItem.
+type BuildingMarketItem struct {
+	Cost            *float64 `json:"cost,omitempty"`
+	Description     *string  `json:"description,omitempty"`
+	Id              *string  `json:"id,omitempty"`
+	Kind            *int     `json:"kind,omitempty"`
+	Name            *string  `json:"name,omitempty"`
+	Produces        *[]int   `json:"produces,omitempty"`
+	StarterProduces *[]int   `json:"starter_produces,omitempty"`
+	StarterRole     *string  `json:"starter_role,omitempty"`
+	UnlockLevel     *int     `json:"unlock_level,omitempty"`
+}
+
 // BuildingProductionStatus defines model for BuildingProductionStatus.
 type BuildingProductionStatus struct {
 	Busy  *bool   `json:"busy,omitempty"`
 	Id    *string `json:"id,omitempty"`
 	JobId *string `json:"job_id,omitempty"`
+}
+
+// BuyBuildingRequest defines model for BuyBuildingRequest.
+type BuyBuildingRequest struct {
+	BuildingId string  `json:"buildingId"`
+	RequestId  *string `json:"requestId,omitempty"`
+}
+
+// BuyBuildingResponse defines model for BuyBuildingResponse.
+type BuyBuildingResponse struct {
+	Building *BuildingDTO `json:"building,omitempty"`
+	Cost     *float64     `json:"cost,omitempty"`
+}
+
+// CancelJobRequest defines model for CancelJobRequest.
+type CancelJobRequest struct {
+	JobId string `json:"jobId"`
+}
+
+// CancelJobResponse defines model for CancelJobResponse.
+type CancelJobResponse struct {
+	JobId  *string `json:"jobId,omitempty"`
+	Status *string `json:"status,omitempty"`
 }
 
 // CancelOrderResponse defines model for CancelOrderResponse.
@@ -168,6 +205,13 @@ type CashflowStatementResponse struct {
 	Financing *float32 `json:"financing,omitempty"`
 	Investing *float32 `json:"investing,omitempty"`
 	Operating *float32 `json:"operating,omitempty"`
+}
+
+// ClaimAllResponse defines model for ClaimAllResponse.
+type ClaimAllResponse struct {
+	Claimed *[]interface{} `json:"claimed,omitempty"`
+	Errors  *[]string      `json:"errors,omitempty"`
+	Total   *int           `json:"total,omitempty"`
 }
 
 // ClaimProductionResponse defines model for ClaimProductionResponse.
@@ -237,6 +281,17 @@ type CreateOrderRequestFrontendKind int
 // CreateOrderResponse defines model for CreateOrderResponse.
 type CreateOrderResponse struct {
 	Order *MarketOrderDTO `json:"order,omitempty"`
+}
+
+// DemolishBuildingRequest defines model for DemolishBuildingRequest.
+type DemolishBuildingRequest struct {
+	BuildingId string `json:"buildingId"`
+}
+
+// DemolishBuildingResponse defines model for DemolishBuildingResponse.
+type DemolishBuildingResponse struct {
+	Refund *float64 `json:"refund,omitempty"`
+	Status *string  `json:"status,omitempty"`
 }
 
 // ErrorResponse defines model for ErrorResponse.
@@ -335,6 +390,21 @@ type MarketTickerResponse struct {
 	Series   *[]MarketTickerPoint `json:"series,omitempty"`
 }
 
+// MoveBuildingRequest defines model for MoveBuildingRequest.
+type MoveBuildingRequest struct {
+	BuildingId string  `json:"buildingId"`
+	MapId      *string `json:"mapId,omitempty"`
+	SlotId     *string `json:"slotId,omitempty"`
+	X          *int    `json:"x,omitempty"`
+	Y          *int    `json:"y,omitempty"`
+}
+
+// MoveBuildingResponse defines model for MoveBuildingResponse.
+type MoveBuildingResponse struct {
+	Building *BuildingDTO `json:"building,omitempty"`
+	Status   *string      `json:"status,omitempty"`
+}
+
 // MyCompaniesResponse defines model for MyCompaniesResponse.
 type MyCompaniesResponse struct {
 	Companies *[]CompanySummary `json:"companies,omitempty"`
@@ -351,8 +421,24 @@ type PastFinancesResponse struct {
 	Series *[]PastFinancePoint `json:"series,omitempty"`
 }
 
+// PlaceBuildingRequest defines model for PlaceBuildingRequest.
+type PlaceBuildingRequest struct {
+	BuildingId string  `json:"buildingId"`
+	MapId      *string `json:"mapId,omitempty"`
+	SlotId     *string `json:"slotId,omitempty"`
+	X          *int    `json:"x,omitempty"`
+	Y          *int    `json:"y,omitempty"`
+}
+
+// PlaceBuildingResponse defines model for PlaceBuildingResponse.
+type PlaceBuildingResponse struct {
+	Building *BuildingDTO `json:"building,omitempty"`
+	Status   *string      `json:"status,omitempty"`
+}
+
 // ProductionJobDTO defines model for ProductionJobDTO.
 type ProductionJobDTO struct {
+	BuildingId      *string                 `json:"building_id,omitempty"`
 	ClaimableAmount *int                    `json:"claimable_amount,omitempty"`
 	ClaimedAmount   *int                    `json:"claimed_amount,omitempty"`
 	DurationSeconds *float32                `json:"duration_seconds,omitempty"`
@@ -370,6 +456,13 @@ type ProductionJobDTOStatus string
 // ProductionJobListResponse defines model for ProductionJobListResponse.
 type ProductionJobListResponse struct {
 	Jobs *[]ProductionJobDTO `json:"jobs,omitempty"`
+}
+
+// ProductionQueueResponse defines model for ProductionQueueResponse.
+type ProductionQueueResponse struct {
+	ByBuilding *map[string][]ProductionJobDTO `json:"byBuilding,omitempty"`
+	InUse      *int                           `json:"inUse,omitempty"`
+	MaxSlots   *int                           `json:"maxSlots,omitempty"`
 }
 
 // RecentCashflowResponse defines model for RecentCashflowResponse.
@@ -416,6 +509,13 @@ type StartProductionResponse struct {
 	Job      *ProductionJobDTO         `json:"job,omitempty"`
 }
 
+// StartProductionV1Request defines model for StartProductionV1Request.
+type StartProductionV1Request struct {
+	Amount                   int  `json:"amount"`
+	EstimatedSecondsToFinish *int `json:"estimatedSecondsToFinish,omitempty"`
+	Kind                     int  `json:"kind"`
+}
+
 // TakeOrderRequest defines model for TakeOrderRequest.
 type TakeOrderRequest struct {
 	MaxPrice  float32 `json:"maxPrice"`
@@ -444,12 +544,28 @@ type TradeDTO struct {
 	SellOrderId *string    `json:"sellOrderId,omitempty"`
 }
 
+// UpgradeBuildingResponse defines model for UpgradeBuildingResponse.
+type UpgradeBuildingResponse struct {
+	BuildingId       *string  `json:"building_id,omitempty"`
+	Cost             *float64 `json:"cost,omitempty"`
+	NewLevel         *int     `json:"new_level,omitempty"`
+	OldLevel         *int     `json:"old_level,omitempty"`
+	OutputMultiplier *int     `json:"output_multiplier,omitempty"`
+}
+
 // WarehouseItem defines model for WarehouseItem.
 type WarehouseItem struct {
 	Amount       *int    `json:"amount,omitempty"`
 	Quality      *int    `json:"quality,omitempty"`
 	ResourceId   *int    `json:"resource_id,omitempty"`
 	ResourceName *string `json:"resource_name,omitempty"`
+}
+
+// WarehouseUpgradeResponse defines model for WarehouseUpgradeResponse.
+type WarehouseUpgradeResponse struct {
+	Capacity *int     `json:"capacity,omitempty"`
+	Cost     *float64 `json:"cost,omitempty"`
+	Level    *int     `json:"level,omitempty"`
 }
 
 // bearerAuthContextKey is the context key for BearerAuth security scheme
@@ -469,11 +585,29 @@ type LoginJSONRequestBody = LoginRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
+// StartBuildingProductionV1JSONRequestBody defines body for StartBuildingProductionV1 for application/json ContentType.
+type StartBuildingProductionV1JSONRequestBody = StartProductionV1Request
+
+// BuyBuildingJSONRequestBody defines body for BuyBuilding for application/json ContentType.
+type BuyBuildingJSONRequestBody = BuyBuildingRequest
+
+// DemolishBuildingJSONRequestBody defines body for DemolishBuilding for application/json ContentType.
+type DemolishBuildingJSONRequestBody = DemolishBuildingRequest
+
+// MoveBuildingJSONRequestBody defines body for MoveBuilding for application/json ContentType.
+type MoveBuildingJSONRequestBody = MoveBuildingRequest
+
+// PlaceBuildingJSONRequestBody defines body for PlaceBuilding for application/json ContentType.
+type PlaceBuildingJSONRequestBody = PlaceBuildingRequest
+
 // CreateMarketOrderJSONRequestBody defines body for CreateMarketOrder for application/json ContentType.
 type CreateMarketOrderJSONRequestBody = CreateOrderRequestFrontend
 
 // TakeMarketOrderJSONRequestBody defines body for TakeMarketOrder for application/json ContentType.
 type TakeMarketOrderJSONRequestBody = TakeOrderRequest
+
+// CancelProductionJSONRequestBody defines body for CancelProduction for application/json ContentType.
+type CancelProductionJSONRequestBody = CancelJobRequest
 
 // StartProductionJSONRequestBody defines body for StartProduction for application/json ContentType.
 type StartProductionJSONRequestBody = StartProductionRequest
@@ -495,6 +629,30 @@ type ServerInterface interface {
 	// Register
 	// (POST /api/register)
 	Register(w http.ResponseWriter, r *http.Request)
+	// Start production through the legacy frontend compatibility route
+	// (POST /api/v1/buildings/{buildingId}/busy/)
+	StartBuildingProductionV1(w http.ResponseWriter, r *http.Request, buildingId string)
+	// Upgrade a building
+	// (POST /api/v1/buildings/{buildingId}/upgrade/)
+	UpgradeBuilding(w http.ResponseWriter, r *http.Request, buildingId string)
+	// Buy a building
+	// (POST /api/v2/buildings/buy/)
+	BuyBuilding(w http.ResponseWriter, r *http.Request)
+	// Demolish a building
+	// (POST /api/v2/buildings/demolish/)
+	DemolishBuilding(w http.ResponseWriter, r *http.Request)
+	// List buildings available for purchase
+	// (GET /api/v2/buildings/market/)
+	ListBuildingMarket(w http.ResponseWriter, r *http.Request)
+	// Move a building on the map
+	// (POST /api/v2/buildings/move/)
+	MoveBuilding(w http.ResponseWriter, r *http.Request)
+	// Place a building on the map
+	// (POST /api/v2/buildings/place/)
+	PlaceBuilding(w http.ResponseWriter, r *http.Request)
+	// List production options for a building
+	// (GET /api/v2/buildings/{buildingId}/production-options/)
+	GetProductionOptions(w http.ResponseWriter, r *http.Request, buildingId string)
 	// Balance sheet
 	// (GET /api/v2/companies/me/balance-sheet/)
 	GetBalanceSheet(w http.ResponseWriter, r *http.Request)
@@ -516,6 +674,9 @@ type ServerInterface interface {
 	// Get my company warehouse
 	// (GET /api/v2/companies/me/warehouse/)
 	GetMyWarehouse(w http.ResponseWriter, r *http.Request)
+	// Upgrade warehouse capacity
+	// (POST /api/v2/companies/me/warehouse/upgrade/)
+	UpgradeWarehouse(w http.ResponseWriter, r *http.Request)
 	// Create a market order
 	// (POST /api/v2/market-order/)
 	CreateMarketOrder(w http.ResponseWriter, r *http.Request)
@@ -528,6 +689,12 @@ type ServerInterface interface {
 	// List my companies
 	// (GET /api/v2/players/me/companies/)
 	ListMyCompanies(w http.ResponseWriter, r *http.Request)
+	// Cancel a production job and refund inputs
+	// (POST /api/v2/production/cancel/)
+	CancelProduction(w http.ResponseWriter, r *http.Request)
+	// Claim all completed production jobs
+	// (POST /api/v2/production/claim-all/)
+	ClaimAllProduction(w http.ResponseWriter, r *http.Request)
 	// Claim produced resources from a production job
 	// (POST /api/v2/production/claim/{jobId}/)
 	ClaimProduction(w http.ResponseWriter, r *http.Request, jobId string)
@@ -537,6 +704,9 @@ type ServerInterface interface {
 	// List production jobs for my company
 	// (GET /api/v2/production/jobs/)
 	ListProductionJobs(w http.ResponseWriter, r *http.Request)
+	// Get production queue overview
+	// (GET /api/v2/production/queue/)
+	GetProductionQueue(w http.ResponseWriter, r *http.Request)
 	// Start a production job
 	// (POST /api/v2/production/start/)
 	StartProduction(w http.ResponseWriter, r *http.Request)
@@ -600,6 +770,54 @@ func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Start production through the legacy frontend compatibility route
+// (POST /api/v1/buildings/{buildingId}/busy/)
+func (_ Unimplemented) StartBuildingProductionV1(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Upgrade a building
+// (POST /api/v1/buildings/{buildingId}/upgrade/)
+func (_ Unimplemented) UpgradeBuilding(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Buy a building
+// (POST /api/v2/buildings/buy/)
+func (_ Unimplemented) BuyBuilding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Demolish a building
+// (POST /api/v2/buildings/demolish/)
+func (_ Unimplemented) DemolishBuilding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List buildings available for purchase
+// (GET /api/v2/buildings/market/)
+func (_ Unimplemented) ListBuildingMarket(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Move a building on the map
+// (POST /api/v2/buildings/move/)
+func (_ Unimplemented) MoveBuilding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Place a building on the map
+// (POST /api/v2/buildings/place/)
+func (_ Unimplemented) PlaceBuilding(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List production options for a building
+// (GET /api/v2/buildings/{buildingId}/production-options/)
+func (_ Unimplemented) GetProductionOptions(w http.ResponseWriter, r *http.Request, buildingId string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Balance sheet
 // (GET /api/v2/companies/me/balance-sheet/)
 func (_ Unimplemented) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
@@ -642,6 +860,12 @@ func (_ Unimplemented) GetMyWarehouse(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Upgrade warehouse capacity
+// (POST /api/v2/companies/me/warehouse/upgrade/)
+func (_ Unimplemented) UpgradeWarehouse(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Create a market order
 // (POST /api/v2/market-order/)
 func (_ Unimplemented) CreateMarketOrder(w http.ResponseWriter, r *http.Request) {
@@ -666,6 +890,18 @@ func (_ Unimplemented) ListMyCompanies(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Cancel a production job and refund inputs
+// (POST /api/v2/production/cancel/)
+func (_ Unimplemented) CancelProduction(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Claim all completed production jobs
+// (POST /api/v2/production/claim-all/)
+func (_ Unimplemented) ClaimAllProduction(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Claim produced resources from a production job
 // (POST /api/v2/production/claim/{jobId}/)
 func (_ Unimplemented) ClaimProduction(w http.ResponseWriter, r *http.Request, jobId string) {
@@ -681,6 +917,12 @@ func (_ Unimplemented) ListClaimableJobs(w http.ResponseWriter, r *http.Request)
 // List production jobs for my company
 // (GET /api/v2/production/jobs/)
 func (_ Unimplemented) ListProductionJobs(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get production queue overview
+// (GET /api/v2/production/queue/)
+func (_ Unimplemented) GetProductionQueue(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -865,6 +1107,202 @@ func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Reque
 	handler.ServeHTTP(w, r)
 }
 
+// StartBuildingProductionV1 operation middleware
+func (siw *ServerInterfaceWrapper) StartBuildingProductionV1(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartBuildingProductionV1(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpgradeBuilding operation middleware
+func (siw *ServerInterfaceWrapper) UpgradeBuilding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpgradeBuilding(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BuyBuilding operation middleware
+func (siw *ServerInterfaceWrapper) BuyBuilding(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BuyBuilding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DemolishBuilding operation middleware
+func (siw *ServerInterfaceWrapper) DemolishBuilding(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DemolishBuilding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBuildingMarket operation middleware
+func (siw *ServerInterfaceWrapper) ListBuildingMarket(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBuildingMarket(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MoveBuilding operation middleware
+func (siw *ServerInterfaceWrapper) MoveBuilding(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MoveBuilding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PlaceBuilding operation middleware
+func (siw *ServerInterfaceWrapper) PlaceBuilding(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PlaceBuilding(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetProductionOptions operation middleware
+func (siw *ServerInterfaceWrapper) GetProductionOptions(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildingId" -------------
+	var buildingId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildingId", chi.URLParam(r, "buildingId"), &buildingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildingId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProductionOptions(w, r, buildingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetBalanceSheet operation middleware
 func (siw *ServerInterfaceWrapper) GetBalanceSheet(w http.ResponseWriter, r *http.Request) {
 
@@ -1005,6 +1443,26 @@ func (siw *ServerInterfaceWrapper) GetMyWarehouse(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// UpgradeWarehouse operation middleware
+func (siw *ServerInterfaceWrapper) UpgradeWarehouse(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpgradeWarehouse(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateMarketOrder operation middleware
 func (siw *ServerInterfaceWrapper) CreateMarketOrder(w http.ResponseWriter, r *http.Request) {
 
@@ -1097,6 +1555,46 @@ func (siw *ServerInterfaceWrapper) ListMyCompanies(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// CancelProduction operation middleware
+func (siw *ServerInterfaceWrapper) CancelProduction(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelProduction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClaimAllProduction operation middleware
+func (siw *ServerInterfaceWrapper) ClaimAllProduction(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClaimAllProduction(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ClaimProduction operation middleware
 func (siw *ServerInterfaceWrapper) ClaimProduction(w http.ResponseWriter, r *http.Request) {
 
@@ -1160,6 +1658,26 @@ func (siw *ServerInterfaceWrapper) ListProductionJobs(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListProductionJobs(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetProductionQueue operation middleware
+func (siw *ServerInterfaceWrapper) GetProductionQueue(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProductionQueue(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1520,6 +2038,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/register", wrapper.Register)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/buildings/{buildingId}/busy/", wrapper.StartBuildingProductionV1)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/buildings/{buildingId}/upgrade/", wrapper.UpgradeBuilding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/buy/", wrapper.BuyBuilding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/demolish/", wrapper.DemolishBuilding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/buildings/market/", wrapper.ListBuildingMarket)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/move/", wrapper.MoveBuilding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/buildings/place/", wrapper.PlaceBuilding)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/buildings/{buildingId}/production-options/", wrapper.GetProductionOptions)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/companies/me/balance-sheet/", wrapper.GetBalanceSheet)
 	})
 	r.Group(func(r chi.Router) {
@@ -1541,6 +2083,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/companies/me/warehouse/", wrapper.GetMyWarehouse)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/companies/me/warehouse/upgrade/", wrapper.UpgradeWarehouse)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/market-order/", wrapper.CreateMarketOrder)
 	})
 	r.Group(func(r chi.Router) {
@@ -1553,6 +2098,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/v2/players/me/companies/", wrapper.ListMyCompanies)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/production/cancel/", wrapper.CancelProduction)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v2/production/claim-all/", wrapper.ClaimAllProduction)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/production/claim/{jobId}/", wrapper.ClaimProduction)
 	})
 	r.Group(func(r chi.Router) {
@@ -1560,6 +2111,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v2/production/jobs/", wrapper.ListProductionJobs)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v2/production/queue/", wrapper.GetProductionQueue)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v2/production/start/", wrapper.StartProduction)

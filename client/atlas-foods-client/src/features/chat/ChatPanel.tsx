@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react'
 import { useUIStore } from '@/store/ui.store'
 import { useMessages, useSendMessage, useMarkRead, useContacts } from '@/api/chat.api'
 import { audio } from '@/audio/AudioManager'
+import { renderMessageBody } from './ChatUtils'
 
 function formatTime(at: string): string {
   try {
@@ -22,6 +23,7 @@ export function ChatPanel() {
   const [input, setInput] = useState('')
   const [showContacts, setShowContacts] = useState(false)
   const [selectedContact, setSelectedContact] = useState<{ companyId: number; company: string } | null>(null)
+  const [channel, setChannel] = useState('general')
   const listRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -111,7 +113,7 @@ export function ChatPanel() {
     setInput('')
     audio.playSfx('chat_send')
     sendMessage.mutate(
-      { chatroom: selectedContact ? `C:${selectedContact.companyId}` : 'N', body: text },
+      { chatroom: selectedContact ? `C:${selectedContact.companyId}` : channel, body: text },
       { onError: () => setInput(text) },
     )
   }
@@ -123,9 +125,8 @@ export function ChatPanel() {
 
   if (!chatOpen) return null
 
-  const contacts = contactsData?.contacts ?? []
   const displayMessages = messages?.filter((msg) => {
-    if (!selectedContact) return msg.chatroom === 'N'
+    if (!selectedContact) return !msg.chatroom.startsWith('C:')
     return msg.chatroom === `C:${selectedContact.companyId}`
   }) ?? []
 
@@ -200,6 +201,25 @@ export function ChatPanel() {
         </div>
       )}
 
+      {/* Channel selector (public mode only) */}
+      {!selectedContact && (
+        <div className="flex gap-1 px-3 py-1.5 border-b border-amber-200/40 bg-amber-50/80 shrink-0">
+          {['general', 'sales', 'help'].map((ch) => (
+            <button
+              key={ch}
+              onClick={() => setChannel(ch)}
+              className={`px-2 py-0.5 rounded text-[9px] font-bold transition-colors ${
+                channel === ch
+                  ? 'bg-amber-800 text-white'
+                  : 'bg-amber-200/50 text-amber-700 hover:bg-amber-200'
+              }`}
+            >
+              {ch === 'general' ? '普通' : ch === 'sales' ? '销售' : '帮助'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Messages */}
       <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-0">
         {isLoading && (
@@ -216,7 +236,7 @@ export function ChatPanel() {
             <span className="font-semibold text-amber-800">
               {msg.from || (msg.chatroom === 'N' ? 'System' : msg.chatroom.replace('C:', ''))}:
             </span>{' '}
-            <span className="text-amber-700">{msg.body}</span>
+            {renderMessageBody(msg.body)}
             <span className="text-[9px] text-amber-400 ml-1">{formatTime(msg.at)}</span>
           </div>
         ))}
@@ -227,23 +247,31 @@ export function ChatPanel() {
           <p className="text-[10px] text-red-400 text-right">Send failed.</p>
         )}
       </div>
-
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex gap-1 p-2 border-t border-amber-200/60 shrink-0">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={selectedContact ? `Message ${selectedContact.company}...` : 'Type a message...'}
-          disabled={sendMessage.isPending}
-          className="flex-1 px-2 py-1 text-xs bg-white border border-amber-300 rounded text-amber-900 placeholder-amber-400 disabled:opacity-50 min-w-0"
-        />
-        <button
-          type="submit"
-          disabled={sendMessage.isPending || !input.trim()}
-          className="px-3 py-1 bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400 text-white text-xs font-semibold rounded transition-colors disabled:cursor-not-allowed shrink-0"
-        >
-          Send
-        </button>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-1 p-2 border-t border-amber-200/60 shrink-0">
+        <div className="flex gap-1">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value.slice(0, 120))}
+            placeholder={selectedContact ? `Message ${selectedContact.company}...` : 'Type a message...'}
+            disabled={sendMessage.isPending}
+            className="flex-1 px-2 py-1 text-xs bg-white border border-amber-300 rounded text-amber-900 placeholder-amber-400 disabled:opacity-50 min-w-0"
+          />
+          <button
+            type="submit"
+            disabled={sendMessage.isPending || !input.trim()}
+            className="px-3 py-1 bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400 text-white text-xs font-semibold rounded transition-colors disabled:cursor-not-allowed shrink-0"
+          >
+            Send
+          </button>
+        </div>
+        <div className="flex justify-end">
+          <span className={`text-[9px] font-medium ${
+            input.length > 100 ? 'text-red-500' : input.length > 80 ? 'text-amber-500' : 'text-amber-400'
+          }`}>
+            {input.length} / 120
+          </span>
+        </div>
       </form>
 
       {/* Resize handle */}

@@ -48,10 +48,10 @@ func registerBondTestToken(t *testing.T, mux http.Handler, username string) stri
 func TestListBonds_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/bonds/", nil)
 	w := httptest.NewRecorder()
@@ -66,10 +66,10 @@ func TestListBonds_NoToken_401(t *testing.T) {
 func TestListBonds_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "listbondsuser")
 
@@ -103,10 +103,10 @@ func TestListBonds_WithToken_200(t *testing.T) {
 func TestCreateBond_InvalidJSON_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "createbondinvalidjson")
 
@@ -126,10 +126,10 @@ func TestCreateBond_InvalidJSON_400(t *testing.T) {
 func TestCreateBond_InvalidPayload_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "createbondinvalidpay")
 
@@ -149,10 +149,10 @@ func TestCreateBond_InvalidPayload_400(t *testing.T) {
 func TestCreateBond_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "createbondsuccess")
 
@@ -188,10 +188,10 @@ func TestCreateBond_Success_200(t *testing.T) {
 func TestGetBond_NotFound_404(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "getbondnotfound")
 
@@ -209,10 +209,10 @@ func TestGetBond_NotFound_404(t *testing.T) {
 func TestGetBond_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "getbondsuccess")
 
@@ -248,10 +248,10 @@ func TestGetBond_Success_200(t *testing.T) {
 func TestGetOwnedBonds_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "ownedbonds")
 
@@ -269,10 +269,10 @@ func TestGetOwnedBonds_Success_200(t *testing.T) {
 func TestGetSoldBonds_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	bondHandler := httpapi.NewBondHandler(newBondSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, nil, nil, bondHandler)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Bond: bondHandler})
 
 	token := registerBondTestToken(t, mux, "soldbonds")
 

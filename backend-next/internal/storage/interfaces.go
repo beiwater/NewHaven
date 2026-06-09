@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 
 	"github.com/newhaven/backend-next/internal/domain/auth"
 	"github.com/newhaven/backend-next/internal/domain/company"
@@ -10,12 +11,16 @@ import (
 	"github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/domain/research"
 	"github.com/newhaven/backend-next/internal/domain/social"
+	"github.com/newhaven/backend-next/internal/domain/chat"
 	"github.com/newhaven/backend-next/internal/domain/warehouse"
 )
+
+var ErrAlreadyExists = errors.New("already exists")
 
 // PlayerStorage handles player/auth persistence.
 type PlayerStorage interface {
 	CreatePlayer(ctx context.Context, p *auth.Player) error
+	DeletePlayer(ctx context.Context, id int) error
 	GetPlayerByUsername(ctx context.Context, username string) (*auth.Player, error)
 	GetPlayerByID(ctx context.Context, id int) (*auth.Player, error)
 }
@@ -25,6 +30,7 @@ type CompanyStorage interface {
 	CreateCompany(ctx context.Context, c *company.Company) error
 	GetCompany(ctx context.Context, id int) (*company.Company, error)
 	GetCompanyByPlayerID(ctx context.Context, playerID int) (*company.Company, error)
+	GetAllCompanies(ctx context.Context) ([]*company.Company, error)
 	UpdateCompany(ctx context.Context, c *company.Company) error
 	SaveBuilding(ctx context.Context, b *company.Building) error
 	RemoveBuilding(ctx context.Context, buildingID string) error
@@ -54,6 +60,7 @@ type ProductionStorage interface {
 	GetJobsByCompany(ctx context.Context, companyID int) ([]production.ProductionJob, error)
 	GetJobsByBuilding(ctx context.Context, buildingID string) ([]production.ProductionJob, error)
 	UpdateJob(ctx context.Context, j *production.ProductionJob) error
+	DeleteJob(ctx context.Context, jobID string) error
 }
 
 // FinanceStorage handles ledger and bond persistence.
@@ -70,11 +77,11 @@ type FinanceStorage interface {
 	GetCompanyBondHoldings(ctx context.Context, companyID int) ([]finance.BondHolding, error)
 }
 
-// ResearchStorage handles research persistence.
+// ResearchStorage handles research persistence for per-resource levels.
 type ResearchStorage interface {
-	GetProjects(ctx context.Context) ([]research.Project, error)
-	GetCompanyProgress(ctx context.Context, companyID int) ([]research.CompanyProgress, error)
-	SaveProgress(ctx context.Context, p *research.CompanyProgress) error
+	GetCompanyResearch(ctx context.Context, companyID int) ([]research.ResourceResearch, error)
+	GetResourceResearch(ctx context.Context, companyID int, resourceID int) (*research.ResourceResearch, error)
+	SaveResourceResearch(ctx context.Context, rr *research.ResourceResearch) error
 }
 
 // SocialStorage handles chat and notification persistence.
@@ -86,9 +93,26 @@ type SocialStorage interface {
 	MarkNotificationRead(ctx context.Context, notificationID int) error
 }
 
+// ChatStorage handles private chat rooms and messages.
+type ChatStorage interface {
+	GetOrCreateRoom(ctx context.Context, companyID1, companyID2 int) (*chat.ChatRoom, error)
+	GetUserRooms(ctx context.Context, companyID int) ([]*chat.ChatRoom, error)
+	GetRoomMessages(ctx context.Context, roomID string, limit int) ([]chat.Message, error)
+	SaveRoomMessage(ctx context.Context, msg *chat.Message) error
+	MarkRoomRead(ctx context.Context, roomID string, companyID, lastMessageID int64) error
+	GetRoomReadStatus(ctx context.Context, roomID string, companyID int) int64
+}
+
 // WarehouseStorage handles warehouse persistence.
 type WarehouseStorage interface {
 	GetWarehouse(ctx context.Context, companyID int) (*warehouse.Warehouse, error)
+	UpdateWarehouse(ctx context.Context, w *warehouse.Warehouse) error
+}
+
+// SnapshotStorage handles full game state save/load.
+type SnapshotStorage interface {
+	SaveSnapshot(ctx context.Context) error
+	LoadSnapshot(ctx context.Context) error
 }
 
 // Storage combines all domain storage interfaces.
@@ -101,6 +125,8 @@ type Storage interface {
 	FinanceStorage
 	ResearchStorage
 	SocialStorage
+	ChatStorage
 	WarehouseStorage
+	SnapshotStorage
 	Close() error
 }

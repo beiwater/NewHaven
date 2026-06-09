@@ -14,14 +14,14 @@ type CatalogEntry struct {
 
 // ResourceCatalogEntry is a resource type from resources.json.
 type ResourceCatalogEntry struct {
-	ID                  int     `json:"id"`
-	DbLetter            int     `json:"db_letter"`
-	Name                string  `json:"name"`
-	Category            string  `json:"category"` // "raw", "processed", "terminal"
-	Tier                int     `json:"tier"`
-	ProducedPerHourRaw  int     `json:"produced_per_hour_raw"`
-	UnitsSoldAnHour     int     `json:"units_sold_an_hour"`
-	IsExchangeTradable  bool    `json:"is_exchange_tradable"`
-	HasEconomyModel     bool    `json:"has_economy_model"`
-	BasePrice           float64 `json:"base_price"`
+	ID                 int     `json:"id"`
+	DbLetter           int     `json:"db_letter"`
+	Name               string  `json:"name"`
+	Category           string  `json:"category"` // "raw", "processed", "terminal"
+	Tier               int     `json:"tier"`
+	ProducedPerHourRaw int     `json:"produced_per_hour_raw"`
+	UnitsSoldAnHour    int     `json:"units_sold_an_hour"`
+	IsExchangeTradable bool    `json:"is_exchange_tradable"`
+	HasEconomyModel    bool    `json:"has_economy_model"`
+	BasePrice          float64 `json:"base_price"`
 }

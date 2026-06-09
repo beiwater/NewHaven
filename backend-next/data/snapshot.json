@@ -1,0 +1,2845 @@
+{
+  "players": {
+    "1": {
+      "id": 1,
+      "username": "dev",
+      "password_hash": "$2a$10$JU9E/Um.n2b3gOET8WMgWeEGvwn7J1IGL.l4OOC8gtMKrXmmYtWKu",
+      "display_name": "Dev Player",
+      "gender": "other",
+      "email": "dev@newhaven.game",
+      "created_at": "2026-06-07T09:15:36Z"
+    }
+  },
+  "by_user": {
+    "dev": {
+      "id": 1,
+      "username": "dev",
+      "password_hash": "$2a$10$JU9E/Um.n2b3gOET8WMgWeEGvwn7J1IGL.l4OOC8gtMKrXmmYtWKu",
+      "display_name": "Dev Player",
+      "gender": "other",
+      "email": "dev@newhaven.game",
+      "created_at": "2026-06-07T09:15:36Z"
+    }
+  },
+  "companies": {
+    "1000002": {
+      "id": 1000002,
+      "player_id": 1,
+      "name": "Dev Player",
+      "money": 999878620.1034529,
+      "level": 100,
+      "xp": 1000000000,
+      "preferences": {
+        "storyProgress": {
+          "chapter1Arrival": {
+            "status": "completed",
+            "stepId": "chapter-title"
+          }
+        }
+      },
+      "inventory": {
+        "4": 2341
+      },
+      "executives": [
+        {
+          "id": "exec-market-3-1780824502118",
+          "name": "Alice Chen",
+          "title": "Operations Manager",
+          "level": 9,
+          "rarity": "Common",
+          "stage": "Director",
+          "salary": 1991.8910723508693,
+          "productionBonus": 13.679999999999996,
+          "salesBonus": 28.799999999999994,
+          "mgmtDiscount": 12.600000000000003,
+          "morale": 100
+        }
+      ],
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T09:15:36Z",
+      "last_retail_at": "2026-06-07T09:35:24Z"
+    },
+    "1000003": {
+      "id": 1000003,
+      "player_id": -1,
+      "name": "Terminal",
+      "money": 0,
+      "level": 0,
+      "xp": 0,
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T09:15:36Z"
+    },
+    "1000004": {
+      "id": 1000004,
+      "player_id": -900001,
+      "name": "Atlas Trading Bot",
+      "money": 5193906.720817969,
+      "level": 99,
+      "xp": 0,
+      "inventory": {
+        "1": 999999,
+        "10": 999819,
+        "11": 999999,
+        "12": 999999,
+        "2": 999999,
+        "3": 999999,
+        "4": 1000677,
+        "5": 999999,
+        "6": 999999,
+        "7": 999999,
+        "8": 999979,
+        "9": 999939
+      },
+      "warehouse_level": 0,
+      "created_at": "2026-06-07T09:15:36Z"
+    }
+  },
+  "orders": {
+    "bot-buy-1780823796024168400-1": {
+      "id": "bot-buy-1780823796024168400-1",
+      "company_id": 1000004,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 14.641737328334711,
+      "quantity": 266,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-13": {
+      "id": "bot-buy-1780823796024168400-13",
+      "company_id": 1000004,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 23.462370252074106,
+      "quantity": 220,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-14": {
+      "id": "bot-buy-1780823796024168400-14",
+      "company_id": 1000004,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 22.713571201475997,
+      "quantity": 330,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-15": {
+      "id": "bot-buy-1780823796024168400-15",
+      "company_id": 1000004,
+      "resource_id": 3,
+      "is_buy": true,
+      "price": 21.215973100279776,
+      "quantity": 550,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-2": {
+      "id": "bot-buy-1780823796024168400-2",
+      "company_id": 1000004,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 14.174447839132542,
+      "quantity": 399,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-3": {
+      "id": "bot-buy-1780823796024168400-3",
+      "company_id": 1000004,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 13.239868860728198,
+      "quantity": 665,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-7": {
+      "id": "bot-buy-1780823796024168400-7",
+      "company_id": 1000004,
+      "resource_id": 2,
+      "is_buy": true,
+      "price": 18.434330030944867,
+      "quantity": 128,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-8": {
+      "id": "bot-buy-1780823796024168400-8",
+      "company_id": 1000004,
+      "resource_id": 2,
+      "is_buy": true,
+      "price": 17.846000349106205,
+      "quantity": 192,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823796024168400-9": {
+      "id": "bot-buy-1780823796024168400-9",
+      "company_id": 1000004,
+      "resource_id": 2,
+      "is_buy": true,
+      "price": 16.66934098542887,
+      "quantity": 320,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-buy-1780823856024334900-20": {
+      "id": "bot-buy-1780823856024334900-20",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 27.688023965409354,
+      "quantity": 455,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-21": {
+      "id": "bot-buy-1780823856024334900-21",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 26.80436362608778,
+      "quantity": 682,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-22": {
+      "id": "bot-buy-1780823856024334900-22",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 25.03704294744463,
+      "quantity": 1137,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-26": {
+      "id": "bot-buy-1780823856024334900-26",
+      "company_id": 1000004,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 31.901249717819006,
+      "quantity": 219,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-27": {
+      "id": "bot-buy-1780823856024334900-27",
+      "company_id": 1000004,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 30.883124726824782,
+      "quantity": 328,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-28": {
+      "id": "bot-buy-1780823856024334900-28",
+      "company_id": 1000004,
+      "resource_id": 5,
+      "is_buy": true,
+      "price": 28.846874744836335,
+      "quantity": 547,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-32": {
+      "id": "bot-buy-1780823856024334900-32",
+      "company_id": 1000004,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 39.3078435360469,
+      "quantity": 170,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-33": {
+      "id": "bot-buy-1780823856024334900-33",
+      "company_id": 1000004,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 38.053337891279455,
+      "quantity": 255,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823856024334900-34": {
+      "id": "bot-buy-1780823856024334900-34",
+      "company_id": 1000004,
+      "resource_id": 6,
+      "is_buy": true,
+      "price": 35.544326601744544,
+      "quantity": 425,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-buy-1780823916024281300-72": {
+      "id": "bot-buy-1780823916024281300-72",
+      "company_id": 1000004,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 40.04197635945159,
+      "quantity": 157,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-73": {
+      "id": "bot-buy-1780823916024281300-73",
+      "company_id": 1000004,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 38.76404094372441,
+      "quantity": 235,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-74": {
+      "id": "bot-buy-1780823916024281300-74",
+      "company_id": 1000004,
+      "resource_id": 7,
+      "is_buy": true,
+      "price": 36.208170112270054,
+      "quantity": 392,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-78": {
+      "id": "bot-buy-1780823916024281300-78",
+      "company_id": 1000004,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 9.86435096167879,
+      "quantity": 50,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-79": {
+      "id": "bot-buy-1780823916024281300-79",
+      "company_id": 1000004,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 9.54953125013585,
+      "quantity": 75,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-80": {
+      "id": "bot-buy-1780823916024281300-80",
+      "company_id": 1000004,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 8.91989182704997,
+      "quantity": 125,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-84": {
+      "id": "bot-buy-1780823916024281300-84",
+      "company_id": 1000004,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 50.87674377779412,
+      "quantity": 87,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-85": {
+      "id": "bot-buy-1780823916024281300-85",
+      "company_id": 1000004,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 49.253017912545374,
+      "quantity": 130,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823916024281300-86": {
+      "id": "bot-buy-1780823916024281300-86",
+      "company_id": 1000004,
+      "resource_id": 9,
+      "is_buy": true,
+      "price": 46.00556618204788,
+      "quantity": 217,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-buy-1780823976024554700-102": {
+      "id": "bot-buy-1780823976024554700-102",
+      "company_id": 1000004,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 67.32987437950082,
+      "quantity": 398,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-103": {
+      "id": "bot-buy-1780823976024554700-103",
+      "company_id": 1000004,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 65.18104860143164,
+      "quantity": 597,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-104": {
+      "id": "bot-buy-1780823976024554700-104",
+      "company_id": 1000004,
+      "resource_id": 12,
+      "is_buy": true,
+      "price": 60.88339704529329,
+      "quantity": 995,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-90": {
+      "id": "bot-buy-1780823976024554700-90",
+      "company_id": 1000004,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 56.116713540052906,
+      "quantity": 352,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-91": {
+      "id": "bot-buy-1780823976024554700-91",
+      "company_id": 1000004,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 54.32575459728527,
+      "quantity": 528,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-92": {
+      "id": "bot-buy-1780823976024554700-92",
+      "company_id": 1000004,
+      "resource_id": 10,
+      "is_buy": true,
+      "price": 50.74383671174997,
+      "quantity": 880,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-96": {
+      "id": "bot-buy-1780823976024554700-96",
+      "company_id": 1000004,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 61.059277547134684,
+      "quantity": 436,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-97": {
+      "id": "bot-buy-1780823976024554700-97",
+      "company_id": 1000004,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 59.11057719988571,
+      "quantity": 654,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780823976024554700-98": {
+      "id": "bot-buy-1780823976024554700-98",
+      "company_id": 1000004,
+      "resource_id": 11,
+      "is_buy": true,
+      "price": 55.21317650538774,
+      "quantity": 1090,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-buy-1780824096024347900-108": {
+      "id": "bot-buy-1780824096024347900-108",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 37.56777017154311,
+      "quantity": 67,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    "bot-buy-1780824096024347900-109": {
+      "id": "bot-buy-1780824096024347900-109",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 36.986825271983164,
+      "quantity": 100,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    "bot-buy-1780824096024347900-110": {
+      "id": "bot-buy-1780824096024347900-110",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 35.824935472863274,
+      "quantity": 167,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    "bot-buy-1780824336024256600-118": {
+      "id": "bot-buy-1780824336024256600-118",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 44.1652267142499,
+      "quantity": 244,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:25:36Z"
+    },
+    "bot-buy-1780824576024429300-121": {
+      "id": "bot-buy-1780824576024429300-121",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 43.03103652514317,
+      "quantity": 434,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:29:36Z"
+    },
+    "bot-sell-1780823796024168400-10": {
+      "id": "bot-sell-1780823796024168400-10",
+      "company_id": 1000004,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 20.787648758299536,
+      "quantity": 128,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-11": {
+      "id": "bot-sell-1780823796024168400-11",
+      "company_id": 1000004,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 21.3759784401382,
+      "quantity": 192,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-12": {
+      "id": "bot-sell-1780823796024168400-12",
+      "company_id": 1000004,
+      "resource_id": 2,
+      "is_buy": false,
+      "price": 22.55263780381553,
+      "quantity": 320,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-16": {
+      "id": "bot-sell-1780823796024168400-16",
+      "company_id": 1000004,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 26.457566454466548,
+      "quantity": 220,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-17": {
+      "id": "bot-sell-1780823796024168400-17",
+      "company_id": 1000004,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 27.206365505064657,
+      "quantity": 330,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-18": {
+      "id": "bot-sell-1780823796024168400-18",
+      "company_id": 1000004,
+      "resource_id": 3,
+      "is_buy": false,
+      "price": 28.703963606260874,
+      "quantity": 550,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-4": {
+      "id": "bot-sell-1780823796024168400-4",
+      "company_id": 1000004,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 16.5108952851434,
+      "quantity": 266,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-5": {
+      "id": "bot-sell-1780823796024168400-5",
+      "company_id": 1000004,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 16.97818477434557,
+      "quantity": 399,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823796024168400-6": {
+      "id": "bot-sell-1780823796024168400-6",
+      "company_id": 1000004,
+      "resource_id": 1,
+      "is_buy": false,
+      "price": 17.912763752749914,
+      "quantity": 665,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    "bot-sell-1780823856024334900-23": {
+      "id": "bot-sell-1780823856024334900-23",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 31.222665322695658,
+      "quantity": 455,
+      "filled_quantity": 455,
+      "quality": 0,
+      "status": "filled",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-24": {
+      "id": "bot-sell-1780823856024334900-24",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 32.106325662017234,
+      "quantity": 682,
+      "filled_quantity": 682,
+      "quality": 0,
+      "status": "filled",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-25": {
+      "id": "bot-sell-1780823856024334900-25",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 33.87364634066038,
+      "quantity": 1137,
+      "filled_quantity": 1137,
+      "quality": 0,
+      "status": "filled",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-29": {
+      "id": "bot-sell-1780823856024334900-29",
+      "company_id": 1000004,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 35.9737496817959,
+      "quantity": 219,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-30": {
+      "id": "bot-sell-1780823856024334900-30",
+      "company_id": 1000004,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 36.991874672790125,
+      "quantity": 328,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-31": {
+      "id": "bot-sell-1780823856024334900-31",
+      "company_id": 1000004,
+      "resource_id": 5,
+      "is_buy": false,
+      "price": 39.028124654778566,
+      "quantity": 547,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-35": {
+      "id": "bot-sell-1780823856024334900-35",
+      "company_id": 1000004,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 44.325866115116725,
+      "quantity": 170,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-36": {
+      "id": "bot-sell-1780823856024334900-36",
+      "company_id": 1000004,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 45.58037175988418,
+      "quantity": 255,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823856024334900-37": {
+      "id": "bot-sell-1780823856024334900-37",
+      "company_id": 1000004,
+      "resource_id": 6,
+      "is_buy": false,
+      "price": 48.089383049419084,
+      "quantity": 425,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    "bot-sell-1780823916024281300-75": {
+      "id": "bot-sell-1780823916024281300-75",
+      "company_id": 1000004,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 45.1537180223603,
+      "quantity": 157,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024281300-76": {
+      "id": "bot-sell-1780823916024281300-76",
+      "company_id": 1000004,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 46.43165343808749,
+      "quantity": 235,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024281300-77": {
+      "id": "bot-sell-1780823916024281300-77",
+      "company_id": 1000004,
+      "resource_id": 7,
+      "is_buy": false,
+      "price": 48.98752426954184,
+      "quantity": 392,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024281300-81": {
+      "id": "bot-sell-1780823916024281300-81",
+      "company_id": 1000004,
+      "resource_id": 8,
+      "is_buy": false,
+      "price": 11.12362980785055,
+      "quantity": 50,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024281300-82": {
+      "id": "bot-sell-1780823916024281300-82",
+      "company_id": 1000004,
+      "resource_id": 8,
+      "is_buy": false,
+      "price": 11.438449519393492,
+      "quantity": 75,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024281300-83": {
+      "id": "bot-sell-1780823916024281300-83",
+      "company_id": 1000004,
+      "resource_id": 8,
+      "is_buy": false,
+      "price": 12.06808894247937,
+      "quantity": 125,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024281300-87": {
+      "id": "bot-sell-1780823916024281300-87",
+      "company_id": 1000004,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 57.37164723878912,
+      "quantity": 87,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024787400-88": {
+      "id": "bot-sell-1780823916024787400-88",
+      "company_id": 1000004,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 58.995373104037874,
+      "quantity": 130,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823916024787400-89": {
+      "id": "bot-sell-1780823916024787400-89",
+      "company_id": 1000004,
+      "resource_id": 9,
+      "is_buy": false,
+      "price": 62.24282483453536,
+      "quantity": 217,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    "bot-sell-1780823976024554700-100": {
+      "id": "bot-sell-1780823976024554700-100",
+      "company_id": 1000004,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 70.80277928337959,
+      "quantity": 654,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-101": {
+      "id": "bot-sell-1780823976024554700-101",
+      "company_id": 1000004,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 74.70017997787754,
+      "quantity": 1090,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-105": {
+      "id": "bot-sell-1780823976024554700-105",
+      "company_id": 1000004,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 75.92517749177752,
+      "quantity": 398,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-106": {
+      "id": "bot-sell-1780823976024554700-106",
+      "company_id": 1000004,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 78.0740032698467,
+      "quantity": 597,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-107": {
+      "id": "bot-sell-1780823976024554700-107",
+      "company_id": 1000004,
+      "resource_id": 12,
+      "is_buy": false,
+      "price": 82.37165482598503,
+      "quantity": 995,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-93": {
+      "id": "bot-sell-1780823976024554700-93",
+      "company_id": 1000004,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 63.2805493111235,
+      "quantity": 352,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-94": {
+      "id": "bot-sell-1780823976024554700-94",
+      "company_id": 1000004,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 65.07150825389115,
+      "quantity": 528,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-95": {
+      "id": "bot-sell-1780823976024554700-95",
+      "company_id": 1000004,
+      "resource_id": 10,
+      "is_buy": false,
+      "price": 68.65342613942643,
+      "quantity": 880,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780823976024554700-99": {
+      "id": "bot-sell-1780823976024554700-99",
+      "company_id": 1000004,
+      "resource_id": 11,
+      "is_buy": false,
+      "price": 68.8540789361306,
+      "quantity": 436,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    "bot-sell-1780824096024347900-111": {
+      "id": "bot-sell-1780824096024347900-111",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 39.89154976978289,
+      "quantity": 67,
+      "filled_quantity": 67,
+      "quality": 0,
+      "status": "filled",
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    "bot-sell-1780824096024347900-113": {
+      "id": "bot-sell-1780824096024347900-113",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 40.47249466934283,
+      "quantity": 100,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    "bot-sell-1780824096024347900-114": {
+      "id": "bot-sell-1780824096024347900-114",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 41.63438446846273,
+      "quantity": 167,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    "bot-sell-1780824336024256600-119": {
+      "id": "bot-sell-1780824336024256600-119",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 46.897096407914844,
+      "quantity": 244,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:25:36Z"
+    },
+    "bot-sell-1780824576024429300-122": {
+      "id": "bot-sell-1780824576024429300-122",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 45.69275012463657,
+      "quantity": 434,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "cancelled",
+      "created_at": "2026-06-07T09:29:36Z"
+    },
+    "bot-sell-1780824816024890100-123": {
+      "id": "bot-sell-1780824816024890100-123",
+      "company_id": 1000004,
+      "resource_id": 4,
+      "is_buy": false,
+      "price": 44.80551972530501,
+      "quantity": 122,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:33:36Z"
+    },
+    "order-1780823827556182100-19": {
+      "id": "order-1780823827556182100-19",
+      "company_id": 1000002,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:07Z"
+    },
+    "order-1780823862498815200-38": {
+      "id": "order-1780823862498815200-38",
+      "company_id": 1000002,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:42Z"
+    },
+    "order-1780823863473296000-39": {
+      "id": "order-1780823863473296000-39",
+      "company_id": 1000002,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:43Z"
+    },
+    "order-1780823864052837100-40": {
+      "id": "order-1780823864052837100-40",
+      "company_id": 1000002,
+      "resource_id": 8,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:17:44Z"
+    },
+    "order-1780823904217248200-67": {
+      "id": "order-1780823904217248200-67",
+      "company_id": 1000002,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 1000,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:18:24Z"
+    },
+    "order-1780823914611023500-68": {
+      "id": "order-1780823914611023500-68",
+      "company_id": 1000002,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 40,
+      "quantity": 1000,
+      "filled_quantity": 1000,
+      "quality": 0,
+      "status": "filled",
+      "created_at": "2026-06-07T09:18:34Z"
+    },
+    "order-1780823915135065300-70": {
+      "id": "order-1780823915135065300-70",
+      "company_id": 1000002,
+      "resource_id": 4,
+      "is_buy": true,
+      "price": 40,
+      "quantity": 1000,
+      "filled_quantity": 204,
+      "quality": 0,
+      "status": "partial",
+      "created_at": "2026-06-07T09:18:35Z"
+    },
+    "order-1780824189567059400-115": {
+      "id": "order-1780824189567059400-115",
+      "company_id": 1000002,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:23:09Z"
+    },
+    "order-1780824189984554000-116": {
+      "id": "order-1780824189984554000-116",
+      "company_id": 1000002,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:23:09Z"
+    },
+    "order-1780824190369424700-117": {
+      "id": "order-1780824190369424700-117",
+      "company_id": 1000002,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:23:10Z"
+    },
+    "order-1780824493163307500-120": {
+      "id": "order-1780824493163307500-120",
+      "company_id": 1000002,
+      "resource_id": 1,
+      "is_buy": true,
+      "price": 10,
+      "quantity": 10,
+      "filled_quantity": 0,
+      "quality": 0,
+      "status": "open",
+      "created_at": "2026-06-07T09:28:13Z"
+    }
+  },
+  "trades": [
+    {
+      "id": "trade-1780823874856720400-41",
+      "buy_order_id": "take-1780823874856720400-42",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:17:54Z"
+    },
+    {
+      "id": "trade-1780823876750007500-43",
+      "buy_order_id": "take-1780823876750007500-44",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:17:56Z"
+    },
+    {
+      "id": "trade-1780823877189765500-45",
+      "buy_order_id": "take-1780823877189765500-46",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:17:57Z"
+    },
+    {
+      "id": "trade-1780823877443735300-47",
+      "buy_order_id": "take-1780823877443735300-48",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:17:57Z"
+    },
+    {
+      "id": "trade-1780823877771732800-49",
+      "buy_order_id": "take-1780823877771732800-50",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:17:57Z"
+    },
+    {
+      "id": "trade-1780823884425306600-51",
+      "buy_order_id": "take-1780823884425306600-52",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:04Z"
+    },
+    {
+      "id": "trade-1780823884922975900-53",
+      "buy_order_id": "take-1780823884922975900-54",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:04Z"
+    },
+    {
+      "id": "trade-1780823887228545700-55",
+      "buy_order_id": "take-1780823887228545700-56",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:07Z"
+    },
+    {
+      "id": "trade-1780823887499820700-57",
+      "buy_order_id": "take-1780823887499820700-58",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:07Z"
+    },
+    {
+      "id": "trade-1780823887672608900-59",
+      "buy_order_id": "take-1780823887672608900-60",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:07Z"
+    },
+    {
+      "id": "trade-1780823887954833900-61",
+      "buy_order_id": "take-1780823887954833900-62",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 10,
+      "buyer_fee": 13,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:07Z"
+    },
+    {
+      "id": "trade-1780823890713050300-63",
+      "buy_order_id": "take-1780823890713050300-64",
+      "sell_order_id": "bot-sell-1780823856024334900-23",
+      "resource_id": 4,
+      "price": 31.222665322695658,
+      "quality": 0,
+      "quantity": 345,
+      "buyer_fee": 431,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:10Z"
+    },
+    {
+      "id": "trade-1780823891289785600-65",
+      "buy_order_id": "take-1780823891289785600-66",
+      "sell_order_id": "bot-sell-1780823856024334900-24",
+      "resource_id": 4,
+      "price": 32.106325662017234,
+      "quality": 0,
+      "quantity": 682,
+      "buyer_fee": 876,
+      "seller_fee": 0,
+      "created_at": "2026-06-07T09:18:11Z"
+    },
+    {
+      "id": "trade-1780823914611023500-69",
+      "buy_order_id": "order-1780823914611023500-68",
+      "sell_order_id": "bot-sell-1780823856024334900-25",
+      "resource_id": 4,
+      "price": 33.87364634066038,
+      "quality": 0,
+      "quantity": 1000,
+      "buyer_fee": 0,
+      "seller_fee": 1355,
+      "created_at": "2026-06-07T09:18:34Z"
+    },
+    {
+      "id": "trade-1780823915135065300-71",
+      "buy_order_id": "order-1780823915135065300-70",
+      "sell_order_id": "bot-sell-1780823856024334900-25",
+      "resource_id": 4,
+      "price": 33.87364634066038,
+      "quality": 0,
+      "quantity": 137,
+      "buyer_fee": 0,
+      "seller_fee": 186,
+      "created_at": "2026-06-07T09:18:35Z"
+    },
+    {
+      "id": "trade-1780824096024347900-112",
+      "buy_order_id": "order-1780823915135065300-70",
+      "sell_order_id": "bot-sell-1780824096024347900-111",
+      "resource_id": 4,
+      "price": 39.89154976978289,
+      "quality": 0,
+      "quantity": 67,
+      "buyer_fee": 0,
+      "seller_fee": 107,
+      "created_at": "2026-06-07T09:21:36Z"
+    }
+  ],
+  "tickers": {
+    "4": {
+      "resource_id": 4,
+      "last_price": 39.89154976978289,
+      "volume_24h": 77289.89654722858,
+      "high_24h": 0,
+      "low_24h": 0,
+      "price_change_24h": 0,
+      "updated_at": "2026-06-07T09:21:36Z"
+    }
+  },
+  "jobs": {},
+  "ledger": [
+    {
+      "id": 5,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    {
+      "id": 6,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    {
+      "id": 7,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:16:36Z"
+    },
+    {
+      "id": 8,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823827556182100-19",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 9,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    {
+      "id": 10,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    {
+      "id": 11,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:17:36Z"
+    },
+    {
+      "id": 12,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823862498815200-38",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 8
+      },
+      "created_at": ""
+    },
+    {
+      "id": 13,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823863473296000-39",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 8
+      },
+      "created_at": ""
+    },
+    {
+      "id": 14,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823864052837100-40",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 8
+      },
+      "created_at": ""
+    },
+    {
+      "id": 15,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823874856720400-41"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 16,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823876750007500-43"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 17,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823877189765500-45"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 18,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823877443735300-47"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 19,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823877771732800-49"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 20,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823884425306600-51"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 21,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823884922975900-53"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 22,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823887228545700-55"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 23,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823887499820700-57"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 24,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823887672608900-59"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 25,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 325.22665322695656,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 13,
+        "price": 31.222665322695658,
+        "quantity": 10,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823887954833900-61"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 26,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 11202.819536330002,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 431,
+        "price": 31.222665322695658,
+        "quantity": 345,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-23",
+        "tradeId": "trade-1780823890713050300-63"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 27,
+      "company_id": 1000002,
+      "kind": "market_take_buy",
+      "amount": 22772.514101495755,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "fee": 876,
+        "price": 32.106325662017234,
+        "quantity": 682,
+        "resourceId": 4,
+        "sellOrderId": "bot-sell-1780823856024334900-24",
+        "tradeId": "trade-1780823891289785600-65"
+      },
+      "created_at": ""
+    },
+    {
+      "id": 28,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 10000,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823904217248200-67",
+        "price": 10,
+        "quantity": 1000,
+        "resourceId": 4
+      },
+      "created_at": ""
+    },
+    {
+      "id": 29,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 40000,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823914611023500-68",
+        "price": 40,
+        "quantity": 1000,
+        "resourceId": 4
+      },
+      "created_at": ""
+    },
+    {
+      "id": 30,
+      "company_id": 1000002,
+      "kind": "market_buy_refund",
+      "amount": 6126.353659339621,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "execPrice": 33.87364634066038,
+        "orderId": "order-1780823914611023500-68",
+        "tradeQty": 1000
+      },
+      "created_at": ""
+    },
+    {
+      "id": 31,
+      "company_id": 1000004,
+      "kind": "market_fee",
+      "amount": 1355,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "execPrice": 33.87364634066038,
+        "tradeQty": 1000
+      },
+      "created_at": ""
+    },
+    {
+      "id": 32,
+      "company_id": 1000004,
+      "kind": "market_trade",
+      "amount": 33873.64634066038,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "buyOrderId": "order-1780823914611023500-68",
+        "execPrice": 33.87364634066038,
+        "sellOrderId": "bot-sell-1780823856024334900-25",
+        "tradeQty": 1000
+      },
+      "created_at": ""
+    },
+    {
+      "id": 33,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 40000,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780823915135065300-70",
+        "price": 40,
+        "quantity": 1000,
+        "resourceId": 4
+      },
+      "created_at": ""
+    },
+    {
+      "id": 34,
+      "company_id": 1000002,
+      "kind": "market_buy_refund",
+      "amount": 839.3104513295281,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "execPrice": 33.87364634066038,
+        "orderId": "order-1780823915135065300-70",
+        "tradeQty": 137
+      },
+      "created_at": ""
+    },
+    {
+      "id": 35,
+      "company_id": 1000004,
+      "kind": "market_fee",
+      "amount": 186,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "execPrice": 33.87364634066038,
+        "tradeQty": 137
+      },
+      "created_at": ""
+    },
+    {
+      "id": 36,
+      "company_id": 1000004,
+      "kind": "market_trade",
+      "amount": 4640.689548670472,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "buyOrderId": "order-1780823915135065300-70",
+        "execPrice": 33.87364634066038,
+        "sellOrderId": "bot-sell-1780823856024334900-25",
+        "tradeQty": 137
+      },
+      "created_at": ""
+    },
+    {
+      "id": 37,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    {
+      "id": 38,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    {
+      "id": 39,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:18:36Z"
+    },
+    {
+      "id": 40,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    {
+      "id": 41,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    {
+      "id": 42,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:19:36Z"
+    },
+    {
+      "id": 43,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:20:36Z"
+    },
+    {
+      "id": 44,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:20:36Z"
+    },
+    {
+      "id": 45,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:20:36Z"
+    },
+    {
+      "id": 46,
+      "company_id": 1000002,
+      "kind": "market_buy_refund",
+      "amount": 7.266165424546294,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "execPrice": 39.89154976978289,
+        "orderId": "order-1780823915135065300-70",
+        "tradeQty": 67
+      },
+      "created_at": ""
+    },
+    {
+      "id": 47,
+      "company_id": 1000004,
+      "kind": "market_fee",
+      "amount": 107,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "execPrice": 39.89154976978289,
+        "tradeQty": 67
+      },
+      "created_at": ""
+    },
+    {
+      "id": 48,
+      "company_id": 1000004,
+      "kind": "market_trade",
+      "amount": 2672.733834575454,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "buyOrderId": "order-1780823915135065300-70",
+        "execPrice": 39.89154976978289,
+        "sellOrderId": "bot-sell-1780824096024347900-111",
+        "tradeQty": 67
+      },
+      "created_at": ""
+    },
+    {
+      "id": 49,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    {
+      "id": 50,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    {
+      "id": 51,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:21:36Z"
+    },
+    {
+      "id": 52,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:22:36Z"
+    },
+    {
+      "id": 53,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:22:36Z"
+    },
+    {
+      "id": 54,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:22:36Z"
+    },
+    {
+      "id": 55,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780824189567059400-115",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 56,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780824189984554000-116",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 57,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780824190369424700-117",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 58,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:23:36Z"
+    },
+    {
+      "id": 59,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:23:36Z"
+    },
+    {
+      "id": 60,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:23:36Z"
+    },
+    {
+      "id": 61,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:24:36Z"
+    },
+    {
+      "id": 62,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:24:36Z"
+    },
+    {
+      "id": 63,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:24:36Z"
+    },
+    {
+      "id": 64,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:25:36Z"
+    },
+    {
+      "id": 65,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:25:36Z"
+    },
+    {
+      "id": 66,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:25:36Z"
+    },
+    {
+      "id": 67,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:26:36Z"
+    },
+    {
+      "id": 68,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:26:36Z"
+    },
+    {
+      "id": 69,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:26:36Z"
+    },
+    {
+      "id": 70,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:27:36Z"
+    },
+    {
+      "id": 71,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:27:36Z"
+    },
+    {
+      "id": 72,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:27:36Z"
+    },
+    {
+      "id": 73,
+      "company_id": 1000002,
+      "kind": "market_buy_reserve",
+      "amount": 100,
+      "direction": "out",
+      "balance_after": 0,
+      "metadata": {
+        "orderId": "order-1780824493163307500-120",
+        "price": 10,
+        "quantity": 10,
+        "resourceId": 1
+      },
+      "created_at": ""
+    },
+    {
+      "id": 74,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:28:36Z"
+    },
+    {
+      "id": 75,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:28:36Z"
+    },
+    {
+      "id": 76,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:28:36Z"
+    },
+    {
+      "id": 77,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:29:36Z"
+    },
+    {
+      "id": 78,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:29:36Z"
+    },
+    {
+      "id": 79,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:29:36Z"
+    },
+    {
+      "id": 80,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:30:36Z"
+    },
+    {
+      "id": 81,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:30:36Z"
+    },
+    {
+      "id": 82,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:30:36Z"
+    },
+    {
+      "id": 83,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:31:36Z"
+    },
+    {
+      "id": 84,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:31:36Z"
+    },
+    {
+      "id": 85,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:31:36Z"
+    },
+    {
+      "id": 86,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:32:36Z"
+    },
+    {
+      "id": 87,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:32:36Z"
+    },
+    {
+      "id": 88,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:32:36Z"
+    },
+    {
+      "id": 89,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:33:36Z"
+    },
+    {
+      "id": 90,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:33:36Z"
+    },
+    {
+      "id": 91,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:33:36Z"
+    },
+    {
+      "id": 92,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:34:36Z"
+    },
+    {
+      "id": 93,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:34:36Z"
+    },
+    {
+      "id": 94,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:34:36Z"
+    },
+    {
+      "id": 95,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 444,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 148,
+        "quantity": 3,
+        "resourceId": 9
+      },
+      "created_at": "2026-06-07T09:35:36Z"
+    },
+    {
+      "id": 96,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 1548,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 172,
+        "quantity": 9,
+        "resourceId": 10
+      },
+      "created_at": "2026-06-07T09:35:36Z"
+    },
+    {
+      "id": 97,
+      "company_id": 1000004,
+      "kind": "retail_sale",
+      "amount": 116,
+      "direction": "in",
+      "balance_after": 0,
+      "metadata": {
+        "price": 116,
+        "quantity": 1,
+        "resourceId": 8
+      },
+      "created_at": "2026-06-07T09:35:36Z"
+    }
+  ],
+  "bonds": {},
+  "holdings": null,
+  "companyResearch": {},
+  "messages": null,
+  "notifications": null,
+  "warehouses": {
+    "1000002": {
+      "company_id": 1000002,
+      "capacity": 1000,
+      "used_capacity": 2341,
+      "items": [
+        {
+          "resource_id": 4,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 2341
+        }
+      ]
+    },
+    "1000003": {
+      "company_id": 1000003,
+      "capacity": 1000,
+      "used_capacity": 0,
+      "items": []
+    },
+    "1000004": {
+      "company_id": 1000004,
+      "capacity": 1000,
+      "used_capacity": 4000414,
+      "items": [
+        {
+          "resource_id": 8,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 999979
+        },
+        {
+          "resource_id": 9,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 999939
+        },
+        {
+          "resource_id": 10,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 999819
+        },
+        {
+          "resource_id": 4,
+          "resource_name": "",
+          "quality": 0,
+          "amount": 1000677
+        }
+      ]
+    }
+  },
+  "nextId": 98
+}

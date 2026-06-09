@@ -4,7 +4,7 @@ package auth
 type Player struct {
 	ID           int    `json:"id"`
 	Username     string `json:"username"`
-	PasswordHash string `json:"-"` // never serialized
+	PasswordHash string `json:"password_hash,omitempty"` // excluded from API responses but included in internal snapshots
 	DisplayName  string `json:"display_name,omitempty"`
 	Gender       string `json:"gender,omitempty"`
 	Email        string `json:"email,omitempty"`

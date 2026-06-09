@@ -57,8 +57,9 @@ function GameCanvas() {
   const level = companyData?.levelInfo?.level ?? 1
   const currentMapIdRaw = useUIStore((s) => s.currentMapId)
   const setCurrentMapId = useUIStore((s) => s.setCurrentMapId)
-  const currentMapId = normalizedMapId(currentMapIdRaw, level)
-  const currentMap = MAPS[currentMapId]
+  // Trust the store value. Only fall back to harbor if stored map ID is invalid.
+  const currentMapId = MAPS[currentMapIdRaw] ? currentMapIdRaw : 'harbor'
+  const currentMap = MAPS[currentMapId]!
   const selectedBuildingId = useUIStore((s) => s.selectedBuildingId)
   const selectBuilding = useUIStore((s) => s.selectBuilding)
   const placementBuildingId = useUIStore((s) => s.placementBuildingId)
@@ -66,9 +67,7 @@ function GameCanvas() {
   const movingBuildingId = useUIStore((s) => s.movingBuildingId)
   const clearBuildingMove = useUIStore((s) => s.clearBuildingMove)
 
-  useEffect(() => {
-    if (currentMapIdRaw !== currentMapId) setCurrentMapId(currentMapId)
-  }, [currentMapId, currentMapIdRaw, setCurrentMapId])
+
 
   const buildings = useMemo(
     () => Array.isArray(buildingsData) ? buildingsData.filter((b) => b.placed !== false && buildingMapId(b) === currentMapId) : [],
@@ -142,9 +141,10 @@ function GameCanvas() {
 
     const init = async () => {
       try {
-        const firstBg = await loadImage(MAPS.harbor.background)
+        const firstBg = await loadImage(currentMap.background ?? MAPS.harbor.background)
         if (destroyed) return
         app = await createGameApp(container)
+        if (destroyed) return
         appRef.current = app
         app.renderer.background.color = 0xe8dcc8
         textureCacheRef.current = await preloadBuildingTextures()

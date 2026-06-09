@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/newhaven/backend-next/internal/app/warehouse"
@@ -27,13 +26,24 @@ func (h *WarehouseHandler) handleGetMyWarehouse(w http.ResponseWriter, r *http.R
 
 	resp, err := h.svc.GetMyWarehouse(r.Context(), companyID)
 	if err != nil {
-		if errors.Is(err, warehouse.ErrNotFound) {
-			writeErr(w, 404, ErrorNotFound, "warehouse not found", nil)
-			return
-		}
-		writeErr(w, 500, ErrorInternal, "failed to get warehouse", nil)
+		writeAppErr(w, err)
 		return
 	}
 
+	writeSuccess(w, 200, resp)
+}
+
+// handleUpgradeWarehouse upgrades the warehouse for the authenticated company.
+func (h *WarehouseHandler) handleUpgradeWarehouse(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	resp, err := h.svc.UpgradeWarehouse(r.Context(), companyID)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
 	writeSuccess(w, 200, resp)
 }

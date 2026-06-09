@@ -45,4 +45,3 @@ func (w *responseWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
 }
-

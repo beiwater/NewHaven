@@ -1,20 +1,11 @@
 package research
 
-// Project represents a research project that a company can undertake.
-type Project struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	Category        string  `json:"category"`
-	Cost            float64 `json:"cost"`
-	DurationSeconds float64 `json:"duration_seconds"`
-	Prerequisites   []string `json:"prerequisites,omitempty"`
-	Effects         map[string]any `json:"effects,omitempty"`
-}
+// MaxResearchLevel is the maximum research level for any resource.
+const MaxResearchLevel = 100
 
-// CompanyProgress tracks a company's progress on a research project.
-type CompanyProgress struct {
-	CompanyID     int    `json:"company_id"`
-	ProjectID     string `json:"project_id"`
-	StartedAt     string `json:"started_at"`
-	CompletedAt   string `json:"completed_at,omitempty"`
+// ResourceResearch tracks a company's research level for a specific resource.
+type ResourceResearch struct {
+	CompanyID  int `json:"company_id"`
+	ResourceID int `json:"resource_id"`
+	Level      int `json:"level"` // 0 = not researched, 1-100
 }

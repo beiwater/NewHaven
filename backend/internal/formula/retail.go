@@ -7,7 +7,6 @@ const (
 	RetailZor           = 370.0
 )
 
-
 // Simplified executable version of decompiled retail model.
 func UnitsSoldPerHour(
 	buildingKindModifier float64,

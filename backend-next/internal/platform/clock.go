@@ -11,7 +11,7 @@ type Clock interface {
 // RealClock returns the actual system time.
 type RealClock struct{}
 
-func (RealClock) Now() time.Time          { return time.Now() }
+func (RealClock) Now() time.Time                         { return time.Now() }
 func (RealClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 // FakeClock returns a fixed time for tests.
@@ -21,7 +21,7 @@ type FakeClock struct {
 
 func NewFakeClock(t time.Time) *FakeClock { return &FakeClock{now: t} }
 
-func (c *FakeClock) Now() time.Time          { return c.now }
+func (c *FakeClock) Now() time.Time { return c.now }
 func (c *FakeClock) After(d time.Duration) <-chan time.Time {
 	c.now = c.now.Add(d)
 	ch := make(chan time.Time, 1)

@@ -19,12 +19,12 @@ func TestGetMyWarehouse_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
+	a := app.New(cfg, store, nil, nil, nil)
+	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Warehouse: warehouseHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/companies/me/warehouse/", nil)
 	w := httptest.NewRecorder()
@@ -51,12 +51,12 @@ func TestGetMyWarehouse_WithToken_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
+	a := app.New(cfg, store, nil, nil, nil)
+	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Warehouse: warehouseHandler})
 
 	// Register a user to get a valid token
 	registerBody := `{"username":"whuser","password":"secret123"}`
@@ -156,12 +156,12 @@ func TestGetMyWarehouse_ReturnsItemsArrayNotNull(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
-	warehouseSvc := warehouse.NewService(store, store, a.Logger)
+	a := app.New(cfg, store, nil, nil, nil)
+	warehouseSvc := warehouse.NewService(store, store, cfg.Game, a.Logger)
 	warehouseHandler := httpapi.NewWarehouseHandler(warehouseSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, warehouseHandler, nil, nil, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Warehouse: warehouseHandler})
 
 	// Register a user
 	registerBody := `{"username":"itemsuser","password":"secret123"}`

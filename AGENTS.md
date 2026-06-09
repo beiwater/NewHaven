@@ -4,6 +4,30 @@
 
 New Haven is a browser-based multiplayer economy simulation game — build factories, produce goods, trade on a player-driven market, research upgrades, and compete on leaderboards. Monorepo with a Go API backend and a React+PixiJS frontend.
 
+## Active Rewrite Rules
+
+- `backend-next/` is the active rewrite target and should be used for new backend work. Treat `backend/` as the legacy behavior reference unless a task explicitly targets it.
+- Codex is responsible for planning, implementation, code review, verification, and final judgment. Do not delegate repository work to OMP unless the user explicitly asks to use OMP again.
+- Complete changes end to end: define or update the OpenAPI contract, implement the service and HTTP route, connect the frontend callsite when applicable, add focused tests, and verify the real user flow.
+- Commit and push each meaningful, verified rewrite batch. Do not include unrelated user changes in a commit.
+- A handwritten source file over 300 lines is a split-risk signal. Prefer domain-focused files before extending an already large file. Generated files, the root OpenAPI document, and shared global styles are exceptions but must still be reviewed carefully.
+- Preserve the standard backend-next response envelope: `{ "data": ..., "error": null }` on success and a typed application error on failure.
+
+### Story Progress
+
+- The backend is the authoritative source for account story progress. Session storage may improve UX, but must never decide permanent story state.
+- Newly registered accounts initialize the arrival story as `not_started` at its first step. Existing accounts without story progress are migration-compatible and must not be forced into the story.
+- Story progress records a `storyId`, `stepId`, and status: `not_started`, `in_progress`, `completed`, or `skipped`.
+- The frontend must save progress while advancing, resume from the saved step after refresh/login, and provide visible continue and skip controls.
+- Terminal story states (`completed` and `skipped`) must not regress because of late or out-of-order progress requests.
+- The `dev` bootstrap account must enter the game directly and must not play the new-account story.
+
+### Deferred Extension Boundaries
+
+- Anti-cheat/AML, aerospace, executives, research, government contracts, and the remaining bond lifecycle are deferred extension/plugin domains.
+- Preserve or document API/plugin boundaries for deferred domains, but do not implement them during core rewrite work unless the user explicitly changes their priority.
+- Bond listing, detail, issue, owned, and sold compatibility routes may remain; bond purchase, redemption/call, settlement, and default processing are deferred.
+
 ## Architecture & Data Flow
 
 ```

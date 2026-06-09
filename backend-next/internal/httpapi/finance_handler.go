@@ -26,7 +26,7 @@ func (h *FinanceHandler) handleRecentCashflow(w http.ResponseWriter, r *http.Req
 
 	resp, err := h.svc.GetRecentCashflow(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "company not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *FinanceHandler) handleIncomeStatement(w http.ResponseWriter, r *http.Re
 
 	resp, err := h.svc.GetIncomeStatement(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "company not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 
@@ -60,7 +60,7 @@ func (h *FinanceHandler) handleBalanceSheet(w http.ResponseWriter, r *http.Reque
 
 	resp, err := h.svc.GetBalanceSheet(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "company not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *FinanceHandler) handleCashflowStatement(w http.ResponseWriter, r *http.
 
 	resp, err := h.svc.GetCashflowStatement(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "company not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 
@@ -94,7 +94,7 @@ func (h *FinanceHandler) handlePastFinances(w http.ResponseWriter, r *http.Reque
 
 	resp, err := h.svc.GetPastFinances(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "company not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 

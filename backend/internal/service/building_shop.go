@@ -127,6 +127,7 @@ func (s *Service) BuyBuilding(companyID int, buildingID string) (map[string]any,
 	s.saveCompanyLocked(company)
 	return map[string]any{"building": b, "cost": cost}, nil
 }
+
 // ── Map / slot config (extensible: add new entries to add new maps) ──
 
 type mapSlotDef struct {
@@ -190,6 +191,7 @@ var mapSlotDefs = []mapSlotDef{
 	{mapID: "desert", slotID: "desert-plot-02", unlockOrder: 2, mapUnlockLevel: 10},
 	{mapID: "desert", slotID: "desert-plot-03", unlockOrder: 3, mapUnlockLevel: 10},
 }
+
 func (s *Service) PlaceBuilding(companyID int, buildingID string, mapID, slotID string, x, y int) (map[string]any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

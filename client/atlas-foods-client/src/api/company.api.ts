@@ -13,10 +13,12 @@ interface LoginResponse {
   }
   token?: string
   companyId?: number
+  company_id?: number
+  player_id?: number
 }
 
 interface RegisterResponse extends LoginResponse {
-  companyID: number
+  companyID?: number
 }
 
 export interface CompanyData {
@@ -55,6 +57,13 @@ export interface PlayerLevel {
   unlocks?: UnlockInfo
 }
 
+export type StoryStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped'
+
+export interface StoryProgress {
+  status: StoryStatus
+  stepId: string
+}
+
 export function useCompany() {
   const companyId = getCompanyId()
   return useQuery({
@@ -85,32 +94,35 @@ export function useCompleteTutorial() {
 }
 
 export function useLogin() {
+  const qc = useQueryClient()
   return useMutation({
-
     mutationFn: ({ username, password }: { username: string; password: string }) =>
       api.post<LoginResponse>('/api/login', { username, password }),
     onSuccess: (data) => {
       const token = data.player?.token ?? data.token
-      const companyId = data.player?.companyId ?? data.companyId ?? data.company?.id
+      const companyId = data.player?.companyId ?? data.companyId ?? data.company_id ?? data.company?.id
       if (!token || !companyId) {
         throw new Error('Login response missing token or company id')
       }
-      setAuth(token, String(companyId))
+      qc.clear()
+      setAuth(token, String(companyId), false)
     },
   })
 }
 
 export function useRegister() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ username, password, name, gender, email }: { username: string; password: string; name?: string; gender?: string; email?: string }) =>
       api.post<RegisterResponse>('/api/register', { username, password, name, gender, email }),
     onSuccess: (data) => {
       const token = data.player?.token ?? data.token
-      const companyId = data.companyID ?? data.player?.companyId ?? data.companyId ?? data.company?.id
+      const companyId = data.companyID ?? data.player?.companyId ?? data.companyId ?? data.company_id ?? data.company?.id
       if (!token || !companyId) {
         throw new Error('Register response missing token or company id')
       }
-      setAuth(token, String(companyId))
+      qc.clear()
+      setAuth(token, String(companyId), true)
     },
   })
 }
@@ -130,6 +142,18 @@ export function useSavePreferences() {
     },
     onSuccess: () => {
       audio.playSfx('save_success')
+      qc.invalidateQueries({ queryKey: ['company', companyId] })
+    },
+  })
+}
+
+export function useUpdateStoryProgress() {
+  const qc = useQueryClient()
+  const companyId = getCompanyId()
+  return useMutation({
+    mutationFn: ({ storyId, stepId, status }: { storyId: string; stepId: string; status: StoryStatus }) =>
+      api.patch<StoryProgress>('/api/v2/companies/me/story-progress/', { storyId, stepId, status }),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['company', companyId] })
     },
   })

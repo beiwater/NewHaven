@@ -3,9 +3,11 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/newhaven/backend-next/internal/app/auth"
+	"github.com/newhaven/backend-next/internal/apperr"
 	domain "github.com/newhaven/backend-next/internal/domain/auth"
 )
 
@@ -29,12 +31,8 @@ func (h *AuthHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req domain.RegisterRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeAuthRequest(w, r, &req); err != nil {
 		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
-		return
-	}
-	if req.Username == "" || req.Password == "" {
-		writeErr(w, 400, ErrorValidation, "username and password are required", nil)
 		return
 	}
 
@@ -42,6 +40,10 @@ func (h *AuthHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, auth.ErrUsernameTaken) {
 			writeErr(w, 400, ErrorConflict, "username already taken", nil)
+			return
+		}
+		if apperr.HasKind(err, apperr.KindValidation) {
+			writeAppErr(w, err)
 			return
 		}
 		writeErr(w, 500, ErrorInternal, "registration failed", nil)
@@ -58,7 +60,7 @@ func (h *AuthHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req domain.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeAuthRequest(w, r, &req); err != nil {
 		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
 		return
 	}
@@ -78,4 +80,17 @@ func (h *AuthHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeSuccess(w, 200, resp)
+}
+
+func decodeAuthRequest(w http.ResponseWriter, r *http.Request, target any) error {
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("request body must contain one JSON object")
+	}
+	return nil
 }

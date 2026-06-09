@@ -29,7 +29,7 @@ func TestRegister_Handler(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -56,16 +56,17 @@ func TestRegister_Handler(t *testing.T) {
 		t.Fatal("expected non-empty data")
 	}
 
-	// Verify token field exists in data.
+	// Verify all expected fields in response data.
 	var data map[string]any
 	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
-	token, ok := data["token"]
-	if !ok {
-		t.Fatal("expected token field in response data")
+	for _, k := range []string{"token", "player_id", "company_id", "username"} {
+		if _, ok := data[k]; !ok {
+			t.Errorf("expected %q field in response data", k)
+		}
 	}
-	if token == "" {
+	if token, _ := data["token"].(string); token == "" {
 		t.Error("expected non-empty token")
 	}
 }
@@ -75,7 +76,7 @@ func TestRegister_MissingFields(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -104,12 +105,61 @@ func TestRegister_MissingFields(t *testing.T) {
 	}
 }
 
+func TestRegister_Duplicate(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store, nil, nil, nil)
+	handler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	body := `{"username":"dupuser","password":"secret123"}`
+
+	// First register — should succeed.
+	req1 := httptest.NewRequest(http.MethodPost, "/api/register", bytes.NewReader([]byte(body)))
+	req1.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req1)
+	if w.Code != http.StatusOK {
+		t.Fatalf("first register: expected 200, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	// Register again with same credentials — should get CONFLICT.
+	req2 := httptest.NewRequest(http.MethodPost, "/api/register", bytes.NewReader([]byte(body)))
+	req2.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, req2)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("duplicate: expected 400, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "CONFLICT" {
+		t.Errorf("expected code CONFLICT, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
+	}
+}
+
 func TestLogin_Handler(t *testing.T) {
 	cfg := &config.Config{
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -148,11 +198,12 @@ func TestLogin_Handler(t *testing.T) {
 	if err := json.Unmarshal(resp.Data, &data); err != nil {
 		t.Fatalf("unmarshal data: %v", err)
 	}
-	token, ok := data["token"]
-	if !ok {
-		t.Fatal("expected token in response data")
+	for _, k := range []string{"token", "player_id", "company_id", "username"} {
+		if _, ok := data[k]; !ok {
+			t.Errorf("expected %q field in response data", k)
+		}
 	}
-	if token == "" {
+	if token, _ := data["token"].(string); token == "" {
 		t.Error("expected non-empty token")
 	}
 }
@@ -162,7 +213,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()
@@ -206,7 +257,7 @@ func TestLogin_NonExistentUser(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	handler := httpapi.NewAuthHandler(a.AuthService)
 
 	mux := http.NewServeMux()

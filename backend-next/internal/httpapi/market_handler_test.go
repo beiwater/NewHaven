@@ -25,7 +25,7 @@ func newMarketSvc(store *memory.Store) *market.Service {
 	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
 	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
-	return market.NewService(store, store, store, resources, cfg, clock, idgen)
+	return market.NewService(store, store, store, resources, nil, cfg, clock, idgen)
 }
 
 func registerMarketTestToken(t *testing.T, mux http.Handler, username string) string {
@@ -52,10 +52,10 @@ func registerMarketTestToken(t *testing.T, mux http.Handler, username string) st
 func TestMarketResources_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/resources/", nil)
 	w := httptest.NewRecorder()
@@ -69,10 +69,10 @@ func TestMarketResources_NoToken_401(t *testing.T) {
 func TestMarketResources_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	regBody := `{"username":"resuser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -125,10 +125,10 @@ func TestMarketResources_WithToken_200(t *testing.T) {
 func TestMarketTicker_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/market-ticker/1/", nil)
 	w := httptest.NewRecorder()
@@ -142,10 +142,10 @@ func TestMarketTicker_NoToken_401(t *testing.T) {
 func TestMarketTicker_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	regBody := `{"username":"tickeruser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -193,10 +193,10 @@ func TestMarketTicker_WithToken_200(t *testing.T) {
 func TestMarketTicker_InvalidResource_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 	token := registerMarketTestToken(t, mux, "tickerbad")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/market-ticker/not-a-number/", nil)
@@ -212,10 +212,10 @@ func TestMarketTicker_InvalidResource_400(t *testing.T) {
 func TestMarketDepth_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	regBody := `{"username":"depthuser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -263,10 +263,10 @@ func TestMarketDepth_WithToken_200(t *testing.T) {
 func TestMarketDepth_InvalidQuality_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 	token := registerMarketTestToken(t, mux, "depthbad")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v3/market-depth/1/-1/", nil)
@@ -282,10 +282,10 @@ func TestMarketDepth_InvalidQuality_400(t *testing.T) {
 func TestMarketOrders_WithToken_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	regBody := `{"username":"orduser","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(regBody))
@@ -332,10 +332,10 @@ func TestMarketOrders_WithToken_200(t *testing.T) {
 func TestCreateOrder_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/", nil)
 	w := httptest.NewRecorder()
@@ -344,15 +344,32 @@ func TestCreateOrder_NoToken_401(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
 	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
+	}
 }
 
 func TestCreateOrder_InvalidJSON_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 	token := registerMarketTestToken(t, mux, "crbadjson")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/",
@@ -370,11 +387,11 @@ func TestCreateOrder_InvalidJSON_400(t *testing.T) {
 func TestCreateOrder_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
-	token := registerMarketTestToken(t, mux, "cr succ")
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
+	token := registerMarketTestToken(t, mux, "cr-succ")
 
 	body := `{"resourceId":1,"kind":1,"quality":0,"quantity":5,"price":10.0}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/",
@@ -407,10 +424,10 @@ func TestCreateOrder_Success_200(t *testing.T) {
 func TestMarketCancel_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v2/market-order/cancel/nonexistent/", nil)
 	w := httptest.NewRecorder()
@@ -419,16 +436,33 @@ func TestMarketCancel_NoToken_401(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
 	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
+	}
 }
 
 func TestMarketCancel_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
-	token := registerMarketTestToken(t, mux, "cn succ")
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
+	token := registerMarketTestToken(t, mux, "cn-succ")
 
 	// First create an order so we have something to cancel.
 	createBody := `{"resourceId":1,"kind":1,"quality":0,"quantity":5,"price":10.0}`
@@ -486,11 +520,11 @@ func TestMarketCancel_Success_200(t *testing.T) {
 func TestMarketCancel_MissingOrder_404(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
-	token := registerMarketTestToken(t, mux, "cn miss")
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
+	token := registerMarketTestToken(t, mux, "cn-miss")
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v2/market-order/cancel/doesnotexist/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -507,10 +541,10 @@ func TestMarketCancel_MissingOrder_404(t *testing.T) {
 func TestTakeOrder_NoToken_401(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/", nil)
 	w := httptest.NewRecorder()
@@ -519,15 +553,32 @@ func TestTakeOrder_NoToken_401(t *testing.T) {
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
 	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error in response")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %q", resp.Error.Code)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+	if string(resp.Data) != "null" {
+		t.Error("expected null data on error")
+	}
 }
 
 func TestTakeOrder_InvalidBody_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 	token := registerMarketTestToken(t, mux, "tkbadbody")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
@@ -545,10 +596,10 @@ func TestTakeOrder_InvalidBody_400(t *testing.T) {
 func TestTakeOrder_InvalidPayload_400(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
 	token := registerMarketTestToken(t, mux, "tkbadpayload")
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",
@@ -566,11 +617,11 @@ func TestTakeOrder_InvalidPayload_400(t *testing.T) {
 func TestTakeOrder_Success_200(t *testing.T) {
 	cfg := &config.Config{JWTSigningKey: "test-secret"}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	marketHandler := httpapi.NewMarketHandler(newMarketSvc(store))
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, nil, marketHandler, nil, nil)
-	token := registerMarketTestToken(t, mux, "tk succ")
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Market: marketHandler})
+	token := registerMarketTestToken(t, mux, "tk-succ")
 
 	body := `{"resource":1,"quantity":5,"quality":0,"maxPrice":100.0}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/market-order/take/",

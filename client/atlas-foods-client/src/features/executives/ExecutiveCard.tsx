@@ -1,6 +1,7 @@
 import type { Executive } from '@/game/executives'
 import { RARITY_COLORS, RARITY_BG, formatMoney } from '@/game/executives'
 import { formatTrainingRemaining, useTrainingNow } from './trainingTimer'
+import { useTranslation } from 'react-i18next'
 
 interface ExecutiveCardProps {
   executive: Executive
@@ -29,12 +30,13 @@ export function ExecutiveCard({
   const isTraining = executive.status === 'training'
   const now = useTrainingNow(isTraining)
   const trainingLabel = formatTrainingRemaining(executive.trainingEndTime, now)
+  const { t } = useTranslation()
 
   return (
     <div className={`rounded-xl border-2 p-4 shadow-sm transition-shadow hover:shadow-md ${cardBg}`}>
       {/* Rarity tag */}
       <div className={`mb-2 inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${rarityColor}`}>
-        {executive.rarity}
+        {t('executives.rarity_' + executive.rarity.toLowerCase())}
       </div>
 
       {/* Avatar placeholder + name/title */}
@@ -55,17 +57,17 @@ export function ExecutiveCard({
       {/* Level + stage */}
       <div className="mb-3 flex items-center justify-between">
         <span className="rounded bg-amber-200/60 px-2 py-0.5 text-xs font-bold text-amber-900">
-          Lv. {executive.level}
+          {t('executives.lv')} {executive.level}
         </span>
-        <span className="text-[11px] font-medium text-amber-700">{executive.stage}</span>
+        <span className="text-[11px] font-medium text-amber-700">{t('executives.stage')}: {executive.stage}</span>
       </div>
 
       {/* Stats */}
       <div className="mb-3 space-y-1 border-t border-amber-200/50 pt-2">
-        <StatRow label="Salary" value={`$${formatMoney(executive.salary)}/hr`} />
-        <StatRow label="Production" value={`+${executive.productionBonus}%`} tone="up" />
-        <StatRow label="Sales" value={`+${executive.salesBonus}%`} tone="up" />
-        <StatRow label="Mgmt Discount" value={`${executive.mgmtDiscount}%`} tone="up" />
+        <StatRow label={t('executives.salary')} value={`$${formatMoney(executive.salary)}/hr`} />
+        <StatRow label={t('executives.statProduction')} value={`+${Number(executive.productionBonus).toFixed(1)}%`} tone="up" />
+        <StatRow label={t('executives.statSales')} value={`+${Number(executive.salesBonus).toFixed(1)}%`} tone="up" />
+        <StatRow label={t('executives.statMgmtDiscount')} value={`${Number(executive.mgmtDiscount).toFixed(1)}%`} tone="up" />
       </div>
 
       {/* Actions */}
@@ -79,7 +81,7 @@ export function ExecutiveCard({
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {isPending ? 'Recruiting...' : canAfford ? `Recruit $${formatMoney(executive.recruitCost)}` : 'Not Enough Cash'}
+          {isPending ? t('executives.recruiting') : canAfford ? `${t('executives.hire')} $${formatMoney(executive.recruitCost)}` : t('executives.notEnoughCash')}
         </button>
       )}
 

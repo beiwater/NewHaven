@@ -12,6 +12,7 @@ import {
   useCancelOrder,
   useTakeOrder,
   useResources,
+  useMyOrders,
 } from '@/api/market.api'
 import {
   ALL_RESOURCE_IDS,
@@ -32,6 +33,7 @@ export function MarketPage() {
   const [orderKind, setOrderKind] = useState<'buy' | 'sell'>('buy')
   const [quantity, setQuantity] = useState('10')
   const [price, setPrice] = useState('10.00')
+  const [activeTab, setActiveTab] = useState<'market' | 'myorders'>('market')
 
   const { data: resourcesData } = useResources()
   const resources = resourcesData?.resources?.length ? resourcesData.resources : FALLBACK_MARKET_RESOURCES
@@ -48,6 +50,7 @@ export function MarketPage() {
   const { data: warehouse } = useWarehouse()
   const createOrder = useCreateOrder()
   const cancelOrder = useCancelOrder()
+  const { data: myAllOrders } = useMyOrders()
   const takeOrder = useTakeOrder()
 
   const series = ticker?.series ?? []
@@ -180,6 +183,30 @@ export function MarketPage() {
           </aside>
 
           <main className="space-y-4">
+            {/* Tab buttons */}
+            <div className="flex gap-2 border-b border-amber-200/60 pb-2">
+              <button
+                onClick={() => setActiveTab('market')}
+                className={`px-4 py-2 text-xs font-bold rounded-t-lg transition-colors ${
+                  activeTab === 'market'
+                    ? 'bg-amber-800 text-white shadow'
+                    : 'bg-amber-100/60 text-amber-700 hover:bg-amber-200/60'
+                }`}
+              >
+                {t('market.title')}
+              </button>
+              <button
+                onClick={() => setActiveTab('myorders')}
+                className={`px-4 py-2 text-xs font-bold rounded-t-lg transition-colors ${
+                  activeTab === 'myorders'
+                    ? 'bg-amber-800 text-white shadow'
+                    : 'bg-amber-100/60 text-amber-700 hover:bg-amber-200/60'
+                }`}
+              >
+                {t('market.myOrders')}
+              </button>
+            </div>
+            {activeTab === 'market' && (<>
             <section className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -202,7 +229,7 @@ export function MarketPage() {
                   <Metric label={t('common.inventory')} value={`${selectedInventory.toLocaleString()}`} subtle />
                   <Metric label={t('market.cash')} value={`$${Math.floor(cash).toLocaleString()}`} subtle />
                 </div>
-              <PriceCurve series={series} />
+              <PriceCurve series={series} selectedResource={selectedResource} />
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
@@ -283,34 +310,68 @@ export function MarketPage() {
                 currentCompanyId={currentCompanyId}
               />
             </section>
+            </>)}
 
+            {activeTab === 'myorders' && (
             <section className="rounded-2xl border border-amber-300/60 bg-white/60 p-4 shadow-sm">
-              <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-amber-800">
-                {t('market.myOpenOrders', { count: myOrders.length })}
+              <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-amber-800">
+                {t('market.myOpenOrders', { count: (myAllOrders ?? []).length })}
               </h3>
-              <div className="space-y-2">
-                {myOrders.length === 0 && (
-                  <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">
-                    {t('market.noOpenOrders', { name: selectedName })}
-                  </div>
-                )}
-                {myOrders.map((order, index) => (
-                  <div key={`${order.id}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-amber-200/70 bg-white/70 px-3 py-2 text-xs">
-                    <span className={order.kind === 1 ? 'font-black text-green-700' : 'font-black text-red-600'}>
-                      {order.kind === 1 ? t('market.buyKind').toUpperCase() : t('market.sellKind').toUpperCase()}
-                    </span>
-                    <span className="text-amber-900">${order.price.toFixed(2)} x {order.remaining}</span>
-                    <button
-                      onClick={() => cancelOrder.mutate(order.id)}
-                      disabled={cancelOrder.isPending}
-                      className="rounded bg-red-50 px-2 py-1 font-bold text-red-600 hover:bg-red-100 disabled:text-red-300"
-                    >
-                      {t('market.cancel')}
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {(!myAllOrders || myAllOrders.length === 0) ? (
+                <div className="rounded-lg bg-amber-50 px-3 py-4 text-center text-xs text-amber-500">
+                  {t('market.noOrders')}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {Object.entries(
+                    (myAllOrders as Array<{ id: string; resourceId: number; kind: number; price: number; remaining: number }>).reduce<Record<string, { resourceId: number; kind: number; totalRemaining: number; orders: typeof myAllOrders }>>((acc, order) => {
+                      const key = `${order.resourceId}-${order.kind}`
+                      if (!acc[key]) {
+                        acc[key] = { resourceId: order.resourceId, kind: order.kind, totalRemaining: 0, orders: [] }
+                      }
+                      acc[key].totalRemaining += order.remaining
+                      acc[key].orders.push(order)
+                      return acc
+                    }, {})
+                  ).map(([key, group]) => (
+                    <div key={key} className="rounded-lg border border-amber-200/70 bg-white/70 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img src={resourceIcon(group.resourceId)} alt="" className="w-6 h-6 object-contain shrink-0" />
+                          <span className="text-sm font-bold text-amber-900 truncate">{resourceName(group.resourceId)}</span>
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 ${group.kind === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {group.kind === 1 ? t('market.buyKind').toUpperCase() : t('market.sellKind').toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-amber-700">{t('market.totalRemaining', { count: group.totalRemaining })}</span>
+                          <span className="text-[10px] text-amber-400">({group.orders.length})</span>
+                        </div>
+                      </div>
+                      {/* Individual orders */}
+                      <div className="mt-2 space-y-1">
+                        {(group.orders as Array<{ id: string; price: number; remaining: number }>).map((order) => (
+                          <div key={order.id} className="flex items-center justify-between gap-2 pl-8 pr-1 py-1 rounded bg-amber-50/50 text-xs">
+                            <span className="text-amber-900 font-medium">${order.price.toFixed(2)}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-amber-500">x{order.remaining}</span>
+                              <button
+                                onClick={() => cancelOrder.mutate(order.id)}
+                                disabled={cancelOrder.isPending}
+                                className="text-[10px] font-bold text-red-600 hover:text-red-800 disabled:text-red-300"
+                              >
+                                {t('market.cancel')}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
+            )}
           </main>
         </div>
       </div>

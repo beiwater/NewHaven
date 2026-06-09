@@ -51,6 +51,52 @@ paths:
         "401":
           description: Unauthorized
 
+  /api/v3/companies/{companyId}/:
+    get:
+      tags: [Companies]
+      summary: Get the authenticated owner's company profile
+      operationId: getCompanyProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company profile including account preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyProfileResponse'
+        "403":
+          description: Company profile belongs to another account
+
+  /api/v2/companies/me/story-progress/:
+    patch:
+      tags: [Companies]
+      summary: Save the authenticated company's current story position
+      operationId: updateStoryProgress
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryProgressRequest'
+      responses:
+        "200":
+          description: Saved story position
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryProgress'
+        "400":
+          description: Invalid story position
+
   /api/v2/companies/me/warehouse/:
     get:
       tags: [Warehouse]
@@ -91,6 +137,193 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/buildings/market/:
+    get:
+      tags: [Buildings]
+      summary: List buildings available for purchase
+      operationId: listBuildingMarket
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Building market list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BuildingMarketItem'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/buy/:
+    post:
+      tags: [Buildings]
+      summary: Buy a building
+      operationId: buyBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyBuildingRequest'
+      responses:
+        "200":
+          description: Building bought
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/place/:
+    post:
+      tags: [Buildings]
+      summary: Place a building on the map
+      operationId: placeBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBuildingRequest'
+      responses:
+        "200":
+          description: Building placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/move/:
+    post:
+      tags: [Buildings]
+      summary: Move a building on the map
+      operationId: moveBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveBuildingRequest'
+      responses:
+        "200":
+          description: Building moved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/demolish/:
+    post:
+      tags: [Buildings]
+      summary: Demolish a building
+      operationId: demolishBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemolishBuildingRequest'
+      responses:
+        "200":
+          description: Building demolished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemolishBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v1/buildings/{buildingId}/upgrade/:
+    post:
+      tags: [Buildings]
+      summary: Upgrade a building
+      operationId: upgradeBuilding
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Building upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpgradeBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/companies/me/warehouse/upgrade/:
+    post:
+      tags: [Warehouse]
+      summary: Upgrade warehouse capacity
+      operationId: upgradeWarehouse
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Warehouse upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarehouseUpgradeResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
   /api/v2/production/jobs/:
     get:
       tags: [Production]
@@ -134,6 +367,45 @@ paths:
                 $ref: '#/components/schemas/StartProductionResponse'
         "400":
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/buildings/{buildingId}/busy/:
+    post:
+      tags: [Production]
+      summary: Start production through the legacy frontend compatibility route
+      operationId: startBuildingProductionV1
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartProductionV1Request'
+      responses:
+        "200":
+          description: Production started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartProductionResponse'
+        "400":
+          description: Invalid production request
           content:
             application/json:
               schema:
@@ -205,6 +477,110 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+
+  /api/v2/production/queue/:
+    get:
+      tags: [Production]
+      summary: Get production queue overview
+      operationId: getProductionQueue
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Production queue overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionQueueResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/buildings/{buildingId}/production-options/:
+    get:
+      tags: [Production]
+      summary: List production options for a building
+      operationId: getProductionOptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Production options list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResourceDefinition'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/cancel/:
+    post:
+      tags: [Production]
+      summary: Cancel a production job and refund inputs
+      operationId: cancelProduction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelJobRequest'
+      responses:
+        "200":
+          description: Production job cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelJobResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/claim-all/:
+    post:
+      tags: [Production]
+      summary: Claim all completed production jobs
+      operationId: claimAllProduction
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: All claimable jobs claimed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimAllResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v3/resources/:
     get:
@@ -827,6 +1203,45 @@ components:
         level:
           type: integer
 
+    CompanyProfileResponse:
+      type: object
+      required: [authCompany, authUser, levelInfo, preferences]
+      properties:
+        authCompany:
+          type: object
+          additionalProperties: true
+        authUser:
+          type: object
+          additionalProperties: true
+        levelInfo:
+          type: object
+          additionalProperties: true
+        preferences:
+          type: object
+          additionalProperties: true
+
+    StoryProgressRequest:
+      type: object
+      required: [storyId, stepId, status]
+      properties:
+        storyId:
+          type: string
+        stepId:
+          type: string
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, skipped]
+
+    StoryProgress:
+      type: object
+      required: [status, stepId]
+      properties:
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, skipped]
+        stepId:
+          type: string
+
     Building:
       type: object
       properties:
@@ -873,6 +1288,8 @@ components:
           type: integer
         robot_count:
           type: integer
+        placed:
+          type: boolean
     BuildingListResponse:
       type: object
       properties:
@@ -880,6 +1297,141 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BuildingDTO'
+    # --- Building Operations ---
+
+    BuildingMarketItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: integer
+        cost:
+          type: number
+          format: double
+        unlock_level:
+          type: integer
+        description:
+          type: string
+        produces:
+          type: array
+          items:
+            type: integer
+        starter_produces:
+          type: array
+          items:
+            type: integer
+        starter_role:
+          type: string
+
+
+    BuyBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        requestId:
+          type: string
+        buildingId:
+          type: string
+
+    BuyBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        cost:
+          type: number
+          format: double
+
+    PlaceBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+        mapId:
+          type: string
+        slotId:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+
+    PlaceBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        status:
+          type: string
+
+    MoveBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+        mapId:
+          type: string
+        slotId:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+
+    MoveBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        status:
+          type: string
+
+    DemolishBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+
+    DemolishBuildingResponse:
+      type: object
+      properties:
+        refund:
+          type: number
+          format: double
+        status:
+          type: string
+
+    UpgradeBuildingResponse:
+      type: object
+      properties:
+        building_id:
+          type: string
+        old_level:
+          type: integer
+        new_level:
+          type: integer
+        cost:
+          type: number
+          format: double
+        output_multiplier:
+          type: integer
+
+    WarehouseUpgradeResponse:
+      type: object
+      properties:
+        level:
+          type: integer
+        capacity:
+          type: integer
+        cost:
+          type: number
+          format: double
     # --- Warehouse ---
 
     WarehouseItem:
@@ -1188,10 +1740,24 @@ components:
           type: integer
           minimum: 1
 
+    StartProductionV1Request:
+      type: object
+      required: [kind, amount]
+      properties:
+        kind:
+          type: integer
+        amount:
+          type: integer
+          minimum: 1
+        estimatedSecondsToFinish:
+          type: integer
+
     ProductionJobDTO:
       type: object
       properties:
         id:
+          type: string
+        building_id:
           type: string
         resource_id:
           type: integer
@@ -1289,6 +1855,50 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClaimableJobDTO'
+
+    # --- Production Queue ---
+
+    ProductionQueueResponse:
+      type: object
+      properties:
+        byBuilding:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/ProductionJobDTO'
+        inUse:
+          type: integer
+        maxSlots:
+          type: integer
+
+    CancelJobRequest:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: string
+
+    CancelJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+
+    ClaimAllResponse:
+      type: object
+      properties:
+        claimed:
+          type: array
+          items: {}
+        errors:
+          type: array
+          items:
+            type: string
+        total:
+          type: integer
 
     # --- Finance ---
 

@@ -266,15 +266,15 @@ if (Test-FileExists $legacyManifestPath) {
 Write-Status "LEGACY_MANIFEST_HASHES" $legacyHashOk @()
 
 # ---------------------------------------------------------------
-# Check 10: Governed formula calls present in service files
+# Check 10: Governed formula calls present in application packages
 # ---------------------------------------------------------------
 Write-Host "`n--- Check 10: Governed formula calls present ---" -ForegroundColor Yellow
 $governedOk = $true
 
 $appDir = Join-Path $bnDir "internal/app"
-$prodServicePath = Join-Path (Join-Path $appDir "production") "service.go"
-$marketServicePath = Join-Path (Join-Path $appDir "market") "service.go"
-$financeServicePath = Join-Path (Join-Path $appDir "finance") "service.go"
+$prodServicePath = Join-Path (Join-Path $appDir "production") "*.go"
+$marketServicePath = Join-Path (Join-Path $appDir "market") "*.go"
+$financeServicePath = Join-Path (Join-Path $appDir "finance") "*.go"
 
 $pdCount = Count-String "formula.DurationSeconds(" $prodServicePath
 $pdOk = ($pdCount -ge 1)
@@ -294,7 +294,7 @@ if (-not $fbOk) { $exitCode = 1; $governedOk = $false; $failedChecks += "FINANCE
 Write-Status "GOVERNED_CALLS" $governedOk @()
 
 # ---------------------------------------------------------------
-# Check 11: No old private wrapper in finance/service.go
+# Check 11: No old private wrapper in finance package
 # ---------------------------------------------------------------
 Write-Host "`n--- Check 11: No old private wrapper ---" -ForegroundColor Yellow
 $wrapperCount = Count-String "func dailyBondInterest" $financeServicePath

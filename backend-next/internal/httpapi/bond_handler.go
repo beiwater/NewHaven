@@ -23,7 +23,7 @@ func NewBondHandler(svc *appfinance.Service) *BondHandler {
 func (h *BondHandler) handleListBonds(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.svc.ListBonds(r.Context(), r.URL.Query().Get("rating"))
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to list bonds", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -39,7 +39,7 @@ func (h *BondHandler) handleGetBond(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.GetBond(r.Context(), bondID)
 	if err != nil {
-		writeErr(w, 404, ErrorNotFound, "bond not found", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -69,9 +69,7 @@ func (h *BondHandler) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.CreateBond(r.Context(), companyID, req.Amount, req.Interest)
 	if err != nil {
-		code := ErrorBadRequest
-		msg := err.Error()
-		writeErr(w, 400, code, msg, nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -87,7 +85,7 @@ func (h *BondHandler) handleGetOwnedBonds(w http.ResponseWriter, r *http.Request
 
 	resp, err := h.svc.GetOwnedBonds(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to get owned bonds", nil)
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)
@@ -103,7 +101,73 @@ func (h *BondHandler) handleGetSoldBonds(w http.ResponseWriter, r *http.Request)
 
 	resp, err := h.svc.GetSoldBonds(r.Context(), companyID)
 	if err != nil {
-		writeErr(w, 500, ErrorInternal, "failed to get sold bonds", nil)
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+// handleBuyBond buys a bond.
+func (h *BondHandler) handleBuyBond(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	var req struct {
+		BondID string `json:"bondId"`
+		Amount int    `json:"amount"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.BondID == "" || req.Amount <= 0 {
+		writeErr(w, 400, ErrorValidation, "bondId and amount are required", nil)
+		return
+	}
+	resp, err := h.svc.BuyBond(r.Context(), companyID, req.BondID, req.Amount)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+// handleCallBond calls a bond (issuer only).
+func (h *BondHandler) handleCallBond(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	bondID := chi.URLParam(r, "bondId")
+	if bondID == "" {
+		writeErr(w, 400, ErrorValidation, "bondId is required", nil)
+		return
+	}
+	var req struct {
+		Amount int `json:"amount"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.Amount <= 0 {
+		req.Amount = 1
+	}
+	resp, err := h.svc.CallBond(r.Context(), companyID, bondID, req.Amount)
+	if err != nil {
+		writeAppErr(w, err)
+		return
+	}
+	writeSuccess(w, 200, resp)
+}
+
+// handleSettleBondInterest pays interest to all bond holders.
+func (h *BondHandler) handleSettleBondInterest(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := CompanyIDFromCtx(r.Context())
+	if !ok {
+		writeErr(w, 401, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
+	_ = companyID // any authenticated company can trigger
+	resp, err := h.svc.SettleBondInterest(r.Context())
+	if err != nil {
+		writeAppErr(w, err)
 		return
 	}
 	writeSuccess(w, 200, resp)

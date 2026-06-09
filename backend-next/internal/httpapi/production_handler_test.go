@@ -2,6 +2,7 @@ package httpapi_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/newhaven/backend-next/internal/app/production"
 	"github.com/newhaven/backend-next/internal/catalog"
 	"github.com/newhaven/backend-next/internal/config"
+	domcompany "github.com/newhaven/backend-next/internal/domain/company"
 	proddmn "github.com/newhaven/backend-next/internal/domain/production"
 	"github.com/newhaven/backend-next/internal/httpapi"
 	"github.com/newhaven/backend-next/internal/platform"
@@ -27,7 +29,7 @@ func newProductionSvc(store *memory.Store) *production.Service {
 	cfg := &config.GameConfig{ProductionMod: 1.0}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	return production.NewService(store, store, store, cfg,
+	return production.NewService(store, store, store, store, cfg,
 		make(map[int]*catalog.ResourceEntry),
 		make(map[int]*catalog.BuildingEntry),
 		clock, idgen)
@@ -38,12 +40,12 @@ func TestListProductionJobs_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/jobs/", nil)
 	w := httptest.NewRecorder()
@@ -70,12 +72,12 @@ func TestListProductionJobs_WithToken_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	// Register a user to get a valid token
 	registerBody := `{"username":"produser","password":"secret123"}`
@@ -147,12 +149,12 @@ func TestListProductionJobs_EmptyJobsIsArray_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	registerBody := `{"username":"emptyjobs","password":"secret123"}`
 	regReq := httptest.NewRequest(http.MethodPost, "/api/register", strings.NewReader(registerBody))
@@ -222,12 +224,12 @@ func TestStartProduction_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	body := `{"building_id":"bld-1","resource_id":3,"quantity":10}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/start/", strings.NewReader(body))
@@ -245,12 +247,12 @@ func TestStartProduction_InvalidBody_400(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	// Register to get token
 	regBody := `{"username":"startinv","password":"secret123"}`
@@ -286,7 +288,7 @@ func TestStartProduction_Success_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 
 	// Set up catalog with Mill producing Flour from Grain
 	resources := map[int]*catalog.ResourceEntry{
@@ -297,12 +299,12 @@ func TestStartProduction_Success_200(t *testing.T) {
 	}
 	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
 	idgen := platform.NewIDGen()
-	productionSvc := production.NewService(store, store, store, &config.GameConfig{ProductionMod: 1.0},
+	productionSvc := production.NewService(store, store, store, store, &config.GameConfig{ProductionMod: 1.0},
 		resources, buildings, clock, idgen)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	// Register to get token
 	regBody := `{"username":"startsuccess","password":"secret123"}`
@@ -328,16 +330,22 @@ func TestStartProduction_Success_200(t *testing.T) {
 		t.Fatalf("seed inventory: %v", err)
 	}
 
-	// Change first building to Mill (type 3) to match our catalog
+	// Add a building for production (no longer auto-created on register)
 	company, err := store.GetCompany(nil, companyID)
 	if err != nil {
 		t.Fatalf("get company: %v", err)
 	}
+	company.Buildings = []domcompany.Building{
+		{ID: "bld-" + fmt.Sprint(companyID) + "-1", BuildingID: 3, Kind: 3, Name: "My Mill", Level: 1},
+	}
+	if err := store.UpdateCompany(nil, company); err != nil {
+		t.Fatalf("add building: %v", err)
+	}
+	company, err = store.GetCompany(nil, companyID)
+	if err != nil {
+		t.Fatalf("re-get company: %v", err)
+	}
 	bldID := company.Buildings[0].ID
-	company.Buildings[0].BuildingID = 3
-	company.Buildings[0].Level = 1
-	company.Buildings[0].Name = "My Mill"
-	_ = store.UpdateCompany(nil, company)
 
 	// Send start production request
 	body := `{"building_id":"` + bldID + `","resource_id":3,"quantity":5}`
@@ -424,12 +432,12 @@ func TestClaimProduction_NoToken_401(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim/some-job/", nil)
 	w := httptest.NewRecorder()
@@ -445,12 +453,12 @@ func TestClaimProduction_NoToken_Claimable(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/claimable/", nil)
 	w := httptest.NewRecorder()
@@ -466,12 +474,12 @@ func TestClaimClaimable_Empty_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	// Register user
 	regBody := `{"username":"cl-empt","password":"secret123"}`
@@ -531,12 +539,12 @@ func TestClaimProduction_InvalidJobId_400(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	// Register to get token
 	regBody := `{"username":"cl-inv","password":"secret123"}`
@@ -572,12 +580,12 @@ func TestClaimProduction_Success_200(t *testing.T) {
 		JWTSigningKey: "test-secret",
 	}
 	store := memory.New()
-	a := app.New(cfg, store)
+	a := app.New(cfg, store, nil, nil, nil)
 	productionSvc := newProductionSvc(store)
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 	authHandler := httpapi.NewAuthHandler(a.AuthService)
 
-	mux := httpapi.NewRouter(cfg, authHandler, nil, nil, nil, productionHandler, nil, nil, nil)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
 
 	// Register user
 	regBody := `{"username":"cl-succ","password":"secret123"}`
@@ -651,5 +659,141 @@ func TestClaimProduction_Success_200(t *testing.T) {
 	}
 	if data["xp"] == nil || data["xp"].(float64) <= 0 {
 		t.Errorf("expected positive xp, got %v", data["xp"])
+	}
+}
+
+// --- ProductionQueue handler tests ---
+
+func TestProductionQueue_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store, nil, nil, nil)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/production/queue/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}
+
+// --- ProductionOptions handler tests ---
+
+func TestProductionOptions_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store, nil, nil, nil)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v2/buildings/b1/production-options/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}
+
+// --- CancelProduction handler tests ---
+
+func TestCancelProduction_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store, nil, nil, nil)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/cancel/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
+	}
+}
+
+// --- ClaimAll handler tests ---
+
+func TestClaimAll_NoToken_401(t *testing.T) {
+	cfg := &config.Config{
+		JWTSigningKey: "test-secret",
+	}
+	store := memory.New()
+	a := app.New(cfg, store, nil, nil, nil)
+	productionSvc := newProductionSvc(store)
+	productionHandler := httpapi.NewProductionHandler(productionSvc)
+	authHandler := httpapi.NewAuthHandler(a.AuthService)
+
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{Auth: authHandler, Production: productionHandler})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v2/production/claim-all/", nil)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d; body: %s", w.Code, w.Body.String())
+	}
+
+	var resp apiResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if resp.Error.Code != "UNAUTHORIZED" {
+		t.Errorf("expected code UNAUTHORIZED, got %s", resp.Error.Code)
 	}
 }

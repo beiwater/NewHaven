@@ -4,6 +4,7 @@ import { useLogin, useRegister } from '@/api/company.api'
 import { SUPPORTED_LOCALES, LOCALE_LABELS, getStoredLocale, setStoredLocale } from '@/i18n'
 import { AUTH_CHANGED_EVENT, isAuthenticated } from '@/api/client'
 import { audio } from '@/audio/AudioManager'
+import { LoadingScreen } from './LoadingScreen'
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -17,7 +18,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const login = useLogin()
   const [locale, setLocaleState] = useState(getStoredLocale())
   const register = useRegister()
-  const [authenticated, setAuthenticated] = useState(isAuthenticated())
+  // Initialize from stored token so refresh doesn't show login flash.
+  const [authenticated, setAuthenticated] = useState(isAuthenticated)
+  const [showLoading, setShowLoading] = useState(false)
 
   useEffect(() => {
     const syncAuth = () => setAuthenticated(isAuthenticated())
@@ -37,8 +40,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [authenticated])
 
-  if (authenticated) {
+  if (authenticated && !showLoading) {
     return <>{children}</>
+  }
+
+  if (authenticated && showLoading) {
+    return <LoadingScreen onFinished={() => setShowLoading(false)} />
   }
 
   const isPending = login.isPending || register.isPending
@@ -47,6 +54,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password.trim()) return
+    setShowLoading(true)
     audio.unlockAudio()
     audio.playSfx('ui_confirm')
     if (mode === 'login') {
@@ -90,6 +98,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t('auth.usernamePlaceholder')}
+            minLength={3}
+            maxLength={32}
+            autoComplete="username"
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
             autoFocus
           />
@@ -98,6 +109,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t('auth.passwordPlaceholder')}
+            minLength={mode === 'register' ? 6 : undefined}
+            maxLength={72}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
 
@@ -108,6 +122,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('auth.displayNamePlaceholder')}
+                maxLength={80}
+                autoComplete="name"
                 className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
               <div className="flex gap-1">
@@ -137,6 +153,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                   value={customGender}
                   onChange={(e) => setCustomGender(e.target.value)}
                   placeholder={t('auth.customGenderPlaceholder')}
+                  maxLength={64}
                   className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   autoFocus
                 />
@@ -146,6 +163,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
+                maxLength={254}
+                autoComplete="email"
                 className="w-full px-3 py-2.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </>
