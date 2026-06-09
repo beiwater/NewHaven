@@ -1065,3 +1065,104 @@ Response 200:
 | `INSUFFICIENT_INVENTORY` | 422 | Not enough items |
 | `BUILDING_BUSY` | 409 | Building already producing |
 | `PREREQUISITES_NOT_MET` | 422 | Research/building locked |
+
+# Appendix: backend-next Implementation Status
+
+> 对比基准：client-next 页面需求 vs backend-next 现有 handler。
+> - ✅ = 已实现
+> - ⚠️ = 已有但路径/协议/字段不一致
+> - ❌ = 未实现
+
+| 模块 | API端点 | backend-next | 说明 |
+|---|---|---|---|
+| **Auth** | | | |
+| | `POST /A1/auth/register` | ⚠️ `POST /api/register` | 后端用 username，前端发 email；缺 OTP |
+| | `POST /A1/auth/login` | ⚠️ `POST /api/login` | 同上 |
+| | `POST /A1/auth/logout` | ❌ | 需要新增 |
+| | `POST /A1/auth/refresh` | ❌ | 需要新增 |
+| | `GET /A1/auth/me` | ❌ | 需要新增 |
+| | `POST /A1/auth/forgot-password` | ❌ | 需要新增 |
+| | `POST /A1/auth/reset-password` | ❌ | 需要新增 |
+| | `POST /A1/auth/verify-otp` | ❌ | 需要新增 |
+| | `POST /A1/auth/resend-otp` | ❌ | 需要新增 |
+| **Player** | | | |
+| | `GET /A1/player` | ❌ | TopBar/Settings 核心数据 |
+| | `PATCH /A1/player` | ❌ | 资料修改 |
+| | `GET /A1/player/profile` | ❌ | Profile 页聚合 |
+| **Buildings** | | | |
+| | `GET /A1/buildings` | ⚠️ 目录数据已加载(catalog) | 只缺 Handler 暴露 |
+| | `GET /A1/player/buildings` | ⚠️ `GET /api/v3/companies/me/buildings/` | 路径差异，shape 需对齐 |
+| | `POST /A1/player/buildings` | ❌ | 新建建筑 |
+| | `DELETE /A1/player/buildings/:id` | ❌ | 拆除 |
+| | `PATCH /A1/player/buildings/:id/move` | ❌ | 移动 |
+| | `GET /A1/player/buildings/:id` | ❌ | 建筑详情 |
+| **Regions** | | | |
+| | `GET /A1/regions` | ❌ | 地图 + 地块 |
+| **Market** | | | |
+| | `GET /A1/market/prices` | ⚠️ `GET /api/v3/resources/` | 路径差异 |
+| | `GET /A1/market/prices/:resource` | ❌ | 历史 K 线 |
+| | `GET /A1/market/orderbook/:resource` | ⚠️ `GET /api/v3/market-depth/{rid}/{quality}/` | 路径差异 |
+| | `GET /A1/market/orders` | ❌ | 我的订单列表 |
+| | `POST /A1/market/orders` | ⚠️ `POST /api/v2/market-order/` | 路径差异 |
+| | `DELETE /A1/market/orders/:id` | ⚠️ `DELETE /api/v2/market-order/cancel/{orderId}/` | 路径差异 |
+| | `POST /A1/market/take` | ⚠️ `POST /api/v2/market-order/take/` | 路径差异 |
+| **Warehouse** | | | |
+| | `GET /A1/warehouse` | ⚠️ `GET /api/v2/companies/me/warehouse/` | 路径差异 |
+| | `POST /A1/warehouse/transfer` | ❌ | 调拨物品 |
+| **Finance** | | | |
+| | `GET /A1/finance/summary` | ⚠️ 拆在 income/balance/cashflow 三个端点 | 需聚合 |
+| | `GET /A1/finance/cashflow` | ⚠️ `GET /api/v2/companies/me/cashflow/recent/` | 路径差异 |
+| **Production** | | | |
+| | `GET /A1/production/jobs` | ⚠️ `GET /api/v2/production/jobs/` | 路径差异 |
+| | `GET /A1/production/claimable` | ⚠️ `GET /api/v2/production/claimable/` | 路径差异 |
+| | `POST /A1/player/buildings/:id/produce` | ⚠️ `POST /api/v2/production/start/` | 路径差异 |
+| | `POST /A1/production/jobs/:id/claim` | ⚠️ `POST /api/v2/production/claim/{jobId}/` | 路径差异 |
+| **Chat** | | | |
+| | `WebSocket /A1/ws` | ❌ | tech stack 有 coder/websocket 但未实现 |
+| | `GET /A1/chat/channels` | ❌ |  |
+| | `GET /A1/chat/channels/:id/messages` | ❌ |  |
+| | `GET /A1/chat/dms` | ❌ |  |
+| | `GET /A1/chat/dms/:id/messages` | ❌ |  |
+| | `POST /A1/chat/messages` | ❌ |  |
+| **Contracts** | | | |
+| | `GET /A1/contracts` | ❌ |  |
+| | `POST /A1/contracts/:id/accept` | ❌ |  |
+| | `POST /A1/contracts/:id/fulfill` | ❌ |  |
+| **Research** | | | |
+| | `GET /A1/research/nodes` | ❌ | domain 有 Project 类型，缺 endpoints |
+| | `POST /A1/research/:id/start` | ❌ |  |
+| | `POST /A1/research/:id/claim` | ❌ |  |
+| **Executives** | | | |
+| | `GET /A1/executives` | ❌ |  |
+| | `POST /A1/executives/:id/hire` | ❌ |  |
+| | `POST /A1/executives/:id/assign` | ❌ |  |
+| | `POST /A1/executives/:id/fire` | ❌ |  |
+| **Leaderboard** | | | |
+| | `GET /A1/leaderboard` | ❌ |  |
+| **Achievements** | | | |
+| | `GET /A1/achievements` | ❌ |  |
+| | `POST /A1/achievements/:id/claim` | ❌ |  |
+| **Collection** | | | |
+| | `GET /A1/collection` | ⚠️ 可复用 `/production/claimable/` |  |
+| | `POST /A1/collection/claim-all` | ❌ |  |
+| **Wiki** | | | |
+| | `GET /A1/wiki/resources` | ❌ | 已有 catalog 数据，加 handler 暴露 |
+| | `GET /A1/wiki/buildings` | ❌ | 同上 |
+| | `GET /A1/wiki/guides` | ❌ | 纯静态 FAQ |
+| **Bonds (后端有，客户端无)** | | | |
+| | `GET /A1/bonds` | ✅  | 后端已实现，前端无对应页面 |
+| | `POST /A1/bonds` | ✅  |  |
+| | `GET /A1/bonds/{id}` | ✅  |  |
+| | `GET /A1/bonds/owned` | ✅  |  |
+| | `GET /A1/bonds/sold` | ✅  |  |
+
+## 迁移优先级
+
+| 轮次 | 内容 | 预估 |
+|---|---|---|
+| 1 | router prefix 从 `/api`/`/api/v2`/`/api/v3` 统一改为 `/A1`，shape 对齐 | 0.5d |
+| 2 | Auth 补 OTP/email/me/refresh/forgot/reset，后端 LoginRequest 改 email | 1d |
+| 3 | 新增 Player / Regions / Chat (WebSocket) | 2d |
+| 4 | 新增 Contracts / Research (由 domain 已有类型补齐) / Executives | 1.5d |
+| 5 | 新增 Leaderboard / Achievements / Wiki / Collection claim-all | 1d |
+| 合计 | | ~6d |
