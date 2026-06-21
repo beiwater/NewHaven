@@ -100,8 +100,10 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 	robotCount := b.RobotCount
 	placed := b.MapID != ""
 	isRetail := false
+	var produces []int
 	if entry, ok := s.buildings[b.Kind]; ok {
 		isRetail = entry.Type == "retail"
+		produces = entry.Produces
 	}
 	var shelfDTOs []openapi.ShelfItem
 	if len(b.Shelves) > 0 {
@@ -135,6 +137,7 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 		RobotCount: &robotCount,
 		Placed:     &placed,
 		IsRetail:   &isRetail,
+		Produces:   &produces,
 		Shelves:    &shelfDTOs,
 	}
 }

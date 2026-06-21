@@ -182,6 +182,7 @@ type BuildingDTO struct {
 	MapId      *string      `json:"map_id,omitempty"`
 	Name       *string      `json:"name,omitempty"`
 	Placed     *bool        `json:"placed,omitempty"`
+	Produces   *[]int       `json:"produces,omitempty"`
 	RobotCount *int         `json:"robot_count,omitempty"`
 	Shelves    *[]ShelfItem `json:"shelves,omitempty"`
 	SlotId     *string      `json:"slot_id,omitempty"`

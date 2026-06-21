@@ -49,7 +49,7 @@ export function normalizeBuilding(value: unknown): Building {
       ? starterProduces.filter((v): v is number => typeof v === 'number')
       : undefined,
     starterRole: string(raw.starterRole ?? raw.starter_role) || undefined,
-    isRetail: typeof raw.isRetail === 'boolean' ? raw.isRetail : undefined,
+    isRetail: typeof raw.is_retail === 'boolean' ? raw.is_retail : typeof raw.isRetail === 'boolean' ? raw.isRetail : undefined,
     shelves,
   }
 }

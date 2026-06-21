@@ -1,9 +1,9 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useUIStore } from '@/store/ui.store'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
 import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding, useStockShelf, useUnstockShelf, useSetShelfPrice } from '@/api/buildings.api'
 import { useWarehouse } from '@/api/inventory.api'
-import { useUIStore } from '@/store/ui.store'
-import type { Building, ProductionJob } from '@/game/types'
+import type { Building, ProductionJob, ShelfItem } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
 import { resourceIcon, resourceName } from '@/game/resources'
 import { buildingIcon } from '@/game/icons'
@@ -40,37 +40,35 @@ function durationLabel(amount: number, rate: number): string {
 }
 
 function countdownDisplay(completesAt: string | undefined, now: number): string {
-  if (!completesAt) return '...'
-  const remaining = Math.max(0, new Date(completesAt).getTime() - now)
-  if (remaining <= 0) return 'Ready!'
-  const h = Math.floor(remaining / 3_600_000)
-  const m = Math.floor((remaining % 3_600_000) / 60_000)
-  const s = Math.floor((remaining % 60_000) / 1000)
-  const parts = h > 0 ? [`${h}h`, `${String(m).padStart(2, '0')}m`, `${String(s).padStart(2, '0')}s`] : [`${m}m`, `${String(s).padStart(2, '0')}s`]
-  return parts.join(' ')
+  if (!completesAt) return ''
+  const remaining = new Date(completesAt).getTime() - now
+  if (remaining <= 0) return '00:00'
+  const totalSec = Math.ceil(remaining / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m`
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
 function progressPct(startedAt: string | undefined, completesAt: string | undefined, now: number): number {
   if (!startedAt || !completesAt) return 0
   const total = new Date(completesAt).getTime() - new Date(startedAt).getTime()
-  if (total <= 0) return 0
+  if (total <= 0) return 100
   const elapsed = now - new Date(startedAt).getTime()
-  return Math.min(100, Math.round((elapsed / total) * 100))
+  return Math.min(100, Math.max(0, (elapsed / total) * 100))
 }
 
 function accruedAmount(job: ProductionJob, now: number): number {
-  const start = new Date(job.startedAt).getTime()
-  const end = new Date(job.completesAt).getTime()
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return job.amount
-  if (now >= end) return job.amount
-  if (now <= start) return 0
-  return Math.floor(((now - start) / (end - start)) * job.amount)
+  if (job.status === 'claimed') return job.amount
+  if (!job.startedAt) return 0
+  const elapsed = (now - new Date(job.startedAt).getTime()) / 1000
+  const duration = job.durationSeconds ?? 1
+  return Math.min(job.amount, Math.floor((elapsed / duration) * job.amount))
 }
 
 function collectableAmount(job: ProductionJob, now: number): number {
-  if (job.status === 'claimed') return 0
-  const claimed = job.claimedAmount ?? 0
-  return Math.max(job.claimableAmount ?? 0, accruedAmount(job, now) - claimed, 0)
+  return Math.max(0, accruedAmount(job, now) - (job.claimedAmount ?? 0))
 }
 
 interface BuildingCardProps {
@@ -78,25 +76,27 @@ interface BuildingCardProps {
   hasFreeSlots: boolean
   onClose: () => void
 }
+
 export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardProps) {
   const [selectedResourceId, setSelectedResourceId] = useState<number | null>(null)
-  const [retailTab, setRetailTab] = useState<'sell' | 'production'>('sell')
-  const [stockQuantity, setStockQuantity] = useState('10')
-  const [shelfPrice, setShelfPrice] = useState('')
-  const { data: warehouse } = useWarehouse()
-  const stockShelf = useStockShelf()
-  const unstockShelf = useUnstockShelf()
-  const setShelfPriceMut = useSetShelfPrice()
   const [amount, setAmount] = useState('10')
   const [showDemolishConfirm, setShowDemolishConfirm] = useState(false)
   const [now, setNow] = useState(Date.now())
   const { t } = useTranslation()
 
+  // Production hooks (only used for non-retail buildings)
   const { data: jobsData } = useProductionJobs()
   const { data: optionsData = [] } = useProductionOptions(building.id)
   const buildingJobs = (jobsData ?? []).filter((j) => j.buildingId === building.id)
   const startProd = useStartProduction()
   const claimProd = useClaimProduction()
+
+  // Retail hooks (only used for retail buildings)
+  const { data: warehouse } = useWarehouse()
+  const stockShelf = useStockShelf()
+  const unstockShelf = useUnstockShelf()
+  const setShelfPriceMut = useSetShelfPrice()
+
   const moveBuilding = useMoveBuilding()
   const upgradeBuilding = useUpgradeBuilding()
   const demolishBuilding = useDemolishBuilding()
@@ -173,6 +173,11 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
     onClose()
   }
 
+  // ─── Stock state (retail only) ───
+  const [stockQuantity, setStockQuantity] = useState('10')
+  const [stockResourceId, setStockResourceId] = useState<number | null>(building.produces?.[0] ?? null)
+  const [shelfPrice, setShelfPrice] = useState('')
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -180,7 +185,10 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
         <div className="flex items-center gap-2">
           <Icon name="icon_level_badge_v1" className="w-6 h-6" />
           <div>
-            <h2 className="text-sm font-bold text-amber-900">{building.name ?? `${t('building.building')} #${building.kind}`}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-amber-900">{building.name ?? `${t('building.building')} #${building.kind}`}</h2>
+              {building.isRetail && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{t('building.retail')}</span>}
+            </div>
             <span className="text-[10px] text-amber-600 font-semibold">{t('building.level', { level: building.level })}</span>
           </div>
         </div>
@@ -196,170 +204,34 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
         <img src={getBuildingPreview(building.kind)} alt={building.name ?? t('building.building')} className="max-h-[90px] object-contain" />
       </div>
 
-      {/* Produces / Sells */}
+      {/* ────── RETAIL BUILDING: Sell Tab ────── */}
+      {building.isRetail ? <RetailSellSection
+          building={building}
+          warehouse={warehouse}
+          stockShelf={stockShelf}
+          unstockShelf={unstockShelf}
+          setShelfPriceApi={setShelfPriceMut}
+          stockQuantity={stockQuantity}
+          setStockQuantity={setStockQuantity}
+          stockResourceId={stockResourceId}
+          setStockResourceId={setStockResourceId}
+          shelfPrice={shelfPrice}
+          setShelfPrice={setShelfPrice}
+          t={t}
+        />
+      : <>
+      {/* ────── PRODUCTION BUILDING: Production UI ────── */}
+
+      {/* Produces */}
       <div className="px-3 py-2 border-b border-amber-200/40 flex items-center gap-2">
-        <Icon name={building.isRetail ? 'icon_tag_v1' : 'icon_factory_v1'} className="w-5 h-5" />
+        <Icon name="icon_factory_v1" className="w-5 h-5" />
         <div>
-          <span className="text-[10px] text-amber-600 uppercase tracking-wider">{building.isRetail ? t('building.sells') : t('building.produces')}</span>
+          <span className="text-[10px] text-amber-600 uppercase tracking-wider">{t('building.produces')}</span>
           <span className="text-xs font-bold text-amber-900">
             {optionsData.length > 0 ? sortedOptions.map((o) => resourceName(o.resourceId)).slice(0, 2).join(', ') : t('building.noProductionOptions')}
           </span>
         </div>
       </div>
-
-      {/* Tab bar for retail buildings */}
-      {building.isRetail && (
-        <div className="flex border-b border-amber-200/40">
-          <button
-            onClick={() => setRetailTab('sell')}
-            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-              retailTab === 'sell'
-                ? 'bg-amber-100 text-amber-900 border-b-2 border-amber-700'
-                : 'bg-white/60 text-amber-500 hover:bg-amber-50'
-            }`}
-          >
-            {t('building.sellTab')}
-          </button>
-          <button
-            onClick={() => setRetailTab('production')}
-            className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${
-              retailTab === 'production'
-                ? 'bg-amber-100 text-amber-900 border-b-2 border-amber-700'
-                : 'bg-white/60 text-amber-500 hover:bg-amber-50'
-            }`}
-          >
-            {t('building.productionTab')}
-          </button>
-        </div>
-      )}
-
-      {/* Sell Tab Content */}
-      {building.isRetail && retailTab === 'sell' && (
-        <div className="flex-1 overflow-y-auto">
-          {/* Shelves */}
-          <div className="px-3 py-3 border-b border-amber-200/40">
-            <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.shelves')}</div>
-            {building.shelves && building.shelves.length > 0 ? (
-              <div className="space-y-2">
-                {building.shelves.map((shelf) => (
-                  <div key={shelf.resourceId} className="rounded-md border border-amber-200 bg-white/60 p-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <img src={resourceIcon(shelf.resourceId)} alt="" className="h-4 w-4 object-contain" />
-                        <span className="text-xs font-bold text-amber-900">{resourceName(shelf.resourceId)}</span>
-                      </div>
-                      <span className="text-[10px] text-amber-500">{shelf.quantity} / {shelf.maxQty}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-amber-700">{t('building.price')}: ${shelf.price.toFixed(2)}</span>
-                      {shelf.priceLock && <span className="text-amber-400">🔒</span>}
-                      {shelf.revenue > 0 && (
-                        <span className="ml-auto text-green-600">{t('building.revenue')}: ${shelf.revenue.toFixed(2)}</span>
-                      )}
-                    </div>
-                    <div className="flex gap-1.5 mt-2">
-                      <button
-                        onClick={() => {
-                          const qty = prompt(t('building.unstockPrompt'), '10')
-                          if (qty) {
-                            unstockShelf.mutate({ buildingId: building.id, resourceId: shelf.resourceId, quantity: parseInt(qty, 10) || 1 })
-                          }
-                        }}
-                        className="flex-1 py-1 bg-amber-200/70 hover:bg-amber-300/70 text-amber-900 text-[10px] font-bold rounded transition-colors"
-                      >
-                        {t('building.unstock')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          const price = prompt(t('building.setPricePrompt'), String(shelf.price))
-                          if (price) {
-                            const numPrice = parseFloat(price)
-                            if (!isNaN(numPrice) && numPrice > 0) {
-                              setShelfPriceMut.mutate({ buildingId: building.id, resourceId: shelf.resourceId, price: numPrice, lock: true })
-                            }
-                          }
-                        }}
-                        className="flex-1 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold rounded transition-colors"
-                      >
-                        {t('building.setPrice')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShelfPriceMut.mutate({ buildingId: building.id, resourceId: shelf.resourceId, price: 0, lock: false })
-                        }}
-                        className="flex-1 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded transition-colors"
-                      >
-                        {t('building.autoPrice')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-[10px] text-amber-400 italic">{t('building.noShelves')}</div>
-            )}
-          </div>
-
-          {/* Stock form */}
-          <div className="px-3 py-3 border-b border-amber-200/40">
-            <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.stockItems')}</div>
-            <div className="flex gap-2 mb-2">
-              <select
-                value={stockShelf.variables?.resourceId ?? optionsData[0]?.resourceId ?? ''}
-                onChange={(e) => {
-                  const rid = parseInt(e.target.value, 10)
-                  if (!isNaN(rid)) {
-                    stockShelf.mutate({ buildingId: building.id, resourceId: rid, quantity: parseInt(stockQuantity, 10) || 10 })
-                  }
-                }}
-                className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
-              >
-                {optionsData.map((opt) => (
-                  <option key={opt.resourceId} value={opt.resourceId}>{resourceName(opt.resourceId)}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="1"
-                value={stockQuantity}
-                onChange={(e) => setStockQuantity(e.target.value)}
-                className="w-20 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
-              />
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder={t('building.priceOptional')}
-                value={shelfPrice}
-                onChange={(e) => setShelfPrice(e.target.value)}
-                className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
-              />
-              <button
-                onClick={() => {
-                  const rid = optionsData[0]?.resourceId
-                  if (!rid) return
-                  const price = shelfPrice ? parseFloat(shelfPrice) : undefined
-                  stockShelf.mutate({
-                    buildingId: building.id,
-                    resourceId: rid,
-                    quantity: parseInt(stockQuantity, 10) || 10,
-                    price,
-                  })
-                }}
-                disabled={stockShelf.isPending}
-                className="px-3 py-1 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-[10px] font-bold rounded transition-colors"
-              >
-                {stockShelf.isPending ? t('building.stocking') : t('building.stock')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Production sections: show for non-retail OR when production tab selected */}
-      {(!building.isRetail || retailTab === 'production') && (
 
       {/* Production Recipe */}
       {optionsData.length > 0 && (
@@ -482,8 +354,35 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
           {startProd.error.message}
         </div>
       )}
-      )}
 
+      {/* Active Jobs */}
+      <div className="flex-1 px-3 py-2 overflow-y-auto">
+        <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-1">
+          {t('building.activeJobs', { count: buildingJobs.length })}
+        </div>
+        <div className="space-y-1.5">
+          {buildingJobs.map((job) => (
+            <div key={job.id} className="flex items-center gap-2 py-1 px-2 rounded bg-white/40 text-xs">
+              <span className={`w-1.5 h-1.5 rounded-full ${collectableAmount(job, now) > 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
+              <span className="text-amber-800 truncate">{resourceName(job.resourceId)} x{job.amount}</span>
+              <span className="ml-auto text-[10px] text-amber-500">
+                {(job.claimedAmount ?? 0).toLocaleString()} / {job.amount.toLocaleString()}
+              </span>
+            </div>
+          ))}
+          {buildingJobs.length === 0 && (
+            <div className="text-[10px] text-amber-400 italic py-2">{t('building.noActiveJobs')}</div>
+          )}
+        </div>
+        <button
+          onClick={handleViewJobs}
+          className="w-full mt-2 py-1.5 bg-amber-200/50 hover:bg-amber-300/50 text-amber-800 text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1"
+        >
+          <Icon name="icon_timer_v1" className="w-4 h-4" />
+          {t('building.viewAllJobs')}
+        </button>
+      </div>
+      </>}
 
       {/* Upgrade */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/40">
@@ -508,7 +407,7 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
         </div>
       )}
 
-      {/* Move Building */}
+      {/* Move */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/40">
         <div className="flex items-center gap-2">
           <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,11 +423,11 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
           disabled={moveBuilding.isPending || !hasFreeSlots}
           className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 disabled:bg-blue-50 text-blue-800 text-xs font-bold rounded-md transition-colors disabled:opacity-50"
         >
-            {moveBuilding.isPending ? t('building.moving') : t('building.move')}
+          {moveBuilding.isPending ? t('building.moving') : t('building.move')}
         </button>
       </div>
 
-      {/* Demolish Building */}
+      {/* Demolish */}
       {!showDemolishConfirm ? (
         <div className="flex items-center justify-between px-3 py-2 border-b border-amber-200/40">
           <div className="flex items-center gap-2">
@@ -560,7 +459,7 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
         </div>
       )}
 
-      {/* Stash Building */}
+      {/* Stash */}
       {building.placed !== false && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-blue-200/40">
           <div className="flex items-center gap-2">
@@ -581,34 +480,159 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
           </button>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* Active Jobs */}
-      <div className="flex-1 px-3 py-2 overflow-y-auto">
-        <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-1">
-          {t('building.activeJobs', { count: buildingJobs.length })}
+/* ─── Retail Sell Section ─── */
+function RetailSellSection({
+  building, warehouse, stockShelf, unstockShelf, setShelfPriceApi,
+  stockQuantity, setStockQuantity, stockResourceId, setStockResourceId,
+  shelfPrice, setShelfPrice, t,
+}: {
+  building: Building
+  warehouse: { inventory: Array<{ resourceId: number; quantity: number }> } | undefined
+  stockShelf: ReturnType<typeof useStockShelf>
+  unstockShelf: ReturnType<typeof useUnstockShelf>
+  setShelfPriceApi: ReturnType<typeof useSetShelfPrice>
+  stockQuantity: string
+  setStockQuantity: (v: string) => void
+  stockResourceId: number | null
+  setStockResourceId: (v: number | null) => void
+  shelfPrice: string
+  setShelfPrice: (v: string) => void
+  t: (key: string) => string
+}) {
+  const sellableResources = building.produces ?? []
+  const shelves = building.shelves ?? []
+  const totalRevenue = shelves.reduce((s, sh) => s + (sh.revenue ?? 0), 0)
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      {/* Sells label */}
+      <div className="px-3 py-2 border-b border-amber-200/40 flex items-center gap-2">
+        <Icon name="icon_tag_v1" className="w-5 h-5" />
+        <div>
+          <span className="text-[10px] text-blue-600 uppercase tracking-wider">🏪 {t('building.sells')}</span>
+          <span className="text-xs font-bold text-amber-900">
+            {sellableResources.map((r) => resourceName(r)).join(', ')}
+          </span>
         </div>
-        <div className="space-y-1.5">
-          {buildingJobs.map((job) => (
-            <div key={job.id} className="flex items-center gap-2 py-1 px-2 rounded bg-white/40 text-xs">
-              <span className={`w-1.5 h-1.5 rounded-full ${collectableAmount(job, now) > 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
-              <span className="text-amber-800 truncate">{resourceName(job.resourceId)} x{job.amount}</span>
-              <span className="ml-auto text-[10px] text-amber-500">
-                {(job.claimedAmount ?? 0).toLocaleString()} / {job.amount.toLocaleString()}
-              </span>
-            </div>
-          ))}
-          {buildingJobs.length === 0 && (
-            <div className="text-[10px] text-amber-400 italic py-2">{t('building.noActiveJobs')}</div>
-          )}
-        </div>
-        <button
-          onClick={handleViewJobs}
-          className="w-full mt-2 py-1.5 bg-amber-200/50 hover:bg-amber-300/50 text-amber-800 text-xs font-semibold rounded-md transition-colors flex items-center justify-center gap-1"
-        >
-          <Icon name="icon_timer_v1" className="w-4 h-4" />
-          {t('building.viewAllJobs')}
-        </button>
       </div>
+
+      {/* Shelves */}
+      <div className="px-3 py-3 border-b border-amber-200/40">
+        <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.shelves')}</div>
+        {shelves.length === 0 ? (
+          <div className="text-[10px] text-amber-400 italic">{t('building.noShelves')}</div>
+        ) : (
+          <div className="space-y-2">
+            {shelves.map((sh) => (
+              <div key={sh.resourceId} className="rounded-md border border-amber-200 bg-white/60 p-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <img src={resourceIcon(sh.resourceId)} alt="" className="h-4 w-4 object-contain" />
+                    <span className="text-xs font-bold text-amber-900">{resourceName(sh.resourceId)}</span>
+                  </div>
+                  <span className="text-[10px] text-amber-500">{sh.quantity} / {sh.maxQty}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px]">
+                  <span className="text-amber-700">{t('building.price')}: ${sh.price.toFixed(2)}</span>
+                  {sh.priceLock && <span className="text-amber-400">🔒</span>}
+                  {sh.revenue > 0 && (
+                    <span className="ml-auto text-green-600">{t('building.revenue')}: ${sh.revenue.toFixed(2)}</span>
+                  )}
+                </div>
+                <div className="flex gap-1.5 mt-2">
+                  <button
+                    onClick={() => {
+                      unstockShelf.mutate({ buildingId: building.id, resourceId: sh.resourceId, quantity: sh.quantity })
+                    }}
+                    className="flex-1 py-1 bg-amber-200/70 hover:bg-amber-300/70 text-amber-900 text-[10px] font-bold rounded transition-colors"
+                  >
+                    {t('building.unstock')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const price = prompt(t('building.setPricePrompt'), String(sh.price))
+                      if (price) {
+                        const numPrice = parseFloat(price)
+                        if (!isNaN(numPrice) && numPrice > 0) {
+                          setShelfPriceApi.mutate({ buildingId: building.id, resourceId: sh.resourceId, price: numPrice, lock: true })
+                        }
+                      }
+                    }}
+                    className="flex-1 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold rounded transition-colors"
+                  >
+                    {t('building.setPrice')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Stock form */}
+      <div className="px-3 py-3 border-b border-amber-200/40">
+        <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.stockItems')}</div>
+        <div className="flex gap-2 mb-2">
+          <select
+            value={stockResourceId ?? ''}
+            onChange={(e) => {
+              const rid = parseInt(e.target.value, 10)
+              if (!isNaN(rid)) setStockResourceId(rid)
+            }}
+            className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
+          >
+            {sellableResources.map((rid) => (
+              <option key={rid} value={rid}>{resourceName(rid)}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min="1"
+            value={stockQuantity}
+            onChange={(e) => setStockQuantity(e.target.value)}
+            className="w-20 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
+          />
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder={t('building.priceOptional')}
+            value={shelfPrice}
+            onChange={(e) => setShelfPrice(e.target.value)}
+            className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
+          />
+          <button
+            onClick={() => {
+              if (stockResourceId === null) return
+              const price = shelfPrice ? parseFloat(shelfPrice) : undefined
+              stockShelf.mutate({
+                buildingId: building.id,
+                resourceId: stockResourceId,
+                quantity: parseInt(stockQuantity, 10) || 10,
+                price,
+              })
+            }}
+            disabled={stockShelf.isPending || stockResourceId === null}
+            className="px-3 py-1 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-[10px] font-bold rounded transition-colors"
+          >
+            {stockShelf.isPending ? t('building.stocking') : t('building.stock')}
+          </button>
+        </div>
+      </div>
+
+      {/* Revenue */}
+      {totalRevenue > 0 && (
+        <div className="px-3 py-2 border-b border-amber-200/40 flex items-center justify-between">
+          <span className="text-[10px] text-green-700 uppercase tracking-wider font-bold">{t('building.revenue')}</span>
+          <span className="text-xs font-bold text-green-800">+${totalRevenue.toFixed(2)}</span>
+        </div>
+      )}
     </div>
   )
 }

@@ -1385,6 +1385,10 @@ components:
           type: boolean
         is_retail:
           type: boolean
+        produces:
+          type: array
+          items:
+            type: integer
         shelves:
           type: array
           items:
