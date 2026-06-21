@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { getCompanyId } from '@/api/client'
 import { useMarketTicker, useMarketDepth, useMarketOrders, useCancelOrder, useResources } from '@/api/hooks/market.hooks'
 import { useWarehouse } from '@/api/hooks/warehouse.hooks'
-import { FALLBACK_MARKET_RESOURCES, MARKET_GROUPS, formatResourceName, resourceIcon, type MarketGroupId } from '@/game/resources'
+import { FALLBACK_MARKET_RESOURCES, MARKET_GROUPS, resourceIcon, type MarketGroupId } from '@/game/resources'
 import type { MarketOrder } from '@/game/types'
 import { PriceHistoryChart } from './PriceHistoryChart'
 import { ParticipantList } from './ParticipantList'
@@ -75,7 +75,7 @@ export function MarketPage() {
             className={`flex flex-col items-center p-1.5 rounded-lg border transition-colors ${selectedId === r.resourceId ? 'bg-amber-200/70 border-amber-400' : 'bg-white/60 border-amber-200/40 hover:bg-amber-100/60'}`}
           >
             <img src={resourceIcon(r.resourceId)} alt="" className="w-5 h-5 object-contain" />
-            <span className="text-[9px] text-amber-900 mt-0.5">{formatResourceName(r.resourceId)}</span>
+            <span className="text-[9px] text-amber-900 mt-0.5">{r.name || `#${r.resourceId}`}</span>
           </button>
         ))}
       </div>

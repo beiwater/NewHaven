@@ -23,7 +23,7 @@ export function TopBar() {
       }
     | undefined
 
-  const companyName = companyData?.authCompany?.name ?? extCompany?.authCompany?.company ?? t('common.appName')
+  const companyName = companyData?.authCompany?.company ?? t('common.appName')
   const cash = companyData?.authCompany?.money ?? 0
   const lvl = companyData?.levelInfo?.level ?? 1
   const currentXp = companyData?.levelInfo?.xp ?? 0
