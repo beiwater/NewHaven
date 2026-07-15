@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	appmarket "github.com/beiwater/NewHaven/backend/internal/app/market"
+	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"

@@ -95,17 +95,17 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	// Create the order.
 	now := s.clock.Now().UTC()
 	order := &domainmarket.MarketOrder{
-		ID:             s.idgen.Next("order"),
+		ID:              s.idgen.Next("order"),
 		ClientRequestID: requestID,
-		CompanyID:      companyID,
-		ResourceID:     req.ResourceId,
-		IsBuy:          isBuy,
-		Price:          float64(req.Price),
-		Quantity:       req.Quantity,
-		FilledQuantity: 0,
-		Quality:        0,
-		Status:         domainmarket.StatusOpen,
-		CreatedAt:      now.Format(time.RFC3339),
+		CompanyID:       companyID,
+		ResourceID:      req.ResourceId,
+		IsBuy:           isBuy,
+		Price:           float64(req.Price),
+		Quantity:        req.Quantity,
+		FilledQuantity:  0,
+		Quality:         0,
+		Status:          domainmarket.StatusOpen,
+		CreatedAt:       now.Format(time.RFC3339),
 	}
 
 	if err := s.market.CreateOrder(ctx, order); err != nil {

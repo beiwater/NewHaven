@@ -20,17 +20,17 @@ const (
 
 // MarketOrder is a limit or market order on the exchange.
 type MarketOrder struct {
-	ID             string      `json:"id"`
+	ID              string      `json:"id"`
 	ClientRequestID string      `json:"client_request_id,omitempty"`
-	CompanyID      int         `json:"company_id"`
-	ResourceID     int         `json:"resource_id"`
-	IsBuy          bool        `json:"is_buy"`
-	Price          float64     `json:"price"`
-	Quantity       int         `json:"quantity"`
-	FilledQuantity int         `json:"filled_quantity"`
-	Quality        int         `json:"quality"`
-	Status         OrderStatus `json:"status"`
-	CreatedAt      string      `json:"created_at"`
+	CompanyID       int         `json:"company_id"`
+	ResourceID      int         `json:"resource_id"`
+	IsBuy           bool        `json:"is_buy"`
+	Price           float64     `json:"price"`
+	Quantity        int         `json:"quantity"`
+	FilledQuantity  int         `json:"filled_quantity"`
+	Quality         int         `json:"quality"`
+	Status          OrderStatus `json:"status"`
+	CreatedAt       string      `json:"created_at"`
 }
 
 // Remaining returns the unfilled quantity.

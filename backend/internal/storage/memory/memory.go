@@ -73,17 +73,17 @@ type Store struct {
 
 func New() *Store {
 	return &Store{
-		players:    make(map[int]*auth.Player),
-		byUser:     make(map[string]*auth.Player),
-		companies:  make(map[int]*company.Company),
-		byPlayer:   make(map[int]*company.Company),
-		orders:     make(map[string]*market.MarketOrder),
+		players:         make(map[int]*auth.Player),
+		byUser:          make(map[string]*auth.Player),
+		companies:       make(map[int]*company.Company),
+		byPlayer:        make(map[int]*company.Company),
+		orders:          make(map[string]*market.MarketOrder),
 		ordersByRequest: make(map[string]*market.MarketOrder),
-		tickers:    make(map[int]*market.Ticker),
-		jobs:       make(map[string]*production.ProductionJob),
-		bonds:      make(map[string]*finance.Bond),
-		buildings:  make(map[string]*company.Building),
-		warehouses: make(map[int]*warehouse.Warehouse),
+		tickers:         make(map[int]*market.Ticker),
+		jobs:            make(map[string]*production.ProductionJob),
+		bonds:           make(map[string]*finance.Bond),
+		buildings:       make(map[string]*company.Building),
+		warehouses:      make(map[int]*warehouse.Warehouse),
 		chatData: chatRoomData{
 			rooms:    make(map[string]*chat.ChatRoom),
 			messages: make(map[string][]chat.Message),
