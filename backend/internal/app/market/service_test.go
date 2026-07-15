@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/beiwater/NewHaven/backend/internal/config"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -811,6 +812,120 @@ func TestTakeOrder_BuysFromBestSellOrders(t *testing.T) {
 	c, _ := store.GetCompany(nil, cid)
 	if c.Inventory[5] != 30 {
 		t.Errorf("expected taker inventory 30, got %d", c.Inventory[5])
+	}
+}
+
+func TestTakeOrder_RequestIdPreventsConcurrentDuplicateFills(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
+	secondSvc := appmarket.NewService(
+		store,
+		store,
+		store,
+		resources,
+		nil,
+		nil,
+		&config.GameConfig{ExchangeFeePct: 0.04},
+		clock,
+		platform.NewIDGen(),
+	)
+	buyerID := newTestCompany(t, store, 220, "idempotent-taker", 100000)
+	otherBuyerID := newTestCompany(t, store, 221, "other-taker", 100000)
+	sellerID := newTestCompany(t, store, 222, "take-seller", 1000)
+	if err := store.CreateOrder(ctx, &domainmarket.MarketOrder{
+		ID: "idempotent-sell", CompanyID: sellerID, ResourceID: 5, IsBuy: false,
+		Price: 10, Quantity: 20, Quality: 0, Status: domainmarket.StatusOpen,
+		CreatedAt: "2026-06-06T11:00:00Z",
+	}); err != nil {
+		t.Fatalf("CreateOrder: %v", err)
+	}
+
+	requestID := "take-butter-once"
+	req := &openapi.TakeOrderRequest{
+		RequestId: &requestID,
+		Resource:  5,
+		Quantity:  5,
+		Quality:   0,
+		MaxPrice:  100,
+	}
+	services := []*appmarket.Service{svc, secondSvc}
+	errs := make([]error, len(services))
+	var wg sync.WaitGroup
+	for i := range services {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_, errs[i] = services[i].TakeOrder(ctx, buyerID, req)
+		}(i)
+	}
+	wg.Wait()
+	successes := 0
+	for i, err := range errs {
+		if err == nil {
+			successes++
+			continue
+		}
+		if !apperr.HasKind(err, apperr.KindConflict) {
+			t.Fatalf("concurrent take %d returned unexpected error: %v", i, err)
+		}
+	}
+	if successes == 0 {
+		t.Fatal("both concurrent immediate purchases failed")
+	}
+
+	replayed, err := svc.TakeOrder(ctx, buyerID, req)
+	if err != nil {
+		t.Fatalf("replayed TakeOrder: %v", err)
+	}
+	if replayed.AmountBought == nil || *replayed.AmountBought != 5 || replayed.Trades == nil || len(*replayed.Trades) != 1 {
+		t.Fatalf("unexpected replay response: %+v", replayed)
+	}
+	buyer, _ := store.GetCompany(ctx, buyerID)
+	seller, _ := store.GetCompany(ctx, sellerID)
+	order, _ := store.GetOrder(ctx, "idempotent-sell")
+	if buyer.Inventory[5] != 5 || buyer.Money != 99948 || seller.Money != 1050 || order.FilledQuantity != 5 {
+		t.Fatalf("duplicate fill changed economy: buyer=%+v sellerMoney=%.0f filled=%d", buyer, seller.Money, order.FilledQuantity)
+	}
+
+	changed := *req
+	changed.Quantity = 6
+	if _, err := svc.TakeOrder(ctx, buyerID, &changed); !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("changed replay error = %v, want conflict", err)
+	}
+
+	otherReq := *req
+	if _, err := svc.TakeOrder(ctx, otherBuyerID, &otherReq); err != nil {
+		t.Fatalf("same requestId in another company must be isolated: %v", err)
+	}
+	otherBuyer, _ := store.GetCompany(ctx, otherBuyerID)
+	if otherBuyer.Inventory[5] != 5 {
+		t.Fatalf("other company inventory = %d, want 5", otherBuyer.Inventory[5])
+	}
+
+	restored := memory.New()
+	restored.LoadFromSnapshot(store.GetSnapshotData())
+	restoredSvc := appmarket.NewService(
+		restored,
+		restored,
+		restored,
+		resources,
+		nil,
+		nil,
+		&config.GameConfig{ExchangeFeePct: 0.04},
+		clock,
+		platform.NewIDGen(),
+	)
+	restoredReplay, err := restoredSvc.TakeOrder(ctx, buyerID, req)
+	if err != nil {
+		t.Fatalf("replay after snapshot restore: %v", err)
+	}
+	restoredBuyer, _ := restored.GetCompany(ctx, buyerID)
+	if restoredReplay.Trades == nil || len(*restoredReplay.Trades) != 1 || restoredBuyer.Inventory[5] != 5 || restoredBuyer.Money != 99948 {
+		t.Fatalf("restored replay duplicated fill: response=%+v buyer=%+v", restoredReplay, restoredBuyer)
 	}
 }
 

@@ -114,6 +114,7 @@ export function useTakeOrder() {
         quantity: params.quantity,
         quality: params.quality,
         maxPrice: params.maxPrice,
+        requestId: newMarketRequestId(),
       },
     ),
     onSuccess: (_, vars) => {

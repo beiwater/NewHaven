@@ -35,26 +35,27 @@ type chatRoomData struct {
 }
 
 type Store struct {
-	mu              sync.RWMutex
-	snapshotPath    string
-	players         map[int]*auth.Player
-	byUser          map[string]*auth.Player
-	companies       map[int]*company.Company
-	byPlayer        map[int]*company.Company
-	orders          map[string]*market.MarketOrder
-	ordersByRequest map[string]*market.MarketOrder
-	trades          []market.Trade
-	tickers         map[int]*market.Ticker
-	jobs            map[string]*production.ProductionJob
-	jobsByRequest   map[string]*production.ProductionJob
-	ledger          []finance.LedgerEntry
-	bonds           map[string]*finance.Bond
-	holdings        []finance.BondHolding
-	companyResearch map[string]*research.ResourceResearch
-	messages        []social.Message
-	notifs          []social.Notification
-	warehouses      map[int]*warehouse.Warehouse
-	chatData        chatRoomData
+	mu                  sync.RWMutex
+	snapshotPath        string
+	players             map[int]*auth.Player
+	byUser              map[string]*auth.Player
+	companies           map[int]*company.Company
+	byPlayer            map[int]*company.Company
+	orders              map[string]*market.MarketOrder
+	ordersByRequest     map[string]*market.MarketOrder
+	trades              []market.Trade
+	takeOrderExecutions map[string]*market.TakeOrderExecution
+	tickers             map[int]*market.Ticker
+	jobs                map[string]*production.ProductionJob
+	jobsByRequest       map[string]*production.ProductionJob
+	ledger              []finance.LedgerEntry
+	bonds               map[string]*finance.Bond
+	holdings            []finance.BondHolding
+	companyResearch     map[string]*research.ResourceResearch
+	messages            []social.Message
+	notifs              []social.Notification
+	warehouses          map[int]*warehouse.Warehouse
+	chatData            chatRoomData
 
 	buildings map[string]*company.Building
 
@@ -74,18 +75,19 @@ type Store struct {
 
 func New() *Store {
 	return &Store{
-		players:         make(map[int]*auth.Player),
-		byUser:          make(map[string]*auth.Player),
-		companies:       make(map[int]*company.Company),
-		byPlayer:        make(map[int]*company.Company),
-		orders:          make(map[string]*market.MarketOrder),
-		ordersByRequest: make(map[string]*market.MarketOrder),
-		tickers:         make(map[int]*market.Ticker),
-		jobs:            make(map[string]*production.ProductionJob),
-		jobsByRequest:   make(map[string]*production.ProductionJob),
-		bonds:           make(map[string]*finance.Bond),
-		buildings:       make(map[string]*company.Building),
-		warehouses:      make(map[int]*warehouse.Warehouse),
+		players:             make(map[int]*auth.Player),
+		byUser:              make(map[string]*auth.Player),
+		companies:           make(map[int]*company.Company),
+		byPlayer:            make(map[int]*company.Company),
+		orders:              make(map[string]*market.MarketOrder),
+		ordersByRequest:     make(map[string]*market.MarketOrder),
+		takeOrderExecutions: make(map[string]*market.TakeOrderExecution),
+		tickers:             make(map[int]*market.Ticker),
+		jobs:                make(map[string]*production.ProductionJob),
+		jobsByRequest:       make(map[string]*production.ProductionJob),
+		bonds:               make(map[string]*finance.Bond),
+		buildings:           make(map[string]*company.Building),
+		warehouses:          make(map[int]*warehouse.Warehouse),
 		chatData: chatRoomData{
 			rooms:    make(map[string]*chat.ChatRoom),
 			messages: make(map[string][]chat.Message),
@@ -146,14 +148,15 @@ func (s *Store) LoadSnapshot(_ context.Context) error {
 // The caller should hold s.mu (read or write).
 func (s *Store) collectSnapshot() *storage.GameSnapshot {
 	snap := &storage.GameSnapshot{
-		Players:    make(map[int]*auth.Player, len(s.players)),
-		ByUser:     make(map[string]*auth.Player, len(s.byUser)),
-		Companies:  make(map[int]*company.Company, len(s.companies)),
-		Orders:     make(map[string]*market.MarketOrder, len(s.orders)),
-		Tickers:    make(map[int]*market.Ticker, len(s.tickers)),
-		Jobs:       make(map[string]*production.ProductionJob, len(s.jobs)),
-		Bonds:      make(map[string]*finance.Bond, len(s.bonds)),
-		Warehouses: make(map[int]*warehouse.Warehouse, len(s.warehouses)),
+		Players:             make(map[int]*auth.Player, len(s.players)),
+		ByUser:              make(map[string]*auth.Player, len(s.byUser)),
+		Companies:           make(map[int]*company.Company, len(s.companies)),
+		Orders:              make(map[string]*market.MarketOrder, len(s.orders)),
+		TakeOrderExecutions: make(map[string]*market.TakeOrderExecution, len(s.takeOrderExecutions)),
+		Tickers:             make(map[int]*market.Ticker, len(s.tickers)),
+		Jobs:                make(map[string]*production.ProductionJob, len(s.jobs)),
+		Bonds:               make(map[string]*finance.Bond, len(s.bonds)),
+		Warehouses:          make(map[int]*warehouse.Warehouse, len(s.warehouses)),
 	}
 	for k, v := range s.players {
 		snap.Players[k] = v
@@ -166,6 +169,9 @@ func (s *Store) collectSnapshot() *storage.GameSnapshot {
 	}
 	for k, v := range s.orders {
 		snap.Orders[k] = v
+	}
+	for k, v := range s.takeOrderExecutions {
+		snap.TakeOrderExecutions[k] = v
 	}
 	for k, v := range s.tickers {
 		snap.Tickers[k] = v
@@ -229,6 +235,10 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 		s.trades = snap.Trades
 	} else {
 		s.trades = nil
+	}
+	s.takeOrderExecutions = snap.TakeOrderExecutions
+	if s.takeOrderExecutions == nil {
+		s.takeOrderExecutions = make(map[string]*market.TakeOrderExecution)
 	}
 	s.tickers = snap.Tickers
 	if s.tickers == nil {
@@ -643,6 +653,44 @@ func (s *Store) GetTrades(_ context.Context, _ int, limit int) ([]market.Trade, 
 		n = limit
 	}
 	return s.trades[len(s.trades)-n:], nil
+}
+
+func (s *Store) CreateTakeOrderExecution(_ context.Context, execution *market.TakeOrderExecution) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := marketRequestKey(execution.CompanyID, execution.ClientRequestID)
+	if _, exists := s.takeOrderExecutions[key]; exists {
+		return fmt.Errorf("%w: take order request", storage.ErrAlreadyExists)
+	}
+	copy := *execution
+	copy.Trades = append([]market.Trade(nil), execution.Trades...)
+	s.takeOrderExecutions[key] = &copy
+	return nil
+}
+
+func (s *Store) GetTakeOrderExecution(_ context.Context, companyID int, requestID string) (*market.TakeOrderExecution, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	execution, ok := s.takeOrderExecutions[marketRequestKey(companyID, requestID)]
+	if !ok {
+		return nil, nil
+	}
+	copy := *execution
+	copy.Trades = append([]market.Trade(nil), execution.Trades...)
+	return &copy, nil
+}
+
+func (s *Store) UpdateTakeOrderExecution(_ context.Context, execution *market.TakeOrderExecution) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := marketRequestKey(execution.CompanyID, execution.ClientRequestID)
+	if _, exists := s.takeOrderExecutions[key]; !exists {
+		return fmt.Errorf("take order execution not found")
+	}
+	copy := *execution
+	copy.Trades = append([]market.Trade(nil), execution.Trades...)
+	s.takeOrderExecutions[key] = &copy
+	return nil
 }
 
 func (s *Store) GetTicker(_ context.Context, resourceID int) (*market.Ticker, error) {

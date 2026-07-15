@@ -56,6 +56,20 @@ type Trade struct {
 	CreatedAt   string  `json:"created_at"`
 }
 
+// TakeOrderExecution records one immediate-buy request. It is persisted so a
+// client retry can return the original fills without touching money or stock.
+type TakeOrderExecution struct {
+	ClientRequestID string  `json:"client_request_id"`
+	CompanyID       int     `json:"company_id"`
+	ResourceID      int     `json:"resource_id"`
+	Quantity        int     `json:"quantity"`
+	Quality         int     `json:"quality"`
+	MaxPrice        float64 `json:"max_price"`
+	Completed       bool    `json:"completed"`
+	Trades          []Trade `json:"trades,omitempty"`
+	CreatedAt       string  `json:"created_at"`
+}
+
 // Ticker represents the current market state for a resource.
 type Ticker struct {
 	ResourceID  int     `json:"resource_id"`

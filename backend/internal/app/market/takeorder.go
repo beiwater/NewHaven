@@ -2,6 +2,7 @@ package market
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 type tradeResult struct {
@@ -42,6 +44,10 @@ func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.Tak
 
 	if req.Quality != 0 {
 		return nil, apperr.BadRequest("non-zero quality not supported in this phase")
+	}
+	requestID, err := normalizeRequestID(req.RequestId)
+	if err != nil {
+		return nil, err
 	}
 
 	taker, err := s.companies.GetCompany(ctx, companyID)
@@ -87,6 +93,14 @@ func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.Tak
 		return sellOrders[i].ID < sellOrders[j].ID
 	})
 
+	execution, replay, err := s.reserveTakeOrderExecution(ctx, companyID, requestID, req)
+	if err != nil {
+		return nil, err
+	}
+	if replay != nil {
+		return replay, nil
+	}
+
 	var results []tradeResult
 	need := req.Quantity
 	now := s.clock.Now().UTC()
@@ -107,13 +121,97 @@ func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.Tak
 		}
 		result, err := s.executeFillLocked(ctx, taker, sell, companyID, req.Resource, req.Quality, fill, cost, fee, now)
 		if err != nil {
+			if execution != nil {
+				if completeErr := s.completeTakeOrderExecution(ctx, execution, results); completeErr != nil {
+					return nil, completeErr
+				}
+			}
 			return nil, err
 		}
 		results = append(results, *result)
 		need -= fill
 	}
 
-	return s.buildTakeOrderResponse(results), nil
+	if execution != nil {
+		if err := s.completeTakeOrderExecution(ctx, execution, results); err != nil {
+			return nil, err
+		}
+	}
+	return buildTakeOrderResponse(results), nil
+}
+
+func (s *Service) reserveTakeOrderExecution(ctx context.Context, companyID int, requestID string, req *openapi.TakeOrderRequest) (*domainmarket.TakeOrderExecution, *openapi.TakeOrderResponse, error) {
+	if requestID == "" {
+		return nil, nil, nil
+	}
+	existing, err := s.market.GetTakeOrderExecution(ctx, companyID, requestID)
+	if err != nil {
+		return nil, nil, apperr.Internalf("find idempotent take order: %v", err)
+	}
+	if existing != nil {
+		return takeOrderExecutionResult(existing, req)
+	}
+
+	execution := &domainmarket.TakeOrderExecution{
+		ClientRequestID: requestID,
+		CompanyID:       companyID,
+		ResourceID:      req.Resource,
+		Quantity:        req.Quantity,
+		Quality:         req.Quality,
+		MaxPrice:        float64(req.MaxPrice),
+		CreatedAt:       s.clock.Now().UTC().Format(time.RFC3339),
+	}
+	if err := s.market.CreateTakeOrderExecution(ctx, execution); err != nil {
+		if errors.Is(err, storage.ErrAlreadyExists) {
+			existing, findErr := s.market.GetTakeOrderExecution(ctx, companyID, requestID)
+			if findErr != nil {
+				return nil, nil, apperr.Internalf("find concurrent take order: %v", findErr)
+			}
+			if existing != nil {
+				return takeOrderExecutionResult(existing, req)
+			}
+		}
+		return nil, nil, apperr.Internalf("reserve take order request: %v", err)
+	}
+	return execution, nil, nil
+}
+
+func takeOrderExecutionResult(execution *domainmarket.TakeOrderExecution, req *openapi.TakeOrderRequest) (*domainmarket.TakeOrderExecution, *openapi.TakeOrderResponse, error) {
+	if execution.ResourceID != req.Resource ||
+		execution.Quantity != req.Quantity ||
+		execution.Quality != req.Quality ||
+		execution.MaxPrice != float64(req.MaxPrice) {
+		return nil, nil, apperr.Conflict("requestId was already used for a different immediate market purchase")
+	}
+	if !execution.Completed {
+		return nil, nil, apperr.Conflict("this immediate market purchase is still being processed")
+	}
+	return nil, takeOrderExecutionResponse(execution), nil
+}
+
+func (s *Service) completeTakeOrderExecution(ctx context.Context, execution *domainmarket.TakeOrderExecution, results []tradeResult) error {
+	execution.Completed = true
+	execution.Trades = make([]domainmarket.Trade, 0, len(results))
+	for _, result := range results {
+		execution.Trades = append(execution.Trades, *result.trade)
+	}
+	if err := s.market.UpdateTakeOrderExecution(ctx, execution); err != nil {
+		return apperr.Internalf("complete take order request: %v", err)
+	}
+	return nil
+}
+
+func takeOrderExecutionResponse(execution *domainmarket.TakeOrderExecution) *openapi.TakeOrderResponse {
+	results := make([]tradeResult, 0, len(execution.Trades))
+	for i := range execution.Trades {
+		trade := &execution.Trades[i]
+		results = append(results, tradeResult{
+			fill:  trade.Quantity,
+			cost:  float64(trade.Quantity)*trade.Price + trade.BuyerFee,
+			trade: trade,
+		})
+	}
+	return buildTakeOrderResponse(results)
 }
 
 // executeFillLocked fills a single sell order for a taker. Called under s.mu.
@@ -245,7 +343,7 @@ func (s *Service) executeFillLocked(
 }
 
 // buildTakeOrderResponse constructs the response DTO from fill results.
-func (s *Service) buildTakeOrderResponse(results []tradeResult) *openapi.TakeOrderResponse {
+func buildTakeOrderResponse(results []tradeResult) *openapi.TakeOrderResponse {
 	amountBought := 0
 	moneyDelta := float32(0.0)
 	tradeDTOs := make([]openapi.TradeDTO, len(results))

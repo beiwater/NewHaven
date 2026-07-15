@@ -55,6 +55,9 @@ type MarketStorage interface {
 	GetOrdersByResource(ctx context.Context, resourceID int) ([]market.MarketOrder, error)
 	SaveTrade(ctx context.Context, t *market.Trade) error
 	GetTrades(ctx context.Context, resourceID int, limit int) ([]market.Trade, error)
+	CreateTakeOrderExecution(ctx context.Context, execution *market.TakeOrderExecution) error
+	GetTakeOrderExecution(ctx context.Context, companyID int, requestID string) (*market.TakeOrderExecution, error)
+	UpdateTakeOrderExecution(ctx context.Context, execution *market.TakeOrderExecution) error
 	GetTicker(ctx context.Context, resourceID int) (*market.Ticker, error)
 	UpdateTicker(ctx context.Context, t *market.Ticker) error
 	GetTickers(ctx context.Context) ([]market.Ticker, error)
