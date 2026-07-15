@@ -1,17 +1,18 @@
 package httpapi
+
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"strconv"
-	
+	"strings"
+
 	"time"
 
+	"github.com/beiwater/NewHaven/backend/internal/app/terminal"
 	"github.com/beiwater/NewHaven/backend/internal/domain/chat"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
-	"github.com/beiwater/NewHaven/backend/internal/app/terminal"
 )
 
 // ChatHandler handles private room-based chat endpoints.
@@ -243,7 +244,6 @@ func (h *ChatHandler) getParticipants(roomID string) (int, int, bool) {
 	return a, b, true
 }
 
-
 func (h *ChatHandler) isParticipant(roomID string, companyID int) bool {
 	a, b, ok := h.getParticipants(roomID)
 	return ok && (companyID == a || companyID == b)
@@ -262,7 +262,6 @@ func (h *ChatHandler) findOtherParticipant(roomID string, companyID int) (int, b
 	}
 	return 0, false
 }
-
 
 // extractRoomID extracts the room ID from a URL path like
 // /api/v2/chat/room/p:1000001-1000002/messages/.

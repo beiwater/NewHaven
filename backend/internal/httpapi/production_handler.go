@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/beiwater/NewHaven/backend/internal/app/production"
 )

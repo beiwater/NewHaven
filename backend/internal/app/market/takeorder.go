@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
-	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
+	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
@@ -86,7 +86,6 @@ func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.Tak
 		}
 		return sellOrders[i].ID < sellOrders[j].ID
 	})
-
 
 	var results []tradeResult
 	need := req.Quantity

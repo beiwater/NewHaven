@@ -2,16 +2,16 @@ package building
 
 // CatalogEntry is a building type from the static catalog (buildings.json).
 type CatalogEntry struct {
-	ID            int    `json:"id"`
-	Kind          int    `json:"kind"`
-	Name          string `json:"name"`
-	Type          string `json:"type"` // "production" or "retail"
-	BaseCost      int    `json:"base_cost"`
-	BaseOutput    int    `json:"base_output"`
-	Produces      []int  `json:"produces,omitempty"`
-	Description   string `json:"description,omitempty"`
-	RetailSlots   int    `json:"retail_slots"`
-	SlotPerLevel  int    `json:"slot_per_level"`
+	ID           int    `json:"id"`
+	Kind         int    `json:"kind"`
+	Name         string `json:"name"`
+	Type         string `json:"type"` // "production" or "retail"
+	BaseCost     int    `json:"base_cost"`
+	BaseOutput   int    `json:"base_output"`
+	Produces     []int  `json:"produces,omitempty"`
+	Description  string `json:"description,omitempty"`
+	RetailSlots  int    `json:"retail_slots"`
+	SlotPerLevel int    `json:"slot_per_level"`
 }
 
 // ResourceCatalogEntry is a resource type from resources.json.

@@ -10,13 +10,13 @@ import (
 
 // EconomyModelEntry mirrors one state_1 entry in decompiled/data/economy_model.json.
 type EconomyModelEntry struct {
-	ModeledProductionCostPerUnit        float64 `json:"modeledProductionCostPerUnit"`
-	ModeledWagesPerUnitPerHour          float64 `json:"modeledWagesPerUnitPerHour"`
-	ModeledStoreWages                   float64 `json:"modeledStoreWages"`
-	ModeledSalesPerUnitPerHour          float64 `json:"modeledSalesPerUnitPerHour"`
-	ModeledUnitsSoldAnHour              float64 `json:"modeledUnitsSoldAnHour"`
-	BuildingLevelsNeededPerUnitPerHour  float64 `json:"buildingLevelsNeededPerUnitPerHour"`
-	BuildingKindModifier                float64 `json:"buildingKindModifier"`
+	ModeledProductionCostPerUnit       float64 `json:"modeledProductionCostPerUnit"`
+	ModeledWagesPerUnitPerHour         float64 `json:"modeledWagesPerUnitPerHour"`
+	ModeledStoreWages                  float64 `json:"modeledStoreWages"`
+	ModeledSalesPerUnitPerHour         float64 `json:"modeledSalesPerUnitPerHour"`
+	ModeledUnitsSoldAnHour             float64 `json:"modeledUnitsSoldAnHour"`
+	BuildingLevelsNeededPerUnitPerHour float64 `json:"buildingLevelsNeededPerUnitPerHour"`
+	BuildingKindModifier               float64 `json:"buildingKindModifier"`
 }
 
 type economyModelWrapper struct {

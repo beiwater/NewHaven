@@ -2,23 +2,23 @@ package memory
 
 import (
 	"context"
-	"fmt"
-	"strings"
-	"sync"
-	"sort"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
+	"github.com/beiwater/NewHaven/backend/internal/domain/chat"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
 	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/domain/market"
 	"github.com/beiwater/NewHaven/backend/internal/domain/production"
 	"github.com/beiwater/NewHaven/backend/internal/domain/research"
 	"github.com/beiwater/NewHaven/backend/internal/domain/social"
-	"github.com/beiwater/NewHaven/backend/internal/domain/chat"
 	"github.com/beiwater/NewHaven/backend/internal/domain/warehouse"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
@@ -35,26 +35,26 @@ type chatRoomData struct {
 }
 
 type Store struct {
-	mu         sync.RWMutex
-	snapshotPath string
-	players    map[int]*auth.Player
-	byUser     map[string]*auth.Player
-	companies  map[int]*company.Company
-	byPlayer   map[int]*company.Company
-	orders     map[string]*market.MarketOrder
-	trades     []market.Trade
-	tickers    map[int]*market.Ticker
-	jobs       map[string]*production.ProductionJob
-	ledger     []finance.LedgerEntry
-	bonds      map[string]*finance.Bond
-	holdings   []finance.BondHolding
+	mu              sync.RWMutex
+	snapshotPath    string
+	players         map[int]*auth.Player
+	byUser          map[string]*auth.Player
+	companies       map[int]*company.Company
+	byPlayer        map[int]*company.Company
+	orders          map[string]*market.MarketOrder
+	trades          []market.Trade
+	tickers         map[int]*market.Ticker
+	jobs            map[string]*production.ProductionJob
+	ledger          []finance.LedgerEntry
+	bonds           map[string]*finance.Bond
+	holdings        []finance.BondHolding
 	companyResearch map[string]*research.ResourceResearch
-	messages   []social.Message
-	notifs     []social.Notification
-	warehouses map[int]*warehouse.Warehouse
-	chatData   chatRoomData
+	messages        []social.Message
+	notifs          []social.Notification
+	warehouses      map[int]*warehouse.Warehouse
+	chatData        chatRoomData
 
-	buildings  map[string]*company.Building
+	buildings map[string]*company.Building
 
 	// Per-domain ID counters (independent, no longer shared)
 	nextPlayerID  int
@@ -72,7 +72,7 @@ type Store struct {
 
 func New() *Store {
 	return &Store{
-	players:    make(map[int]*auth.Player),
+		players:    make(map[int]*auth.Player),
 		byUser:     make(map[string]*auth.Player),
 		companies:  make(map[int]*company.Company),
 		byPlayer:   make(map[int]*company.Company),
@@ -89,17 +89,16 @@ func New() *Store {
 			readAt:   make(map[string]int64),
 		},
 		companyResearch: make(map[string]*research.ResourceResearch),
-		nextPlayerID:  1,
-		nextCompanyID: 1,
-		nextLedgerID:  1,
-		nextMessageID: 1,
-		nextNotifID:   1,
-		snapshotPath: envOrDefault("SIM_API_SNAPSHOT_PATH", "data/snapshot.json"),
+		nextPlayerID:    1,
+		nextCompanyID:   1,
+		nextLedgerID:    1,
+		nextMessageID:   1,
+		nextNotifID:     1,
+		snapshotPath:    envOrDefault("SIM_API_SNAPSHOT_PATH", "data/snapshot.json"),
 	}
 }
 
 func (s *Store) Close() error { return nil }
-
 
 func envOrDefault(key, def string) string {
 	if v := os.Getenv(key); v != "" {
@@ -290,6 +289,7 @@ func (s *Store) LoadFromSnapshot(snap *storage.GameSnapshot) {
 	defer s.mu.Unlock()
 	s.applySnapshot(snap)
 }
+
 // --- PlayerStorage ---
 func (s *Store) CreatePlayer(_ context.Context, p *auth.Player) error {
 	s.mu.Lock()

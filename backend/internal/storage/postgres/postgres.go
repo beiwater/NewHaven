@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
 	"github.com/beiwater/NewHaven/backend/internal/storage/memory"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Store wraps a pgxpool to provide snapshot persistence alongside the in-memory store.

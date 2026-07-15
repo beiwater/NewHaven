@@ -22,7 +22,7 @@ func TestGameConfigValidation(t *testing.T) {
 			JWTSigningKey: "secret",
 			Game: &GameConfig{
 				ExchangeFeePct:   150,
-				BondMinInterest: -1,
+				BondMinInterest:  -1,
 				BaseOutput:       0,
 				MaxBuildings:     0,
 				MaxMessageLength: -1,
@@ -50,10 +50,10 @@ func TestGameConfigValidation(t *testing.T) {
 		cfg := &Config{
 			JWTSigningKey: "secret",
 			Game: &GameConfig{
-				ExchangeFeePct:  10,
-				BondMinInterest: 0.5,
-				BaseOutput:      100,
-				MaxBuildings:    20,
+				ExchangeFeePct:   10,
+				BondMinInterest:  0.5,
+				BaseOutput:       100,
+				MaxBuildings:     20,
 				MaxMessageLength: 500,
 			},
 		}

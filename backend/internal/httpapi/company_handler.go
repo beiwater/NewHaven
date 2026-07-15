@@ -7,6 +7,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/app/company"
 	"github.com/beiwater/NewHaven/backend/internal/app/market"
 )
+
 // CompanyHandler handles company-related HTTP endpoints.
 type CompanyHandler struct {
 	svc       *company.Service

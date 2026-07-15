@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"path/filepath"
 	"log/slog"
+	"path/filepath"
 
 	"github.com/beiwater/NewHaven/backend/internal/app/auth"
 	"github.com/beiwater/NewHaven/backend/internal/app/building"
@@ -61,13 +61,13 @@ type App struct {
 	BondHandler        *httpapi.BondHandler
 	PlayerHandler      *httpapi.PlayerHandler
 	SocialHandler      *httpapi.SocialHandler
-	ChatHandler       *httpapi.ChatHandler
+	ChatHandler        *httpapi.ChatHandler
 	ContractHandler    *httpapi.ContractHandler
 	ResearchHandler    *httpapi.ResearchHandler
 	ExecutiveHandler   *httpapi.ExecutiveHandler
 	LeaderboardHandler *httpapi.LeaderboardHandler
-	AdminHandler      *httpapi.AdminHandler
-	ReportHandler     *httpapi.ReportHandler
+	AdminHandler       *httpapi.AdminHandler
+	ReportHandler      *httpapi.ReportHandler
 }
 
 // New creates a fully wired App with all services and handlers constructed.
@@ -93,9 +93,9 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 			WarehouseUpgradeCost: 25000,
 			BaseOutput:           100,
 			MaxBuildings:         20,
-			ResearchBaseCost:   1000,
-			ResearchCostGrowth: 1.2,
-			ResearchSpeedBonus: 0.002,
+			ResearchBaseCost:     1000,
+			ResearchCostGrowth:   1.2,
+			ResearchSpeedBonus:   0.002,
 		}
 	}
 
@@ -167,14 +167,14 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	}
 
 	return &App{
-		Config:        cfg,
-		Storage:       st,
-		Clock:         clock,
-		IDGen:         idgen,
-		Logger:        logger,
-		Resources:     resources,
-		Buildings:     buildings,
-		Economy:       economy,
+		Config:    cfg,
+		Storage:   st,
+		Clock:     clock,
+		IDGen:     idgen,
+		Logger:    logger,
+		Resources: resources,
+		Buildings: buildings,
+		Economy:   economy,
 
 		AuthService:       authSvc,
 		CompanyService:    companySvc,
@@ -204,7 +204,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		ResearchHandler:    researchHandler,
 		ExecutiveHandler:   executiveHandler,
 		LeaderboardHandler: leaderboardHandler,
-		AdminHandler:      adminHandler,
-		ReportHandler:     reportHandler,
+		AdminHandler:       adminHandler,
+		ReportHandler:      reportHandler,
 	}
 }

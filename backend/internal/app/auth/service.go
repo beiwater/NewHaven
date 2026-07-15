@@ -23,13 +23,13 @@ var (
 
 // Service is the auth application use case.
 type Service struct {
-	players      storage.PlayerStorage
-	companies    storage.CompanyStorage
-	clock        platform.Clock
-	idgen        *platform.IDGen
-	logger       *platform.Logger
-	jwtKey       string
-	devPassword  string
+	players     storage.PlayerStorage
+	companies   storage.CompanyStorage
+	clock       platform.Clock
+	idgen       *platform.IDGen
+	logger      *platform.Logger
+	jwtKey      string
+	devPassword string
 }
 
 func NewService(

@@ -363,7 +363,6 @@ func (s *Service) ListMarketOrders(ctx context.Context, resourceID int, quality 
 		}
 		kindVal := openapi.MarketOrderDTOKind(kind)
 
-
 		// Parse CreatedAt string to time.Time.
 		var createdAt time.Time
 		if o.CreatedAt != "" {

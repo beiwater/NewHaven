@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
-	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
+	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 )
 

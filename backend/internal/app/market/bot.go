@@ -239,7 +239,7 @@ func (s *Service) cancelStaleBotOrders(ctx context.Context, allOrders []domainma
 // calculateBotBasePrice computes the base price with sine-wave cycle, inventory feedback, and random drift.
 func (s *Service) calculateBotBasePrice(rng *rand.Rand, resourceID int, fairPrice float64, spread float64, netPos int, nowSec float64) (basePrice float64, drift float64, inventoryOffset float64) {
 	// Step 4: Market cycle wave (sine wave superposition, stateless, time-driven)
-	phaseA := float64(resourceID) * 1.7   // per-resource phase
+	phaseA := float64(resourceID) * 1.7 // per-resource phase
 	phaseB := float64(resourceID) * 2.3
 	periodA := 1200.0 // 20 min primary
 	periodB := 420.0  // 7 min secondary

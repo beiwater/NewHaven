@@ -23,44 +23,44 @@ type Config struct {
 	RateLimitEnabled bool
 
 	// Dev mode (creates dev user/company)
-	DevMode bool
-	DevPassword       string
+	DevMode     bool
+	DevPassword string
 
 	// Game tuning (from game.json)
 	Game *GameConfig
 }
 
 type GameConfig struct {
-	BondFaceValue        float64 `json:"bond_face_value"`
-	ExchangeFeePct       float64 `json:"exchange_fee_pct"`
-	BotReplacementRate   float64 `json:"bot_replacement_rate"`
-	BondMinInterest      float64 `json:"bond_min_interest"`
-	BondMaxInterest      float64 `json:"bond_max_interest"`
-	ProductionMod        float64 `json:"production_mod"`
-	AdminOverheadBase    float64 `json:"admin_overhead_base"`
-	BaseBuildingCost     float64 `json:"base_building_cost"`
-	WarehouseBaseCap     int     `json:"warehouse_base_cap"`
-	BaseProductionSlots  int     `json:"base_production_slots"`
-	WarehouseUpgradeCost float64 `json:"warehouse_upgrade_cost"`
-	BaseOutput           float64 `json:"base_output"`
-	MaxBuildings         int     `json:"max_buildings"`
-	ResearchBaseCost   float64 `json:"research_base_cost"`
-	ResearchCostGrowth float64 `json:"research_cost_growth"`
-	ResearchSpeedBonus float64 `json:"research_speed_bonus"`
-	NewbieLevelUpTo     int      `json:"newbie_level_up_to"`
-	MaxMessageLength    int      `json:"max_message_length"`
-	ImageHostAllowlist  []string `json:"image_host_allowlist"`
+	BondFaceValue        float64  `json:"bond_face_value"`
+	ExchangeFeePct       float64  `json:"exchange_fee_pct"`
+	BotReplacementRate   float64  `json:"bot_replacement_rate"`
+	BondMinInterest      float64  `json:"bond_min_interest"`
+	BondMaxInterest      float64  `json:"bond_max_interest"`
+	ProductionMod        float64  `json:"production_mod"`
+	AdminOverheadBase    float64  `json:"admin_overhead_base"`
+	BaseBuildingCost     float64  `json:"base_building_cost"`
+	WarehouseBaseCap     int      `json:"warehouse_base_cap"`
+	BaseProductionSlots  int      `json:"base_production_slots"`
+	WarehouseUpgradeCost float64  `json:"warehouse_upgrade_cost"`
+	BaseOutput           float64  `json:"base_output"`
+	MaxBuildings         int      `json:"max_buildings"`
+	ResearchBaseCost     float64  `json:"research_base_cost"`
+	ResearchCostGrowth   float64  `json:"research_cost_growth"`
+	ResearchSpeedBonus   float64  `json:"research_speed_bonus"`
+	NewbieLevelUpTo      int      `json:"newbie_level_up_to"`
+	MaxMessageLength     int      `json:"max_message_length"`
+	ImageHostAllowlist   []string `json:"image_host_allowlist"`
 }
 
 func Load() *Config {
 	return &Config{
-		Addr:              envStr("SIM_API_ADDR", ":8088"),
-		JWTSigningKey:     envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
-		DatabaseURL:       os.Getenv("SIM_API_DATABASE_URL"),
-		RateLimitEnabled:  envStr("SIM_API_RATE_LIMIT", "false") == "true",
-		DevMode:           envStr("SIM_API_DEV_MODE", "true") == "true",
-		DevPassword:       envStr("SIM_API_DEV_PASSWORD", "123"),
-		Game:              loadGameConfig(FindProjectRoot()),
+		Addr:             envStr("SIM_API_ADDR", ":8088"),
+		JWTSigningKey:    envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
+		DatabaseURL:      os.Getenv("SIM_API_DATABASE_URL"),
+		RateLimitEnabled: envStr("SIM_API_RATE_LIMIT", "false") == "true",
+		DevMode:          envStr("SIM_API_DEV_MODE", "true") == "true",
+		DevPassword:      envStr("SIM_API_DEV_PASSWORD", "123"),
+		Game:             loadGameConfig(FindProjectRoot()),
 	}
 }
 
@@ -137,11 +137,11 @@ func defaultGameConfig() *GameConfig {
 		WarehouseUpgradeCost: 25000,
 		BaseOutput:           100,
 		MaxBuildings:         20,
-		ResearchBaseCost:   1000,
+		ResearchBaseCost:     1000,
 		NewbieLevelUpTo:      7,
 		MaxMessageLength:     500,
-		ResearchCostGrowth: 1.2,
-		ResearchSpeedBonus: 0.002,
+		ResearchCostGrowth:   1.2,
+		ResearchSpeedBonus:   0.002,
 		ImageHostAllowlist: []string{
 			// 国内图床
 			"imgse.com", "www.imgse.com",

@@ -14,9 +14,9 @@ import (
 
 // SocialHandler handles chat, message, and contact HTTP endpoints.
 type SocialHandler struct {
-	social          storage.SocialStorage
-	companies       storage.CompanyStorage
-	maxMessageLen   int
+	social        storage.SocialStorage
+	companies     storage.CompanyStorage
+	maxMessageLen int
 }
 
 func NewSocialHandler(social storage.SocialStorage, companies storage.CompanyStorage, maxMessageLen int) *SocialHandler {

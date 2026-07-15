@@ -417,36 +417,36 @@ func TestGroupOf(t *testing.T) {
 func TestFormulaGolden(t *testing.T) {
 	// Known inputs — chosen to produce one distinct, checkable value per formula.
 	type inputs struct {
-		amount        int
-		price         float64
-		feeRate       float64
-		baseOutput    float64
-		speedBonus    float64
-		level         int
-		baseLabor     float64
-		laborIdx      float64
-		baseEnergy    float64
-		energyIdx     float64
-		baseMaint     float64
-		baseMgmt      float64
-		sweetSpot     int
-		revenue       float64
-		taxRate       float64
-		upgradeBase   float64
-		faceVal       float64
-		ratePct       float64
-		sat           float64
-		satK          float64
-		eventMul      float64
-		qty           int
-		prodRate      int
-		prodMod       float64
-		output        float64
-		qtyPerUnit    float64
-		unitPrice     float64
-		matIdx        float64
-		buildingVal   float64
-		alreadySold   int
+		amount      int
+		price       float64
+		feeRate     float64
+		baseOutput  float64
+		speedBonus  float64
+		level       int
+		baseLabor   float64
+		laborIdx    float64
+		baseEnergy  float64
+		energyIdx   float64
+		baseMaint   float64
+		baseMgmt    float64
+		sweetSpot   int
+		revenue     float64
+		taxRate     float64
+		upgradeBase float64
+		faceVal     float64
+		ratePct     float64
+		sat         float64
+		satK        float64
+		eventMul    float64
+		qty         int
+		prodRate    int
+		prodMod     float64
+		output      float64
+		qtyPerUnit  float64
+		unitPrice   float64
+		matIdx      float64
+		buildingVal float64
+		alreadySold int
 	}
 
 	in := inputs{

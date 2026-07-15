@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/beiwater/NewHaven/backend/internal/app/market"
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/go-chi/chi/v5"
 )
 
 // MarketHandler handles market-related HTTP endpoints.

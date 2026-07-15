@@ -5,13 +5,13 @@ import (
 	"errors"
 
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
+	"github.com/beiwater/NewHaven/backend/internal/domain/chat"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
 	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/domain/market"
 	"github.com/beiwater/NewHaven/backend/internal/domain/production"
 	"github.com/beiwater/NewHaven/backend/internal/domain/research"
 	"github.com/beiwater/NewHaven/backend/internal/domain/social"
-	"github.com/beiwater/NewHaven/backend/internal/domain/chat"
 	"github.com/beiwater/NewHaven/backend/internal/domain/warehouse"
 )
 
