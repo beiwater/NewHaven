@@ -7,7 +7,7 @@
     },
     {
       "path": "decompiled/data/buildings.json",
-      "sha256": "89de0600e6a18965f11b518c59045e98ba87771f5b2ea0f8ae00b00b3e332552"
+      "sha256": "b7db346e13a779736c6c607aed0bf794a8e2953a70e46ca952c36b0be6e35583"
     },
     {
       "path": "decompiled/data/economy_model.json",
@@ -19,7 +19,7 @@
     },
     {
       "path": "backend/configs/game.json",
-      "sha256": "d1a80e9d86b60d20bb79d0291fa370ff99a4d7cb0a24dd58cee451ea4a212300"
+      "sha256": "8e3f88e8377c60e31747e8758ce392ceec7d16428a6f9ed8d5932bd19e729272"
     }
   ]
 }

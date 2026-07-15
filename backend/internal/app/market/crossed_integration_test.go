@@ -37,19 +37,19 @@ func TestCrossedMarket_MatchAllOrders(t *testing.T) {
 		ID: "sell-10", ResourceID: 1, IsBuy: false, Price: 10.00, Quantity: 400, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
 	})
 	_ = store.CreateOrder(context.Background(), &domainmarket.MarketOrder{
-		ID: "sell-1399", ResourceID: 1, IsBuy: false, Price: 13.99, Quantity: 100, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
+		ID: "sell-1390", ResourceID: 1, IsBuy: false, Price: 13.90, Quantity: 100, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
 	})
 	_ = store.CreateOrder(context.Background(), &domainmarket.MarketOrder{
-		ID: "sell-1402", ResourceID: 1, IsBuy: false, Price: 14.02, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
+		ID: "sell-1400", ResourceID: 1, IsBuy: false, Price: 14.00, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
 	})
 	_ = store.CreateOrder(context.Background(), &domainmarket.MarketOrder{
-		ID: "sell-1403", ResourceID: 1, IsBuy: false, Price: 14.03, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
+		ID: "sell-1410", ResourceID: 1, IsBuy: false, Price: 14.10, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
 	})
 	_ = store.CreateOrder(context.Background(), &domainmarket.MarketOrder{
-		ID: "buy-1403", ResourceID: 1, IsBuy: true, Price: 14.03, Quantity: 577, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: alice.ID,
+		ID: "buy-1410", ResourceID: 1, IsBuy: true, Price: 14.10, Quantity: 577, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: alice.ID,
 	})
 	_ = store.CreateOrder(context.Background(), &domainmarket.MarketOrder{
-		ID: "sell-1551", ResourceID: 1, IsBuy: false, Price: 15.51, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
+		ID: "sell-1550", ResourceID: 1, IsBuy: false, Price: 15.50, Quantity: 10, Quality: 0, Status: domainmarket.StatusOpen, CompanyID: bob.ID,
 	})
 
 	// MUST provide resources so MatchAllOrders iterates over them.
@@ -87,8 +87,8 @@ func TestCrossedMarket_MatchAllOrders(t *testing.T) {
 		t.Fatal("expected buy levels after matching")
 	}
 	bestBuy := (*depth.Buys)[0]
-	if bestBuy.Price == nil || *bestBuy.Price != 14.03 {
-		t.Errorf("expected best buy price 14.03, got %v", bestBuy.Price)
+	if bestBuy.Price == nil || *bestBuy.Price != 14.10 {
+		t.Errorf("expected best buy price 14.10, got %v", bestBuy.Price)
 	}
 	if bestBuy.Quantity == nil || *bestBuy.Quantity != 57 {
 		t.Errorf("expected best buy quantity 57, got %v", bestBuy.Quantity)
@@ -96,7 +96,7 @@ func TestCrossedMarket_MatchAllOrders(t *testing.T) {
 
 	if depth.Sells != nil {
 		for _, s := range *depth.Sells {
-			if s.Price != nil && *s.Price <= 14.03 {
+			if s.Price != nil && *s.Price <= 14.10 {
 				t.Errorf("REGRESSION: crossed sell at $%.2f should have been matched away", *s.Price)
 			}
 		}
@@ -134,9 +134,9 @@ func TestCrossedMarket_CreateOrderMatches(t *testing.T) {
 		t.Fatalf("create sell: %v", err)
 	}
 
-	// Buyer: place buy at $14.03 x 577.
+	// Buyer: place buy at $14.10 x 577.
 	_, err = svc.CreateOrder(context.Background(), alice.ID, &openapi.CreateOrderRequestFrontend{
-		Kind: 1, ResourceId: 1, Quality: 0, Quantity: 577, Price: 14.03,
+		Kind: 1, ResourceId: 1, Quality: 0, Quantity: 577, Price: 14.10,
 	})
 	if err != nil {
 		t.Fatalf("create buy: %v", err)
@@ -152,25 +152,25 @@ func TestCrossedMarket_CreateOrderMatches(t *testing.T) {
 		t.Fatalf("expected 1 buy level, got %d", len(*depth.Buys))
 	}
 	bestBuy := (*depth.Buys)[0]
-	if bestBuy.Price == nil || *bestBuy.Price != 14.03 {
-		t.Errorf("expected best buy price 14.03, got %v", bestBuy.Price)
+	if bestBuy.Price == nil || *bestBuy.Price != 14.10 {
+		t.Errorf("expected best buy price 14.10, got %v", bestBuy.Price)
 	}
 	if bestBuy.Quantity == nil || *bestBuy.Quantity != 177 {
 		t.Errorf("expected best buy quantity 177 (after matching 400 of 577), got %v", bestBuy.Quantity)
 	}
 
-	// Now place the remaining sells: $13.99 x 100, $14.02 x 10, $14.03 x 10.
+	// Now place the remaining sells: $13.90 x 100, $14.00 x 10, $14.10 x 10.
 	_, _ = svc.CreateOrder(context.Background(), bob.ID, &openapi.CreateOrderRequestFrontend{
-		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 100, Price: 13.99,
+		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 100, Price: 13.90,
 	})
 	_, _ = svc.CreateOrder(context.Background(), bob.ID, &openapi.CreateOrderRequestFrontend{
-		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 10, Price: 14.02,
+		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 10, Price: 14.00,
 	})
 	_, _ = svc.CreateOrder(context.Background(), bob.ID, &openapi.CreateOrderRequestFrontend{
-		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 10, Price: 14.03,
+		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 10, Price: 14.10,
 	})
 	_, _ = svc.CreateOrder(context.Background(), bob.ID, &openapi.CreateOrderRequestFrontend{
-		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 10, Price: 15.51,
+		Kind: 0, ResourceId: 1, Quality: 0, Quantity: 10, Price: 15.50,
 	})
 
 	depth, _ = svc.GetMarketDepth(context.Background(), 1, 0)
@@ -179,17 +179,17 @@ func TestCrossedMarket_CreateOrderMatches(t *testing.T) {
 	// Buy should have 57 remaining.
 	if depth.Buys != nil && len(*depth.Buys) > 0 {
 		bestBuy := (*depth.Buys)[0]
-		if bestBuy.Price == nil || *bestBuy.Price != 14.03 {
-			t.Errorf("expected best buy price 14.03, got %v", bestBuy.Price)
+		if bestBuy.Price == nil || *bestBuy.Price != 14.10 {
+			t.Errorf("expected best buy price 14.10, got %v", bestBuy.Price)
 		}
 		if bestBuy.Quantity == nil || *bestBuy.Quantity != 57 {
 			t.Errorf("expected best buy quantity 57, got %v", bestBuy.Quantity)
 		}
 	}
-	// No sells <= 14.03.
+	// No sells <= 14.10.
 	if depth.Sells != nil {
 		for _, s := range *depth.Sells {
-			if s.Price != nil && *s.Price <= 14.03 {
+			if s.Price != nil && *s.Price <= 14.10 {
 				t.Errorf("REGRESSION: sell at $%.2f should have been matched away", *s.Price)
 			}
 		}
