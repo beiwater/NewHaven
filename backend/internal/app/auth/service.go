@@ -101,14 +101,15 @@ func (s *Service) register(ctx context.Context, req *domain.RegisterRequest, val
 	}
 
 	c := &company.Company{
-		PlayerID:    player.ID,
-		Name:        companyName,
-		Money:       100000, // starting capital
-		Level:       1,
-		XP:          0,
-		Preferences: company.NewPlayerPreferences(),
-		Inventory:   make(map[int]int),
-		CreatedAt:   now,
+		PlayerID:     player.ID,
+		Name:         companyName,
+		Money:        100000, // starting capital
+		Level:        1,
+		XP:           0,
+		Preferences:  company.NewPlayerPreferences(),
+		Inventory:    make(map[int]int),
+		CreatedAt:    now,
+		LastRetailAt: now,
 	}
 
 	if err := s.companies.CreateCompany(ctx, c); err != nil {

@@ -34,7 +34,8 @@ type retailShelf struct {
 
 // ProcessRetailSales iterates all bot/NPC companies and sells their goods.
 // NPC companies still sell from inventory (they don't use shelves).
-// Player companies are skipped — they catch up on demand via CatchUpPlayerRetail.
+// Real player companies are identified by their positive PlayerID and skipped;
+// LastRetailAt is settlement state, not a safe account-type discriminator.
 func (s *Service) ProcessRetailSales(ctx context.Context) error {
 	if len(s.economy) == 0 {
 		slog.Debug("[retail] no economy model loaded, skipping")
@@ -53,7 +54,7 @@ func (s *Service) ProcessRetailSales(ctx context.Context) error {
 		if company == nil {
 			continue
 		}
-		if company.LastRetailAt != "" {
+		if company.PlayerID > 0 {
 			skipped++
 			continue
 		}

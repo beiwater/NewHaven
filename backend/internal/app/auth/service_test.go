@@ -45,6 +45,14 @@ func TestRegister_Success(t *testing.T) {
 	if resp.Username != "alice" {
 		t.Errorf("expected username 'alice', got %q", resp.Username)
 	}
+	company, err := store.GetCompany(ctx, resp.CompanyID)
+	if err != nil {
+		t.Fatalf("registered company not found: %v", err)
+	}
+	wantRetailBaseline := clock.Now().UTC().Format(time.RFC3339)
+	if company.LastRetailAt != wantRetailBaseline {
+		t.Errorf("expected retail baseline %q, got %q", wantRetailBaseline, company.LastRetailAt)
+	}
 }
 
 func TestRegister_DuplicateUsername(t *testing.T) {

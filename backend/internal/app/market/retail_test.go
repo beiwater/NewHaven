@@ -48,7 +48,7 @@ func TestProcessRetailSales_SellsGoodsAndCreditsMoney(t *testing.T) {
 	svc, store, _ := newRetailTestSvc(economy)
 	setupRetailTicker(t, store, 1, 24.0)
 
-	companyID := newTestCompany(t, store, 1001, "retail_test", 1000.0)
+	companyID := newTestCompany(t, store, -1001, "retail_test", 1000.0)
 	c, _ := store.GetCompany(nil, companyID)
 	c.Inventory[1] = 100
 	store.UpdateCompany(nil, c)
@@ -73,7 +73,7 @@ func TestProcessRetailSales_NoEconomyModel_SkipsResource(t *testing.T) {
 	svc, store, _ := newRetailTestSvc(economy)
 	setupRetailTicker(t, store, 1, 24.0)
 
-	companyID := newTestCompany(t, store, 1002, "no_eco_test", 500.0)
+	companyID := newTestCompany(t, store, -1002, "no_eco_test", 500.0)
 	c, _ := store.GetCompany(nil, companyID)
 	c.Inventory[1] = 50
 	store.UpdateCompany(nil, c)
@@ -91,7 +91,7 @@ func TestProcessRetailSales_NoEconomyModel_SkipsResource(t *testing.T) {
 func TestProcessRetailSales_EmptyEconomy_NoOp(t *testing.T) {
 	t.Parallel()
 	svc, store, _ := newRetailTestSvc(nil)
-	companyID := newTestCompany(t, store, 1003, "empty_eco_test", 500.0)
+	companyID := newTestCompany(t, store, -1003, "empty_eco_test", 500.0)
 	c, _ := store.GetCompany(nil, companyID)
 	c.Inventory[1] = 50
 	store.UpdateCompany(nil, c)
@@ -172,7 +172,7 @@ func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
 	}
 }
 
-func TestCatchUpPlayerRetail_SkipsPlayerCompanyInScheduler(t *testing.T) {
+func TestProcessRetailSales_SkipsPlayerWithoutSettlementBaseline(t *testing.T) {
 	t.Parallel()
 	economy := map[int]*catalog.EconomyModelEntry{
 		1: {BuildingKindModifier: 0.8, BuildingLevelsNeededPerUnitPerHour: 0.01, ModeledProductionCostPerUnit: 8.0, ModeledStoreWages: 200.0, ModeledUnitsSoldAnHour: 15.0},
@@ -183,7 +183,6 @@ func TestCatchUpPlayerRetail_SkipsPlayerCompanyInScheduler(t *testing.T) {
 	companyID := newTestCompany(t, store, 1006, "player_skip", 500.0)
 	c, _ := store.GetCompany(nil, companyID)
 	c.Inventory[1] = 100
-	c.LastRetailAt = time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC).Format(time.RFC3339)
 	store.UpdateCompany(nil, c)
 
 	svc.ProcessRetailSales(context.Background())
