@@ -112,18 +112,28 @@ export interface ChatRoom {
   id: string
   participant1: number
   participant2: number
+  last_message?: string
   last_message_at?: string
   created_at: string
 }
+export interface RoomChatMessage {
+  id: number
+  room_id: string
+  sender_id: number
+  sender_name: string
+  content: string
+  created_at: string
+  read?: boolean
+}
 export interface CreateRoomResponse {
   room: ChatRoom
-  messages: ChatMessage[]
+  messages: RoomChatMessage[]
 }
 export interface RoomListResponse {
   rooms: ChatRoom[]
 }
 export interface RoomMessagesResponse {
-  messages: ChatMessage[]
+  messages: RoomChatMessage[]
 }
 export function useChatRooms() {
   return useQuery({
@@ -154,7 +164,7 @@ export function useSendRoomMessage(roomId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: string) =>
-      api.post<ChatMessage>('/api/v2/chat/room/send/', { roomId, body }),
+      api.post<RoomChatMessage>('/api/v2/chat/room/send/', { roomId, body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat', 'room', roomId, 'messages'] })
     },

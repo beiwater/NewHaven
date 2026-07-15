@@ -2,9 +2,10 @@ import { useUIStore } from '@/store/ui.store'
 import { audio } from '@/audio/AudioManager'
 import { usePowerupTypes, useActivePowerup, useActivatePowerup, type PowerupType, type ActivePowerup } from '@/api/powerup.api'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 
 /** Format seconds into a human-readable duration string */
-function formatDuration(seconds: number, t: (...args: unknown[]) => string): string {
+function formatDuration(seconds: number, t: TFunction): string {
   if (seconds < 60) return `${seconds}${t('powerups.timeSecond')}`
   const min = Math.floor(seconds / 60)
   const sec = seconds % 60
@@ -14,7 +15,7 @@ function formatDuration(seconds: number, t: (...args: unknown[]) => string): str
   return m > 0 ? `${h}${t('powerups.timeHour')} ${m}${t('powerups.timeMinute')}` : `${h}${t('powerups.timeHour')}`
 }
 
-function formatRemaining(duration: string, t: (...args: unknown[]) => string): string {
+function formatRemaining(duration: string, t: TFunction): string {
   if (!duration) return ''
   // Match Go duration format: XhYmZs
   const h = duration.match(/(\d+)h/)

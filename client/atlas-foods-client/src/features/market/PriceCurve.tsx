@@ -136,8 +136,6 @@ export function PriceCurve({
     })
     .join(' ')
   const candleW = candles.length > 1 ? (plotW / candles.length) * 0.6 : 4
-  const candleSpacing = candles.length > 1 ? plotW / (candles.length - 1) : plotW
-
   const lastCandle = candles.at(-1)
   return (
     <div className="mt-4 rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50 to-white/70 p-3">

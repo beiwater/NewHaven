@@ -94,7 +94,6 @@ export function SettingsPage() {
   const [locale, setLocaleLocal] = useState<SupportedLocale>(getStoredLocale)
   const [showSoundTest, setShowSoundTest] = useState(false)
   const [settings, setSettings] = useState<GameSettings>(loadSettings)
-  const [saved] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { data: companyData } = useCompany()

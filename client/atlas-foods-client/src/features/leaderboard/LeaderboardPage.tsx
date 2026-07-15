@@ -331,7 +331,7 @@ function CompanyDetailCard({
   const setChatTab = useUIStore((s) => s.setChatTab)
 
   const handleSaveNickname = () => {
-    const updated = { ...nicknames, [entry.companyId]: nicknameInput }
+    const updated: Record<string, string> = { ...nicknames, [entry.companyId]: nicknameInput }
     if (!nicknameInput.trim()) {
       delete updated[entry.companyId]
     }

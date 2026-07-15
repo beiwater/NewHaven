@@ -2,8 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useUIStore } from '@/store/ui.store'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
 import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding, useStockShelf, useUnstockShelf, useSetShelfPrice } from '@/api/buildings.api'
-import { useWarehouse } from '@/api/inventory.api'
-import type { Building, ProductionJob, ShelfItem } from '@/game/types'
+import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
 import { resourceIcon, resourceName } from '@/game/resources'
 import { buildingIcon } from '@/game/icons'
@@ -63,7 +62,7 @@ function accruedAmount(job: ProductionJob, now: number): number {
   if (job.status === 'claimed') return job.amount
   if (!job.startedAt) return 0
   const elapsed = (now - new Date(job.startedAt).getTime()) / 1000
-  const duration = job.durationSeconds ?? 1
+  const duration = Math.max(1, (new Date(job.completesAt).getTime() - new Date(job.startedAt).getTime()) / 1000)
   return Math.min(job.amount, Math.floor((elapsed / duration) * job.amount))
 }
 
@@ -92,7 +91,6 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
   const claimProd = useClaimProduction()
 
   // Retail hooks (only used for retail buildings)
-  const { data: warehouse } = useWarehouse()
   const stockShelf = useStockShelf()
   const unstockShelf = useUnstockShelf()
   const setShelfPriceMut = useSetShelfPrice()
@@ -207,7 +205,6 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
       {/* ────── RETAIL BUILDING: Sell Tab ────── */}
       {building.isRetail ? <RetailSellSection
           building={building}
-          warehouse={warehouse}
           stockShelf={stockShelf}
           unstockShelf={unstockShelf}
           setShelfPriceApi={setShelfPriceMut}
@@ -486,12 +483,11 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
 
 /* ─── Retail Sell Section ─── */
 function RetailSellSection({
-  building, warehouse, stockShelf, unstockShelf, setShelfPriceApi,
+  building, stockShelf, unstockShelf, setShelfPriceApi,
   stockQuantity, setStockQuantity, stockResourceId, setStockResourceId,
   shelfPrice, setShelfPrice, t,
 }: {
   building: Building
-  warehouse: { inventory: Array<{ resourceId: number; quantity: number }> } | undefined
   stockShelf: ReturnType<typeof useStockShelf>
   unstockShelf: ReturnType<typeof useUnstockShelf>
   setShelfPriceApi: ReturnType<typeof useSetShelfPrice>
