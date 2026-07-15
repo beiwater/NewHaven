@@ -39,6 +39,9 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 			return nil, apperr.Internalf("find idempotent production job: %v", err)
 		}
 		if existing != nil {
+			if existing.Status == proddmn.StatusCancelled {
+				return nil, apperr.Conflict("this production request was cancelled; start again with a new requestId")
+			}
 			if !sameStartProduction(existing, req) {
 				return nil, apperr.Conflict("requestId was already used for a different production run")
 			}
@@ -66,7 +69,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		return nil, apperr.Internalf("load production jobs for building %s: %v", building.ID, err)
 	}
 	for _, job := range existingJobs {
-		if job.CompanyID == companyID && job.Status != proddmn.StatusClaimed {
+		if job.CompanyID == companyID && job.Status != proddmn.StatusClaimed && job.Status != proddmn.StatusCancelled {
 			return nil, apperr.Conflict("this building is already producing; collect or cancel its current run first")
 		}
 	}

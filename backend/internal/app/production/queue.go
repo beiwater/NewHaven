@@ -2,12 +2,14 @@ package production
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // ProductionQueue returns the production queue overview grouped by building.
@@ -32,7 +34,7 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 	byBuilding := make(map[string][]openapi.ProductionJobDTO)
 	inUse := 0
 	for _, j := range jobs {
-		if j.Status == proddmn.StatusClaimed {
+		if j.Status == proddmn.StatusClaimed || j.Status == proddmn.StatusCancelled {
 			continue
 		}
 		inUse++
@@ -150,25 +152,23 @@ func (s *Service) CancelProductionJob(ctx context.Context, companyID int, jobID 
 		return nil, apperr.Conflict("job already claimed")
 	}
 
-	// Refund 50% of inputs based on the resource recipe.
+	// Calculate the 50% refund, then apply all refunds and the cancellation
+	// tombstone in one storage critical section.
 	refunds := make(map[int]int)
 	resEntry, ok := s.resources[job.ResourceID]
 	if ok {
 		for resourceID, amountPerUnit := range resEntry.ProducedFrom {
 			refundAmount := (amountPerUnit * job.Quantity) / 2
 			if refundAmount > 0 {
-				if err := s.companies.UpdateInventory(ctx, companyID, resourceID, refundAmount); err != nil {
-					rollbackInventory(ctx, s.companies, companyID, refunds)
-					return nil, apperr.Internalf("refund input %d: %v", resourceID, err)
-				}
 				refunds[resourceID] = refundAmount
 			}
 		}
 	}
-
-	if err := s.production.DeleteJob(ctx, job.ID); err != nil {
-		rollbackInventory(ctx, s.companies, companyID, refunds)
-		return nil, apperr.Internalf("delete cancelled job: %v", err)
+	if _, _, err := s.production.CancelProductionJob(ctx, companyID, job.ID, refunds); err != nil {
+		if errors.Is(err, storage.ErrAlreadySettled) {
+			return nil, apperr.Conflict("job already claimed")
+		}
+		return nil, apperr.Internalf("cancel production job: %v", err)
 	}
 
 	status := "cancelled"
@@ -218,14 +218,6 @@ func (s *Service) ClaimAll(ctx context.Context, companyID int) (*openapi.ClaimAl
 		Errors:  &errs,
 		Total:   &total,
 	}, nil
-}
-
-func rollbackInventory(ctx context.Context, companies interface {
-	UpdateInventory(context.Context, int, int, int) error
-}, companyID int, changes map[int]int) {
-	for resourceID, amount := range changes {
-		_ = companies.UpdateInventory(ctx, companyID, resourceID, -amount)
-	}
 }
 
 func valueOrZero(v *int) int {

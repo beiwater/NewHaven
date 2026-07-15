@@ -6,9 +6,10 @@ import "time"
 type JobStatus string
 
 const (
-	StatusRunning JobStatus = "running"
-	StatusReady   JobStatus = "ready"
-	StatusClaimed JobStatus = "claimed"
+	StatusRunning   JobStatus = "running"
+	StatusReady     JobStatus = "ready"
+	StatusClaimed   JobStatus = "claimed"
+	StatusCancelled JobStatus = "cancelled"
 )
 
 // ProductionJob represents a single production run.

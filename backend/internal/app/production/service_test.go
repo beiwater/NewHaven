@@ -412,6 +412,16 @@ func TestStartProduction_RetryIsIdempotentAndScopedToCompany(t *testing.T) {
 	if _, err := svc.StartProduction(ctx, firstCompany.ID, &changed); !apperr.HasKind(err, apperr.KindConflict) {
 		t.Fatalf("changed replay error = %v, want conflict", err)
 	}
+	if _, err := svc.CancelProductionJob(ctx, firstCompany.ID, *first.Job.Id); err != nil {
+		t.Fatalf("cancel original production: %v", err)
+	}
+	if _, err := svc.StartProduction(ctx, firstCompany.ID, req); !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("delayed start replay after cancellation error = %v, want conflict", err)
+	}
+	afterCancel, _ := store.GetCompany(ctx, firstCompany.ID)
+	if got := afterCancel.Inventory[1]; got != 90 {
+		t.Fatalf("cancel plus delayed replay left %d Grain, want one 50%% refund and no restart (90)", got)
+	}
 
 	secondCompany := createCompany(202, "other-owner", "other-mill")
 	secondReq := *req

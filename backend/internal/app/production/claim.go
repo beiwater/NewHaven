@@ -42,6 +42,9 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 	if job.Status == proddmn.StatusClaimed {
 		return nil, apperr.Conflict("job already claimed")
 	}
+	if job.Status == proddmn.StatusCancelled {
+		return nil, apperr.Conflict("job was cancelled")
+	}
 	if job.ClaimableAmount <= 0 {
 		return nil, apperr.Validation("nothing to claim yet")
 	}

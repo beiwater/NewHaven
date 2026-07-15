@@ -2,13 +2,18 @@ package production_test
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/beiwater/NewHaven/backend/internal/app/production"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
+	"github.com/beiwater/NewHaven/backend/internal/config"
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
+	"github.com/beiwater/NewHaven/backend/internal/platform"
 )
 
 func createProductionCompany(t *testing.T, store interface {
@@ -76,40 +81,71 @@ func TestProductionQueueRefreshesAndGroupsJobs(t *testing.T) {
 	}
 }
 
-func TestCancelProductionRefundsHalfInputsAndDeletesJob(t *testing.T) {
+func TestCancelProductionRefundsHalfInputsOnceAndKeepsTombstone(t *testing.T) {
 	ctx := context.Background()
 	resources := map[int]*catalog.ResourceEntry{
 		3: {ID: 3, ProducedFrom: map[int]int{1: 2}},
 	}
 	svc, store := newTestService(t, resources, nil)
+	secondSvc := production.NewService(
+		store,
+		store,
+		store,
+		store,
+		&config.GameConfig{ProductionMod: 1},
+		resources,
+		nil,
+		platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC)),
+		platform.NewIDGen(),
+	)
 	company := createProductionCompany(t, store, 102, map[int]int{1: 10})
+	requestID := "cancel-original-start"
 
 	if err := store.CreateJob(ctx, &proddmn.ProductionJob{
-		ID:             "cancel-job",
-		CompanyID:      company.ID,
-		BuildingID:     company.Buildings[0].ID,
-		ResourceID:     3,
-		Quantity:       6,
-		TargetQuantity: 6,
-		StartedAt:      time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC),
-		Status:         proddmn.StatusRunning,
+		ID:              "cancel-job",
+		CompanyID:       company.ID,
+		BuildingID:      company.Buildings[0].ID,
+		ResourceID:      3,
+		Quantity:        6,
+		TargetQuantity:  6,
+		StartedAt:       time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC),
+		Status:          proddmn.StatusRunning,
+		ClientRequestID: requestID,
 	}); err != nil {
 		t.Fatalf("CreateJob: %v", err)
 	}
 
-	resp, err := svc.CancelProductionJob(ctx, company.ID, "cancel-job")
-	if err != nil {
-		t.Fatalf("CancelProductionJob: %v", err)
+	services := []*production.Service{svc, secondSvc}
+	errs := make([]error, len(services))
+	var wg sync.WaitGroup
+	for i := range services {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			resp, err := services[i].CancelProductionJob(ctx, company.ID, "cancel-job")
+			errs[i] = err
+			if err == nil && (resp.Status == nil || *resp.Status != "cancelled") {
+				errs[i] = fmt.Errorf("status = %v, want cancelled", resp.Status)
+			}
+		}(i)
 	}
-	if resp.Status == nil || *resp.Status != "cancelled" {
-		t.Fatalf("status = %v, want cancelled", resp.Status)
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent cancel %d: %v", i, err)
+		}
 	}
 	company, _ = store.GetCompany(ctx, company.ID)
 	if company.Inventory[1] != 16 {
 		t.Fatalf("inventory = %d, want 16", company.Inventory[1])
 	}
-	if _, err := store.GetJob(ctx, "cancel-job"); err == nil {
-		t.Fatal("cancelled job still exists")
+	job, err := store.GetJob(ctx, "cancel-job")
+	if err != nil || job.Status != proddmn.StatusCancelled {
+		t.Fatalf("cancel tombstone = %+v, err=%v", job, err)
+	}
+	byRequest, err := store.GetJobByClientRequestID(ctx, company.ID, requestID)
+	if err != nil || byRequest == nil || byRequest.Status != proddmn.StatusCancelled {
+		t.Fatalf("cancel request tombstone was not retained: job=%+v err=%v", byRequest, err)
 	}
 }
 

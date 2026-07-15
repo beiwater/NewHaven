@@ -730,7 +730,7 @@ func (s *Store) CreateJob(_ context.Context, j *production.ProductionJob) error 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, existing := range s.jobs {
-		if existing.CompanyID == j.CompanyID && existing.BuildingID == j.BuildingID && existing.Status != production.StatusClaimed {
+		if existing.CompanyID == j.CompanyID && existing.BuildingID == j.BuildingID && existing.Status != production.StatusClaimed && existing.Status != production.StatusCancelled {
 			return fmt.Errorf("%w: production line", storage.ErrAlreadyExists)
 		}
 	}
@@ -767,7 +767,7 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 	if !ok || job.CompanyID != companyID {
 		return nil, fmt.Errorf("job not found")
 	}
-	if job.Status == production.StatusClaimed {
+	if job.Status == production.StatusClaimed || job.Status == production.StatusCancelled {
 		return nil, storage.ErrAlreadySettled
 	}
 	if job.ClaimableAmount <= 0 {
@@ -790,6 +790,43 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 	job.XPAwarded += xpEarned
 	copy := *job
 	return &copy, nil
+}
+
+// CancelProductionJob atomically applies every input refund and records a
+// cancellation tombstone. The tombstone keeps the original request ID alive,
+// preventing delayed start retries from resurrecting a cancelled run.
+func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds map[int]int) (*production.ProductionJob, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.jobs[jobID]
+	if !ok || job.CompanyID != companyID {
+		return nil, false, fmt.Errorf("job not found")
+	}
+	if job.Status == production.StatusClaimed {
+		return nil, false, storage.ErrAlreadySettled
+	}
+	if job.Status == production.StatusCancelled {
+		copy := *job
+		return &copy, true, nil
+	}
+	if _, ok := s.companies[companyID]; !ok {
+		return nil, false, fmt.Errorf("company %d not found", companyID)
+	}
+	if _, ok := s.warehouses[companyID]; !ok {
+		return nil, false, fmt.Errorf("warehouse for company %d not found", companyID)
+	}
+	for resourceID, amount := range refunds {
+		if amount <= 0 {
+			continue
+		}
+		if err := s.updateInventoryLocked(companyID, resourceID, amount); err != nil {
+			return nil, false, err
+		}
+	}
+	job.Status = production.StatusCancelled
+	job.ClaimableAmount = 0
+	copy := *job
+	return &copy, false, nil
 }
 
 func (s *Store) GetJobByClientRequestID(_ context.Context, companyID int, requestID string) (*production.ProductionJob, error) {
@@ -836,7 +873,7 @@ func (s *Store) UpdateJob(_ context.Context, j *production.ProductionJob) error 
 	if existing, ok := s.jobs[j.ID]; ok {
 		if existing.ClaimedAmount > j.ClaimedAmount ||
 			existing.XPAwarded > j.XPAwarded ||
-			(existing.Status == production.StatusClaimed && j.Status != production.StatusClaimed) {
+			((existing.Status == production.StatusClaimed || existing.Status == production.StatusCancelled) && j.Status != existing.Status) {
 			return storage.ErrStateConflict
 		}
 	}

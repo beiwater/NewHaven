@@ -68,7 +68,7 @@ func (s *Service) refreshJobStatuses(ctx context.Context, companyID int) error {
 	now := s.clock.Now()
 	for i := range jobs {
 		j := &jobs[i]
-		if j.Status == proddmn.StatusClaimed {
+		if j.Status == proddmn.StatusClaimed || j.Status == proddmn.StatusCancelled {
 			if j.ClaimableAmount != 0 {
 				j.ClaimableAmount = 0
 				if err := s.production.UpdateJob(ctx, j); err != nil {
@@ -134,6 +134,9 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 
 	dtos := make([]openapi.ProductionJobDTO, 0, len(jobs))
 	for _, j := range jobs {
+		if j.Status == proddmn.StatusCancelled {
+			continue
+		}
 		id := j.ID
 		buildingID := j.BuildingID
 		resourceID := j.ResourceID
