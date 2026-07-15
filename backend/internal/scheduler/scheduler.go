@@ -2,48 +2,38 @@ package scheduler
 
 import (
 	"context"
-	"go-sim-api/internal/model"
-	"log"
+	"log/slog"
 	"time"
 )
 
-type GameService interface {
-	SettleAllBonds() map[string]any
-	CheckMarketLock(resourceID int)
-	ResourcesWithMarket() []int
-	ResetDailyMarket()
-	RunBotMarketCycle()
-	AwardGovernmentContracts() []model.GovContract
-	ResolveGovernmentDefaults() []model.GovContract
-	CleanupOrders()
-	SaveAll()
-	RefreshDailyOrders()
-	RunAllProductionJobs()
-}
-
 type Scheduler struct {
-	svc    GameService
-	ticker *time.Ticker
-	ctx    context.Context
-	cancel context.CancelFunc
+	svc         BotService
+	settleBonds func(ctx context.Context) error
+	saveAll     func(ctx context.Context) error
+	ticker      *time.Ticker
+	done        chan struct{}
 }
 
-func New(svc GameService) *Scheduler {
-	ctx, cancel := context.WithCancel(context.Background())
+// New creates a Scheduler that ticks every 60 seconds.
+// settleBonds is an optional function called on each tick to settle bond interest.
+// saveAll is an optional function called on each tick to persist game state.
+func New(svc BotService, settleBonds func(ctx context.Context) error, saveAll func(ctx context.Context) error) *Scheduler {
 	return &Scheduler{
-		svc:    svc,
-		ticker: time.NewTicker(60 * time.Second),
-		ctx:    ctx,
-		cancel: cancel,
+		svc:         svc,
+		settleBonds: settleBonds,
+		saveAll:     saveAll,
+		ticker:      time.NewTicker(60 * time.Second),
+		done:        make(chan struct{}),
 	}
 }
 
+// Start begins the background tick loop in a goroutine.
 func (s *Scheduler) Start() {
-	log.Println("[scheduler] started (tick every 60s)")
+	slog.Info("[scheduler] started (tick every 60s)")
 	go func() {
 		for {
 			select {
-			case <-s.ctx.Done():
+			case <-s.done:
 				return
 			case <-s.ticker.C:
 				s.tick()
@@ -52,44 +42,53 @@ func (s *Scheduler) Start() {
 	}()
 }
 
+// Stop signals the tick loop to shut down and waits for it to finish.
 func (s *Scheduler) Stop() {
 	s.ticker.Stop()
-	s.cancel()
+	close(s.done)
 }
 
 func (s *Scheduler) tick() {
-	log.Println("[scheduler] tick start")
+	ctx := context.Background()
+	slog.Debug("[scheduler] tick start")
 
-	// 1. Bond interest settlement
-	result := s.svc.SettleAllBonds()
-	if defaults, ok := result["defaults"].([]any); ok && len(defaults) > 0 {
-		log.Printf("[scheduler] bond defaults: %d", len(defaults))
+	// 1. Bill production jobs
+	if err := s.svc.RefreshDailyOrders(ctx); err != nil {
+		slog.Warn("[scheduler] RefreshDailyOrders", "error", err)
 	}
 
-	// 2. Government contract awards
-	s.svc.AwardGovernmentContracts()
-
-	// 3. Government default resolution
-	s.svc.ResolveGovernmentDefaults()
-
-	// 4. Bot market cycle
-	s.svc.RunBotMarketCycle()
-	// 5. Check market locks and deploy national team if needed
-	for _, rid := range s.svc.ResourcesWithMarket() {
-		s.svc.CheckMarketLock(rid)
+	// 2. Bot market cycle – generate NPC orders for liquidity
+	if err := s.svc.RunBotCycle(ctx); err != nil {
+		slog.Warn("[scheduler] RunBotCycle", "error", err)
 	}
 
-	// 6. Order cleanup (remove zero-remaining orders)
-	s.svc.CleanupOrders()
+	// 3. Match all open orders
+	if err := s.svc.MatchAllOrders(ctx); err != nil {
+		slog.Warn("[scheduler] MatchAllOrders", "error", err)
+	}
 
-	// 7. Refresh production jobs
-	s.svc.RunAllProductionJobs()
+	// 4. Cleanup stale orders
+	if err := s.svc.CleanupMarket(ctx); err != nil {
+		slog.Warn("[scheduler] CleanupMarket", "error", err)
+	}
 
-	// 8. Refresh daily orders
-	s.svc.RefreshDailyOrders()
+	// 5. Settle bond interest
+	if s.settleBonds != nil {
+		if err := s.settleBonds(ctx); err != nil {
+			slog.Warn("[scheduler] settleBonds", "error", err)
+		}
+	}
 
-	// 9. Persistent save
-	s.svc.SaveAll()
+	// 7. Process retail sales
+	if err := s.svc.ProcessRetailSales(ctx); err != nil {
+		slog.Warn("[scheduler] ProcessRetailSales", "error", err)
+	}
 
-	log.Println("[scheduler] tick end")
+	// 8. Persist game state snapshot
+	if s.saveAll != nil {
+		if err := s.saveAll(ctx); err != nil {
+			slog.Warn("[scheduler] saveAll", "error", err)
+		}
+	}
+	slog.Debug("[scheduler] tick end")
 }

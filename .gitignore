@@ -4,7 +4,7 @@ node_modules/
 
 # Build outputs
 backend/simapi
-dev/simapi.exe
+backend/simapi.exe
 dist/
 .vite/
 
@@ -35,9 +35,7 @@ coverage/
 .cache/
 tmp/
 temp/
-backend/simapi.exe
-# Build outputs
-backend-next/dev/
+backend/data/snapshot.json
 
 ./log
 log/

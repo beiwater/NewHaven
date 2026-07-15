@@ -6,12 +6,12 @@ New Haven is a browser-based multiplayer economy simulation game — build facto
 
 ## Active Rewrite Rules
 
-- `backend-next/` is the active rewrite target and should be used for new backend work. Treat `backend/` as the legacy behavior reference unless a task explicitly targets it.
+- `backend/` is the canonical Go API. The former `backend-next/` rewrite has replaced the legacy backend; do not reintroduce a parallel backend tree.
 - Codex is responsible for planning, implementation, code review, verification, and final judgment. Do not delegate repository work to OMP unless the user explicitly asks to use OMP again.
 - Complete changes end to end: define or update the OpenAPI contract, implement the service and HTTP route, connect the frontend callsite when applicable, add focused tests, and verify the real user flow.
 - Commit and push each meaningful, verified rewrite batch. Do not include unrelated user changes in a commit.
 - A handwritten source file over 300 lines is a split-risk signal. Prefer domain-focused files before extending an already large file. Generated files, the root OpenAPI document, and shared global styles are exceptions but must still be reviewed carefully.
-- Preserve the standard backend-next response envelope: `{ "data": ..., "error": null }` on success and a typed application error on failure.
+- Preserve the standard backend response envelope: `{ "data": ..., "error": null }` on success and a typed application error on failure.
 
 ### Story Progress
 
