@@ -58,6 +58,7 @@ type MarketStorage interface {
 type ProductionStorage interface {
 	CreateJob(ctx context.Context, j *production.ProductionJob) error
 	GetJob(ctx context.Context, jobID string) (*production.ProductionJob, error)
+	GetJobByClientRequestID(ctx context.Context, companyID int, requestID string) (*production.ProductionJob, error)
 	GetJobsByCompany(ctx context.Context, companyID int) ([]production.ProductionJob, error)
 	GetJobsByBuilding(ctx context.Context, buildingID string) ([]production.ProductionJob, error)
 	UpdateJob(ctx context.Context, j *production.ProductionJob) error

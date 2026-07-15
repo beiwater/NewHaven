@@ -2,25 +2,48 @@ package production
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // StartProduction starts a new production job for the given company.
 // It validates the building/resource, deducts required input inventory,
 // calculates duration, creates a running production job, and returns the result.
 func (s *Service) StartProduction(ctx context.Context, companyID int, req *openapi.StartProductionRequest) (*openapi.StartProductionResponse, error) {
+	if req == nil {
+		return nil, apperr.BadRequest("request is required")
+	}
+	requestID, err := normalizeProductionRequestID(req.RequestId)
+	if err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
+	}
+	if requestID != "" {
+		existing, err := s.production.GetJobByClientRequestID(ctx, companyID, requestID)
+		if err != nil {
+			return nil, apperr.Internalf("find idempotent production job: %v", err)
+		}
+		if existing != nil {
+			if !sameStartProduction(existing, req) {
+				return nil, apperr.Conflict("requestId was already used for a different production run")
+			}
+			return startProductionResponse(existing), nil
+		}
 	}
 
 	// Validate building ownership.
@@ -123,16 +146,22 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	}
 
 	// Deduct input resources from inventory via UpdateInventory (rejects negative final amounts).
+	deductedInputs := make([]inputReq, 0, len(inputs))
 	for _, inp := range inputs {
 		if err := s.companies.UpdateInventory(ctx, companyID, inp.resourceID, -inp.amount); err != nil {
+			for _, deducted := range deductedInputs {
+				_ = s.companies.UpdateInventory(ctx, companyID, deducted.resourceID, deducted.amount)
+			}
 			return nil, apperr.Internalf("deduct input %d: %v", inp.resourceID, err)
 		}
+		deductedInputs = append(deductedInputs, inp)
 	}
 
 	// Create the production job.
 	now := s.clock.Now()
 	job := &proddmn.ProductionJob{
 		ID:              s.idgen.Next("prod"),
+		ClientRequestID: requestID,
 		CompanyID:       companyID,
 		BuildingID:      req.BuildingId,
 		ResourceID:      req.ResourceId,
@@ -148,9 +177,42 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		for _, inp := range inputs {
 			_ = s.companies.UpdateInventory(ctx, companyID, inp.resourceID, inp.amount)
 		}
+		if errors.Is(err, storage.ErrAlreadyExists) {
+			if requestID != "" {
+				existing, findErr := s.production.GetJobByClientRequestID(ctx, companyID, requestID)
+				if findErr == nil && existing != nil && sameStartProduction(existing, req) {
+					return startProductionResponse(existing), nil
+				}
+			}
+			return nil, apperr.Conflict("this building is already producing; collect or cancel its current run first")
+		}
 		return nil, apperr.Internalf("create job: %v", err)
 	}
 
+	return startProductionResponse(job), nil
+}
+
+func normalizeProductionRequestID(value *string) (string, error) {
+	if value == nil {
+		return "", nil
+	}
+	requestID := strings.TrimSpace(*value)
+	if requestID == "" {
+		return "", apperr.BadRequest("requestId cannot be empty")
+	}
+	if len(requestID) > 128 {
+		return "", apperr.BadRequest("requestId cannot exceed 128 characters")
+	}
+	return requestID, nil
+}
+
+func sameStartProduction(job *proddmn.ProductionJob, req *openapi.StartProductionRequest) bool {
+	return job.BuildingID == req.BuildingId &&
+		job.ResourceID == req.ResourceId &&
+		job.TargetQuantity == req.Quantity
+}
+
+func startProductionResponse(job *proddmn.ProductionJob) *openapi.StartProductionResponse {
 	// Build response DTOs.
 	jobID := job.ID
 	buildingID := job.BuildingID
@@ -176,7 +238,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		Status:          &status,
 	}
 
-	buildingID = building.ID
+	buildingID = job.BuildingID
 	busy := true
 	buildingStatus := &openapi.BuildingProductionStatus{
 		Id:    &buildingID,
@@ -187,5 +249,5 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	return &openapi.StartProductionResponse{
 		Job:      jobDTO,
 		Building: buildingStatus,
-	}, nil
+	}
 }

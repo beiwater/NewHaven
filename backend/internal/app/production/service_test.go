@@ -69,7 +69,7 @@ func TestListProductionJobs_ReturnsJobs(t *testing.T) {
 	err = store.CreateJob(ctx, &proddmn.ProductionJob{
 		ID:              "job-1",
 		CompanyID:       company.ID,
-		BuildingID:      "bld-1",
+		BuildingID:      "bld-2",
 		ResourceID:      5,
 		Quantity:        10,
 		TargetQuantity:  10,
@@ -340,6 +340,87 @@ func TestStartProduction_BlocksSecondRunInTheSameBuilding(t *testing.T) {
 	}
 	if len(jobs) != 1 {
 		t.Errorf("expected exactly one queued run, got %d", len(jobs))
+	}
+}
+
+func TestStartProduction_RetryIsIdempotentAndScopedToCompany(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		3: {ID: 3, Name: "Flour", ProducedPerHourRaw: 320, ProducedFrom: map[int]int{1: 2}},
+	}
+	buildings := map[int]*catalog.BuildingEntry{
+		3: {ID: 3, Name: "Mill", Produces: []int{3}},
+	}
+	svc, store := newTestService(t, resources, buildings)
+	requestID := "start-flour-once"
+
+	createCompany := func(playerID int, username, buildingID string) *domain.Company {
+		t.Helper()
+		if err := store.CreatePlayer(ctx, &auth.Player{ID: playerID, Username: username}); err != nil {
+			t.Fatalf("CreatePlayer: %v", err)
+		}
+		if err := store.CreateCompany(ctx, &domain.Company{
+			PlayerID: playerID,
+			Name:     username + " Mill",
+			Inventory: map[int]int{
+				1: 100,
+			},
+		}); err != nil {
+			t.Fatalf("CreateCompany: %v", err)
+		}
+		company, err := store.GetCompanyByPlayerID(ctx, playerID)
+		if err != nil {
+			t.Fatalf("GetCompanyByPlayerID: %v", err)
+		}
+		company.Buildings = []domain.Building{{ID: buildingID, BuildingID: 3, Level: 1, Name: "Mill"}}
+		if err := store.UpdateCompany(ctx, company); err != nil {
+			t.Fatalf("UpdateCompany: %v", err)
+		}
+		return company
+	}
+
+	firstCompany := createCompany(201, "retry-owner", "retry-mill")
+	req := &openapi.StartProductionRequest{
+		BuildingId: "retry-mill",
+		ResourceId: 3,
+		Quantity:   10,
+		RequestId:  &requestID,
+	}
+	first, err := svc.StartProduction(ctx, firstCompany.ID, req)
+	if err != nil {
+		t.Fatalf("first StartProduction: %v", err)
+	}
+	replayed, err := svc.StartProduction(ctx, firstCompany.ID, req)
+	if err != nil {
+		t.Fatalf("replayed StartProduction: %v", err)
+	}
+	if first.Job == nil || replayed.Job == nil || first.Job.Id == nil || replayed.Job.Id == nil || *first.Job.Id != *replayed.Job.Id {
+		t.Fatalf("replay returned a different job: first=%+v replay=%+v", first.Job, replayed.Job)
+	}
+	updated, _ := store.GetCompany(ctx, firstCompany.ID)
+	if got := updated.Inventory[1]; got != 80 {
+		t.Fatalf("replay deducted inputs more than once: got %d Grain, want 80", got)
+	}
+	jobs, _ := store.GetJobsByCompany(ctx, firstCompany.ID)
+	if len(jobs) != 1 {
+		t.Fatalf("replay created %d jobs, want 1", len(jobs))
+	}
+
+	changed := *req
+	changed.Quantity = 11
+	if _, err := svc.StartProduction(ctx, firstCompany.ID, &changed); !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("changed replay error = %v, want conflict", err)
+	}
+
+	secondCompany := createCompany(202, "other-owner", "other-mill")
+	secondReq := *req
+	secondReq.BuildingId = "other-mill"
+	if _, err := svc.StartProduction(ctx, secondCompany.ID, &secondReq); err != nil {
+		t.Fatalf("same requestId in another company must be isolated: %v", err)
+	}
+	secondUpdated, _ := store.GetCompany(ctx, secondCompany.ID)
+	if got := secondUpdated.Inventory[1]; got != 80 {
+		t.Fatalf("second company inventory = %d, want 80", got)
 	}
 }
 

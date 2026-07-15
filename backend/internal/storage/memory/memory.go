@@ -46,6 +46,7 @@ type Store struct {
 	trades          []market.Trade
 	tickers         map[int]*market.Ticker
 	jobs            map[string]*production.ProductionJob
+	jobsByRequest   map[string]*production.ProductionJob
 	ledger          []finance.LedgerEntry
 	bonds           map[string]*finance.Bond
 	holdings        []finance.BondHolding
@@ -81,6 +82,7 @@ func New() *Store {
 		ordersByRequest: make(map[string]*market.MarketOrder),
 		tickers:         make(map[int]*market.Ticker),
 		jobs:            make(map[string]*production.ProductionJob),
+		jobsByRequest:   make(map[string]*production.ProductionJob),
 		bonds:           make(map[string]*finance.Bond),
 		buildings:       make(map[string]*company.Building),
 		warehouses:      make(map[int]*warehouse.Warehouse),
@@ -235,6 +237,12 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	s.jobs = snap.Jobs
 	if s.jobs == nil {
 		s.jobs = make(map[string]*production.ProductionJob)
+	}
+	s.jobsByRequest = make(map[string]*production.ProductionJob)
+	for _, job := range s.jobs {
+		if job.ClientRequestID != "" {
+			s.jobsByRequest[productionRequestKey(job.CompanyID, job.ClientRequestID)] = job
+		}
 	}
 	if snap.Ledger != nil {
 		s.ledger = snap.Ledger
@@ -634,6 +642,18 @@ func (s *Store) GetTickers(_ context.Context) ([]market.Ticker, error) {
 func (s *Store) CreateJob(_ context.Context, j *production.ProductionJob) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for _, existing := range s.jobs {
+		if existing.CompanyID == j.CompanyID && existing.BuildingID == j.BuildingID && existing.Status != production.StatusClaimed {
+			return fmt.Errorf("%w: production line", storage.ErrAlreadyExists)
+		}
+	}
+	if j.ClientRequestID != "" {
+		key := productionRequestKey(j.CompanyID, j.ClientRequestID)
+		if _, exists := s.jobsByRequest[key]; exists {
+			return fmt.Errorf("%w: production request", storage.ErrAlreadyExists)
+		}
+		s.jobsByRequest[key] = j
+	}
 	s.jobs[j.ID] = j
 	return nil
 }
@@ -646,6 +666,20 @@ func (s *Store) GetJob(_ context.Context, jobID string) (*production.ProductionJ
 		return nil, fmt.Errorf("job not found")
 	}
 	return j, nil
+}
+
+func (s *Store) GetJobByClientRequestID(_ context.Context, companyID int, requestID string) (*production.ProductionJob, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	job, ok := s.jobsByRequest[productionRequestKey(companyID, requestID)]
+	if !ok {
+		return nil, nil
+	}
+	return job, nil
+}
+
+func productionRequestKey(companyID int, requestID string) string {
+	return fmt.Sprintf("%d:%s", companyID, requestID)
 }
 
 func (s *Store) GetJobsByCompany(_ context.Context, companyID int) ([]production.ProductionJob, error) {
@@ -676,16 +710,23 @@ func (s *Store) UpdateJob(_ context.Context, j *production.ProductionJob) error 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.jobs[j.ID] = j
+	if j.ClientRequestID != "" {
+		s.jobsByRequest[productionRequestKey(j.CompanyID, j.ClientRequestID)] = j
+	}
 	return nil
 }
 
 func (s *Store) DeleteJob(_ context.Context, jobID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.jobs[jobID]; !ok {
+	job, ok := s.jobs[jobID]
+	if !ok {
 		return fmt.Errorf("job not found")
 	}
 	delete(s.jobs, jobID)
+	if job.ClientRequestID != "" {
+		delete(s.jobsByRequest, productionRequestKey(job.CompanyID, job.ClientRequestID))
+	}
 	return nil
 }
 

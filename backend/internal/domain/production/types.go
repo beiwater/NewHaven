@@ -14,6 +14,7 @@ const (
 // ProductionJob represents a single production run.
 type ProductionJob struct {
 	ID              string    `json:"id"`
+	ClientRequestID string    `json:"client_request_id,omitempty"`
 	CompanyID       int       `json:"company_id"`
 	BuildingID      string    `json:"building_id"`
 	ResourceID      int       `json:"resource_id"`
@@ -43,6 +44,7 @@ type ProductionOption struct {
 
 // StartProductionRequest is the DTO for starting production.
 type StartProductionRequest struct {
+	RequestID  string `json:"requestId,omitempty" validate:"max=128"`
 	BuildingID string `json:"building_id" validate:"required"`
 	ResourceID int    `json:"resource_id" validate:"required"`
 	Quantity   int    `json:"quantity" validate:"required,min=1"`

@@ -581,9 +581,10 @@ type ShelfItem struct {
 
 // StartProductionRequest defines model for StartProductionRequest.
 type StartProductionRequest struct {
-	BuildingId string `json:"building_id"`
-	Quantity   int    `json:"quantity"`
-	ResourceId int    `json:"resource_id"`
+	BuildingId string  `json:"building_id"`
+	Quantity   int     `json:"quantity"`
+	RequestId  *string `json:"requestId,omitempty"`
+	ResourceId int     `json:"resource_id"`
 }
 
 // StartProductionResponse defines model for StartProductionResponse.
@@ -594,9 +595,10 @@ type StartProductionResponse struct {
 
 // StartProductionV1Request defines model for StartProductionV1Request.
 type StartProductionV1Request struct {
-	Amount                   int  `json:"amount"`
-	EstimatedSecondsToFinish *int `json:"estimatedSecondsToFinish,omitempty"`
-	Kind                     int  `json:"kind"`
+	Amount                   int     `json:"amount"`
+	EstimatedSecondsToFinish *int    `json:"estimatedSecondsToFinish,omitempty"`
+	Kind                     int     `json:"kind"`
+	RequestId                *string `json:"requestId,omitempty"`
 }
 
 // StockShelfRequest defines model for StockShelfRequest.

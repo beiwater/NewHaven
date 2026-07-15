@@ -75,8 +75,9 @@ func (h *ProductionHandler) handleStartProductionV1(w http.ResponseWriter, r *ht
 	}
 
 	var req struct {
-		Kind   int `json:"kind"`
-		Amount int `json:"amount"`
+		Kind      int     `json:"kind"`
+		Amount    int     `json:"amount"`
+		RequestID *string `json:"requestId,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, 400, ErrorBadRequest, "invalid request body", nil)
@@ -92,6 +93,7 @@ func (h *ProductionHandler) handleStartProductionV1(w http.ResponseWriter, r *ht
 		BuildingId: buildingID,
 		ResourceId: req.Kind,
 		Quantity:   req.Amount,
+		RequestId:  req.RequestID,
 	})
 	if err != nil {
 		writeAppErr(w, err)

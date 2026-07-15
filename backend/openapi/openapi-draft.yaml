@@ -1900,6 +1900,8 @@ components:
       type: object
       required: [building_id, resource_id, quantity]
       properties:
+        requestId:
+          type: string
         building_id:
           type: string
         resource_id:
@@ -1912,6 +1914,8 @@ components:
       type: object
       required: [kind, amount]
       properties:
+        requestId:
+          type: string
         kind:
           type: integer
         amount:
