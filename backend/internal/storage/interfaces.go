@@ -52,6 +52,7 @@ type MarketStorage interface {
 	CreateOrder(ctx context.Context, o *market.MarketOrder) error
 	GetOrder(ctx context.Context, orderID string) (*market.MarketOrder, error)
 	GetOrderByClientRequestID(ctx context.Context, companyID int, requestID string) (*market.MarketOrder, error)
+	CancelMarketOrder(ctx context.Context, companyID int, orderID string) (*market.MarketOrder, bool, error)
 	UpdateOrder(ctx context.Context, o *market.MarketOrder) error
 	GetOpenOrders(ctx context.Context, resourceID int, isBuy bool) ([]market.MarketOrder, error)
 	GetOrdersByCompany(ctx context.Context, companyID int) ([]market.MarketOrder, error)

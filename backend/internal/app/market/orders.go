@@ -2,6 +2,7 @@ package market
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // CreateOrder creates a new market order (buy or sell).
@@ -222,62 +224,30 @@ func (s *Service) CancelOrder(ctx context.Context, companyID int, orderID string
 		return nil, apperr.NotFound("order not found")
 	}
 
-	if order.Status == domainmarket.StatusFilled || order.Status == domainmarket.StatusCancelled || order.Remaining() <= 0 {
+	cancelled, replayed, err := s.market.CancelMarketOrder(ctx, companyID, orderID)
+	if errors.Is(err, storage.ErrAlreadySettled) || replayed {
 		return nil, apperr.Conflict("order already settled")
 	}
+	if err != nil {
+		return nil, apperr.Internalf("cancel order: %v", err)
+	}
 
-	remaining := order.Remaining()
-	originalFilledQuantity := order.FilledQuantity
-	originalStatus := order.Status
-	var originalMoney float64
-
-	// Refund.
-	if order.IsBuy {
-		refund := order.Price * float64(remaining)
-		company, err := s.companies.GetCompany(ctx, companyID)
-		if err != nil {
-			return nil, apperr.Internalf("company lookup: %v", err)
-		}
-		originalMoney = company.Money
-		company.Money += refund
-		if err := s.companies.UpdateCompany(ctx, company); err != nil {
-			return nil, apperr.Internalf("update company: %v", err)
-		}
+	if cancelled.IsBuy {
+		refund := cancelled.Price * float64(cancelled.Remaining())
 		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
 			CompanyID: companyID,
 			Kind:      "market_buy_refund",
 			Amount:    refund,
 			Direction: "in",
 			Metadata: map[string]any{
-				"orderId": order.ID,
+				"orderId": cancelled.ID,
 			},
 		})
-	} else {
-		if err := s.companies.UpdateInventory(ctx, companyID, order.ResourceID, remaining); err != nil {
-			return nil, apperr.Internalf("return inventory: %v", err)
-		}
-	}
-
-	// Mark order cancelled.
-	order.Status = domainmarket.StatusCancelled
-	if err := s.market.UpdateOrder(ctx, order); err != nil {
-		if order.IsBuy {
-			company, rbErr := s.companies.GetCompany(ctx, companyID)
-			if rbErr == nil {
-				company.Money = originalMoney
-				_ = s.companies.UpdateCompany(ctx, company)
-			}
-		} else {
-			_ = s.companies.UpdateInventory(ctx, companyID, order.ResourceID, -remaining)
-		}
-		order.FilledQuantity = originalFilledQuantity
-		order.Status = originalStatus
-		return nil, apperr.Internalf("update order: %v", err)
 	}
 
 	statusStr := "cancelled"
 	return &openapi.CancelOrderResponse{
-		Id:     &order.ID,
+		Id:     &cancelled.ID,
 		Status: &statusStr,
 	}, nil
 }

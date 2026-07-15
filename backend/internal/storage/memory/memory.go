@@ -595,6 +595,38 @@ func (s *Store) GetOrderByClientRequestID(_ context.Context, companyID int, requ
 	return order, nil
 }
 
+// CancelMarketOrder atomically refunds the unfilled reservation and marks the
+// order cancelled. The replay flag lets callers keep HTTP cancellation
+// idempotent without writing a duplicate refund ledger entry.
+func (s *Store) CancelMarketOrder(_ context.Context, companyID int, orderID string) (*market.MarketOrder, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	order, ok := s.orders[orderID]
+	if !ok || order.CompanyID != companyID {
+		return nil, false, fmt.Errorf("order not found")
+	}
+	if order.Status == market.StatusCancelled {
+		copy := *order
+		return &copy, true, nil
+	}
+	remaining := order.Remaining()
+	if order.Status == market.StatusFilled || remaining <= 0 {
+		return nil, false, storage.ErrAlreadySettled
+	}
+	company, ok := s.companies[companyID]
+	if !ok {
+		return nil, false, fmt.Errorf("company %d not found", companyID)
+	}
+	if order.IsBuy {
+		company.Money += order.Price * float64(remaining)
+	} else if err := s.updateInventoryLocked(companyID, order.ResourceID, remaining); err != nil {
+		return nil, false, err
+	}
+	order.Status = market.StatusCancelled
+	copy := *order
+	return &copy, false, nil
+}
+
 func marketRequestKey(companyID int, requestID string) string {
 	return fmt.Sprintf("%d:%s", companyID, requestID)
 }
@@ -602,6 +634,9 @@ func marketRequestKey(companyID int, requestID string) string {
 func (s *Store) UpdateOrder(_ context.Context, o *market.MarketOrder) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if existing, ok := s.orders[o.ID]; ok && existing.Status == market.StatusCancelled && o.Status != market.StatusCancelled {
+		return storage.ErrStateConflict
+	}
 	s.orders[o.ID] = o
 	return nil
 }

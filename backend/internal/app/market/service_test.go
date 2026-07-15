@@ -18,6 +18,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 	"github.com/beiwater/NewHaven/backend/internal/platform"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 	"github.com/beiwater/NewHaven/backend/internal/storage/memory"
 )
 
@@ -750,6 +751,111 @@ func TestCancelOrder_AlreadyCancelled_Error(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "already settled") {
 		t.Errorf("expected 'already settled', got: %v", err)
+	}
+}
+
+func TestCancelOrder_ConcurrentRequestsRefundReservationOnce(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	for _, tc := range []struct {
+		name              string
+		kind              int
+		startingMoney     float64
+		startingInventory int
+	}{
+		{name: "buy order cash", kind: 1, startingMoney: 5000},
+		{name: "sell order inventory", kind: 0, startingMoney: 100, startingInventory: 15},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, store := newTestSvc(resources)
+			secondSvc := appmarket.NewService(
+				store,
+				store,
+				store,
+				resources,
+				nil,
+				nil,
+				&config.GameConfig{ExchangeFeePct: 0.04},
+				platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC)),
+				platform.NewIDGen(),
+			)
+			companyID := newTestCompany(t, store, 300+tc.kind, "concurrent-cancel-"+tc.name, tc.startingMoney)
+			if tc.startingInventory > 0 {
+				if err := store.UpdateInventory(ctx, companyID, 5, tc.startingInventory); err != nil {
+					t.Fatalf("seed inventory: %v", err)
+				}
+			}
+			orderResponse, err := svc.CreateOrder(ctx, companyID, &openapi.CreateOrderRequestFrontend{
+				ResourceId: 5, Kind: tc.kind, Quality: 0, Quantity: 10, Price: 25,
+			})
+			if err != nil {
+				t.Fatalf("CreateOrder: %v", err)
+			}
+			orderID := *orderResponse.Order.Id
+			staleOrders, _ := store.GetOrdersByResource(ctx, 5)
+
+			services := []*appmarket.Service{svc, secondSvc}
+			errs := make([]error, len(services))
+			var wg sync.WaitGroup
+			for i := range services {
+				wg.Add(1)
+				go func(i int) {
+					defer wg.Done()
+					_, errs[i] = services[i].CancelOrder(ctx, companyID, orderID)
+				}(i)
+			}
+			wg.Wait()
+
+			successes := 0
+			conflicts := 0
+			for _, err := range errs {
+				switch {
+				case err == nil:
+					successes++
+				case apperr.HasKind(err, apperr.KindConflict):
+					conflicts++
+				default:
+					t.Fatalf("unexpected concurrent cancel error: %v", err)
+				}
+			}
+			if successes != 1 || conflicts != 1 {
+				t.Fatalf("successes=%d conflicts=%d, want one of each", successes, conflicts)
+			}
+
+			updatedCompany, _ := store.GetCompany(ctx, companyID)
+			if updatedCompany.Money != tc.startingMoney || updatedCompany.Inventory[5] != tc.startingInventory {
+				t.Fatalf("reservation refunded more than once: money=%.0f inventory=%d", updatedCompany.Money, updatedCompany.Inventory[5])
+			}
+			if tc.kind == 1 {
+				entries, _ := store.GetLedgerEntries(ctx, companyID, 20)
+				refundEntries := 0
+				for _, entry := range entries {
+					if entry.Kind == "market_buy_refund" {
+						refundEntries++
+					}
+				}
+				if refundEntries != 1 {
+					t.Fatalf("refund ledger entries=%d, want 1", refundEntries)
+				}
+			}
+
+			for i := range staleOrders {
+				if staleOrders[i].ID != orderID {
+					continue
+				}
+				staleOrders[i].Status = domainmarket.StatusFilled
+				staleOrders[i].FilledQuantity = staleOrders[i].Quantity
+				if err := store.UpdateOrder(ctx, &staleOrders[i]); !errors.Is(err, storage.ErrStateConflict) {
+					t.Fatalf("stale fill update error=%v, want state conflict", err)
+				}
+			}
+			order, _ := store.GetOrder(ctx, orderID)
+			if order.Status != domainmarket.StatusCancelled {
+				t.Fatalf("stale update resurrected cancelled order: %s", order.Status)
+			}
+		})
 	}
 }
 
