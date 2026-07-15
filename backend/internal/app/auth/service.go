@@ -11,6 +11,7 @@ import (
 
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/auth"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
+	warehousedomain "github.com/beiwater/NewHaven/backend/internal/domain/warehouse"
 	"github.com/beiwater/NewHaven/backend/internal/platform"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
@@ -25,6 +26,7 @@ var (
 type Service struct {
 	players     storage.PlayerStorage
 	companies   storage.CompanyStorage
+	warehouses  storage.WarehouseStorage
 	clock       platform.Clock
 	idgen       *platform.IDGen
 	logger      *platform.Logger
@@ -35,6 +37,7 @@ type Service struct {
 func NewService(
 	players storage.PlayerStorage,
 	companies storage.CompanyStorage,
+	warehouses storage.WarehouseStorage,
 	clock platform.Clock,
 	idgen *platform.IDGen,
 	logger *platform.Logger,
@@ -44,6 +47,7 @@ func NewService(
 	return &Service{
 		players:     players,
 		companies:   companies,
+		warehouses:  warehouses,
 		clock:       clock,
 		idgen:       idgen,
 		logger:      logger,
@@ -201,6 +205,9 @@ func (s *Service) DevBootstrap(ctx context.Context) error {
 	if err := s.companies.UpdateCompany(ctx, devCompany); err != nil {
 		return fmt.Errorf("dev bootstrap update: %w", err)
 	}
+	if err := s.syncDeveloperWarehouse(ctx, devCompany); err != nil {
+		return fmt.Errorf("dev bootstrap warehouse: %w", err)
+	}
 
 	s.logger.Info("dev bootstrap complete",
 		"player_id", player.ID,
@@ -214,11 +221,11 @@ func provisionDeveloperMerchant(c *company.Company, idgen *platform.IDGen) {
 	c.Level = 100
 	c.XP = 1000000000
 	c.Money = 1000000000
-	c.WarehouseLevel = 10
+	c.WarehouseLevel = 100
 	c.Preferences = completedArrivalPreferences()
 	c.Inventory = make(map[int]int, 12)
 	for resourceID := 1; resourceID <= 12; resourceID++ {
-		c.Inventory[resourceID] = 10000
+		c.Inventory[resourceID] = 5000
 	}
 
 	if len(c.Buildings) == 0 {
@@ -239,6 +246,25 @@ func provisionDeveloperMerchant(c *company.Company, idgen *platform.IDGen) {
 			})
 		}
 	}
+}
+
+func (s *Service) syncDeveloperWarehouse(ctx context.Context, c *company.Company) error {
+	if s.warehouses == nil {
+		return errors.New("warehouse storage is required for dev bootstrap")
+	}
+	w, err := s.warehouses.GetWarehouse(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+	w.Capacity = 102000 // level 100 with the standard 1,000 base capacity
+	w.UsedCapacity = 0
+	w.Items = make([]warehousedomain.Item, 0, len(c.Inventory))
+	for resourceID := 1; resourceID <= 12; resourceID++ {
+		amount := c.Inventory[resourceID]
+		w.Items = append(w.Items, warehousedomain.Item{ResourceID: resourceID, Amount: amount})
+		w.UsedCapacity += amount
+	}
+	return s.warehouses.UpdateWarehouse(ctx, w)
 }
 
 func completedArrivalPreferences() map[string]any {

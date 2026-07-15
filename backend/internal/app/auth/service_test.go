@@ -20,7 +20,7 @@ func TestRegister_Success(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
+	svc := auth.NewService(store, store, store, clock, idgen, logger, "test-secret", "")
 
 	resp, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "alice",
@@ -54,7 +54,7 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
+	svc := auth.NewService(store, store, store, clock, idgen, logger, "test-secret", "")
 
 	_, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "alice",
@@ -83,7 +83,7 @@ func TestLogin_Success(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
+	svc := auth.NewService(store, store, store, clock, idgen, logger, "test-secret", "")
 
 	_, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "bob",
@@ -116,7 +116,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
+	svc := auth.NewService(store, store, store, clock, idgen, logger, "test-secret", "")
 
 	_, err := svc.Register(ctx, &domain.RegisterRequest{
 		Username: "carol",
@@ -145,7 +145,7 @@ func TestDevBootstrap(t *testing.T) {
 	idgen := platform.NewIDGen()
 	logger := platform.NewLogger(slog.Default())
 
-	svc := auth.NewService(store, store, clock, idgen, logger, "test-secret", "")
+	svc := auth.NewService(store, store, store, clock, idgen, logger, "test-secret", "")
 
 	// First call should create the dev user.
 	if err := svc.DevBootstrap(ctx); err != nil {
@@ -167,8 +167,12 @@ func TestDevBootstrap(t *testing.T) {
 	if company.Name != "Developer Merchant" || company.Money != 1000000000 || company.Level != 100 {
 		t.Fatalf("developer merchant not provisioned: %+v", company)
 	}
-	if len(company.Buildings) != 8 || company.Inventory[1] != 10000 || company.Inventory[12] != 10000 {
+	if len(company.Buildings) != 8 || company.Inventory[1] != 5000 || company.Inventory[12] != 5000 {
 		t.Fatalf("developer merchant sandbox assets missing: buildings=%d inventory=%v", len(company.Buildings), company.Inventory)
+	}
+	warehouse, err := store.GetWarehouse(ctx, company.ID)
+	if err != nil || warehouse.Capacity != 102000 || warehouse.UsedCapacity != 60000 {
+		t.Fatalf("developer warehouse should be synchronized: warehouse=%+v err=%v", warehouse, err)
 	}
 	stories := company.Preferences["storyProgress"].(map[string]any)
 	story := stories[companydomain.ArrivalStoryID].(map[string]any)

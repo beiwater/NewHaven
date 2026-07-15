@@ -27,6 +27,7 @@ func newAuthService(players storage.PlayerStorage, companies storage.CompanyStor
 	return auth.NewService(
 		players,
 		companies,
+		nil,
 		platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC)),
 		platform.NewIDGen(),
 		platform.NewLogger(slog.Default()),

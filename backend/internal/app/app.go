@@ -100,7 +100,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	}
 
 	// Auth
-	authSvc := auth.NewService(st, st, clock, idgen, logger, cfg.JWTSigningKey, cfg.DevPassword)
+	authSvc := auth.NewService(st, st, st, clock, idgen, logger, cfg.JWTSigningKey, cfg.DevPassword)
 
 	// Market
 	marketSvc := market.NewService(st, st, st, resources, buildings, economy, cfg.Game, clock, idgen)
