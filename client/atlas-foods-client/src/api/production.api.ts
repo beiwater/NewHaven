@@ -3,6 +3,11 @@ import { api } from './client'
 import type { ProductionQueue, ResourceDefinition } from '@/game/types'
 import { normalizeProductionJobList } from './compat'
 
+function newProductionRequestId() {
+  return globalThis.crypto?.randomUUID?.()
+    ?? `production-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 // Actual API: /api/v2/production/jobs/ returns ProductionJob[] directly
 export function useProductionJobs() {
   return useQuery({
@@ -46,10 +51,12 @@ export function useStartProduction() {
       kind: number
       amount: number
       estimatedSecondsToFinish?: number
+      requestId?: string
     }) => api.post(`/api/v1/buildings/${params.buildingId}/busy/`, {
       kind: params.kind,
       amount: params.amount,
       estimatedSecondsToFinish: params.estimatedSecondsToFinish,
+      requestId: params.requestId ?? newProductionRequestId(),
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['productionJobs'] })

@@ -2,9 +2,14 @@ name: Go CI
 
 on:
   push:
-    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/go.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/go.yml"
 
 jobs:
   check:
@@ -15,22 +20,27 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
-          cache-dependency-path: |
-            backend/go.sum
-            backend-next/go.sum
+          cache-dependency-path: backend/go.sum
 
-      - name: Format (old backend)
+      - name: Check formatting
         working-directory: ./backend
-        run: go fmt ./...
+        run: test -z "$(gofmt -l .)"
 
-      - name: Format (new backend)
-        working-directory: ./backend-next
-        run: go fmt ./...
-
-      - name: Vet + Test (old backend)
+      - name: Vet
         working-directory: ./backend
-        run: go vet ./... && go test ./...
+        run: go vet ./...
 
-      - name: Vet + Test (new backend)
-        working-directory: ./backend-next
-        run: go vet ./... && go test ./...
+      - name: Test
+        working-directory: ./backend
+        run: go test ./...
+
+      - name: Build
+        working-directory: ./backend
+        run: go build -o simapi ./cmd/simapi/
+
+      - name: Upload Linux simapi
+        uses: actions/upload-artifact@v4
+        with:
+          name: simapi-linux-amd64
+          path: backend/simapi
+          if-no-files-found: error

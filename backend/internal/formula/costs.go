@@ -1,17 +1,59 @@
 package formula
 
-// Cost formulas using global cost indices.
-//
-// Spec v1.3.1:
-//
-//	LaborCostPerHour_Level    = BaseLaborCostPerHour_Lv1 * LaborCostIndex * BuildingLevel
-//	InputCostPerHour_Level    = OutputPerHour_Level * InputQtyPerUnit * InputUnitPrice * MaterialCostIndex
-//	EnergyCostPerHour_Level   = BaseEnergyCostPerHour_Lv1 * EnergyCostIndex * BuildingLevel
-//	MaintenanceCostPerHour    = BaseMaintenancePerHour_Lv1 * BuildingLevel
-//	ManagementCostPerHour     = BaseManagementCost_Lv1 * BuildingLevel²  (sweet-spot convergence)
-//	TaxCostPerHour            = RevenuePerHour * EffectiveTaxRate
+const buildingCostFallbackPerUnit = 3450.0
 
-// LaborCostPerHour computes per-hour labor cost scaled by level and index.
+// BuildingMarketCost values a construction recipe using live market prices.
+// If any required quote is unavailable, the deterministic fallback is used.
+func BuildingMarketCost(tickerPrices map[int]float64, costUnits float64, qualityPoints map[int]float64) float64 {
+	if costUnits <= 0 {
+		return 0
+	}
+	total := 0.0
+	for resourceID, points := range qualityPoints {
+		if points <= 0 {
+			continue
+		}
+		price := tickerPrices[resourceID]
+		if price <= 0 {
+			return costUnits * buildingCostFallbackPerUnit
+		}
+		total += price * costUnits * points
+	}
+	if total <= 0 {
+		return costUnits * buildingCostFallbackPerUnit
+	}
+	return total
+}
+
+// UpgradeResourceCost returns the material consumption for one upgrade.
+func UpgradeResourceCost(qualityPoints map[int]float64, costUnits float64, currentSize int) map[int]float64 {
+	if currentSize < 1 {
+		currentSize = 1
+	}
+	result := make(map[int]float64, len(qualityPoints))
+	for resourceID, points := range qualityPoints {
+		if points > 0 && costUnits > 0 {
+			result[resourceID] = points * costUnits * float64(currentSize)
+		}
+	}
+	return result
+}
+
+// WagePerTick computes 345 * salaryModifier * building size.
+func WagePerTick(salaryModifier float64, size int) float64 {
+	if size < 1 {
+		size = 1
+	}
+	if salaryModifier < 0 {
+		salaryModifier = 0
+	}
+	return 345 * salaryModifier * float64(size)
+}
+
+// LaborCostPerHour computes per-hour labor cost, scaled linearly by the
+// building level and a labor-cost index.
+//
+//	baseLaborCost * laborCostIndex * level
 func LaborCostPerHour(baseLaborCost float64, laborCostIndex float64, level int) float64 {
 	if level < 1 {
 		level = 1
@@ -19,7 +61,10 @@ func LaborCostPerHour(baseLaborCost float64, laborCostIndex float64, level int) 
 	return baseLaborCost * laborCostIndex * float64(level)
 }
 
-// EnergyCostPerHour computes per-hour energy cost scaled by level and index.
+// EnergyCostPerHour computes per-hour energy cost, scaled linearly by the
+// building level and an energy-cost index.
+//
+//	baseEnergyCost * energyCostIndex * level
 func EnergyCostPerHour(baseEnergyCost float64, energyCostIndex float64, level int) float64 {
 	if level < 1 {
 		level = 1
@@ -27,15 +72,18 @@ func EnergyCostPerHour(baseEnergyCost float64, energyCostIndex float64, level in
 	return baseEnergyCost * energyCostIndex * float64(level)
 }
 
-// InputCost computes cost of material inputs, scaled by material cost index.
-// output = units produced per hour
-// inputPerUnit = quantity of input per output unit
-// inputPrice = current market price of the input
+// InputCost computes the total cost of material inputs for a given output
+// volume, scaled by a material-cost index.
+//
+//	output * inputQtyPerUnit * inputUnitPrice * materialCostIndex
 func InputCost(output float64, inputQtyPerUnit float64, inputUnitPrice float64, materialCostIndex float64) float64 {
 	return output * inputQtyPerUnit * inputUnitPrice * materialCostIndex
 }
 
-// MaintenanceCostPerHour computes maintenance cost scaled by level.
+// MaintenanceCostPerHour computes per-hour maintenance cost, scaled linearly
+// by the building level.
+//
+//	baseMaintenance * level
 func MaintenanceCostPerHour(baseMaintenance float64, level int) float64 {
 	if level < 1 {
 		level = 1
@@ -43,11 +91,12 @@ func MaintenanceCostPerHour(baseMaintenance float64, level int) float64 {
 	return baseMaintenance * float64(level)
 }
 
-// ManagementCostPerHour computes management/admin cost with quadratic scaling
-// after the sweet-spot level (7). This creates convergence:
+// ManagementCostPerHour computes per-hour management cost. Below the
+// sweet-spot level the cost scales linearly; beyond it costs scale
+// quadratically (level*level / sweetSpotLevel) to penalise over-staffing.
 //
-//	Level 1-7:   managementCost * level
-//	Level 8+:    managementCost * level² / sweetSpot
+//	baseManagement * level (level <= sweetSpotLevel)
+//	baseManagement * level * level / sweetSpotLevel (level > sweetSpotLevel)
 func ManagementCostPerHour(baseManagement float64, level int, sweetSpotLevel int) float64 {
 	if level < 1 {
 		level = 1
@@ -58,12 +107,11 @@ func ManagementCostPerHour(baseManagement float64, level int, sweetSpotLevel int
 	if level <= sweetSpotLevel {
 		return baseManagement * float64(level)
 	}
-	// After sweet spot: quadratic acceleration
-	// At level 10: baseManagement * 100 / 7 ≈ 14.3x linear equivalent
 	return baseManagement * float64(level*level) / float64(sweetSpotLevel)
 }
 
-// TaxCost computes tax on revenue at given rate.
+// TaxCost computes tax on revenue at the given rate. Returns 0 when taxRate
+// is zero or negative.
 func TaxCost(revenue float64, taxRate float64) float64 {
 	if taxRate <= 0 {
 		return 0
@@ -71,16 +119,20 @@ func TaxCost(revenue float64, taxRate float64) float64 {
 	return revenue * taxRate
 }
 
-// UpgradeCost computes the cost to upgrade a building to a given level.
-// Spec: UpgradeCost(level) = baseBuildCost * level
-// Cumulative: TotalBuildingCost(level) = baseBuildCost * level * (level + 1) / 2
-func UpgradeCost(baseBuildCost float64, targetLevel int) float64 {
-	if targetLevel < 1 {
-		targetLevel = 1
+// UpgradeCost computes the cost to upgrade a building at its current size.
+//
+//	baseBuildCost * currentSize
+func UpgradeCost(baseBuildCost float64, currentSize int) float64 {
+	if currentSize < 1 {
+		currentSize = 1
 	}
-	return baseBuildCost * float64(targetLevel)
+	return baseBuildCost * float64(currentSize)
 }
 
+// TotalBuildingCost computes the cumulative cost of building and upgrading
+// to a given level.
+//
+//	baseBuildCost * level * (level + 1) / 2
 func TotalBuildingCost(baseBuildCost float64, level int) float64 {
 	if level < 1 {
 		level = 1

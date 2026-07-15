@@ -20,6 +20,8 @@ const MIN_H = 150
 export function ChatPanel() {
   const chatOpen = useUIStore((s) => s.chatOpen)
   const setChatOpen = useUIStore((s) => s.setChatOpen)
+  const setActiveView = useUIStore((s) => s.setActiveView)
+  const setChatTab = useUIStore((s) => s.setChatTab)
   const [input, setInput] = useState('')
   const [showContacts, setShowContacts] = useState(false)
   const [selectedContact, setSelectedContact] = useState<{ companyId: number; company: string } | null>(null)
@@ -37,6 +39,7 @@ export function ChatPanel() {
 
   const { data: messages, isLoading, error } = useMessages()
   const { data: contactsData } = useContacts()
+  const contacts = contactsData?.contacts ?? []
   const sendMessage = useSendMessage()
   const markRead = useMarkRead()
 
@@ -119,8 +122,14 @@ export function ChatPanel() {
   }
 
   const handleContactClick = (contact: { companyId: number; company: string }) => {
-    setSelectedContact(contact)
+    // Private conversations require participant-checked room chat. The full
+    // messages view owns room creation and selection; never fall back to the
+    // legacy C:<companyId> channel from this compact public-chat panel.
+    void contact
     setShowContacts(false)
+    setChatOpen(false)
+    setChatTab('messages')
+    setActiveView('chat')
   }
 
   if (!chatOpen) return null

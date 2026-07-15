@@ -251,7 +251,7 @@ function render() {
 
   for (let i = visibleLogs.length; i < logRows; i++) writeLine('', width)
   writeLine(line, width)
-  writeLine('Login tip: use dev / dev, or register a fresh account to see the first-run story from the start.', width)
+  writeLine('Login tip: use dev / 123, or register a fresh account to see the first-run story from the start.', width)
 }
 
 function writeLine(text, width) {

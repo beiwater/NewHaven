@@ -24,6 +24,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage'
 import { ChatPage } from '@/features/chat/ChatPage'
 import { InspectPage } from '@/features/inspect/InspectPage'
 import { FarmNotes } from '@/features/guidance/FarmNotes'
+import { GameWikiPage } from '@/features/guidance/GameWikiPage'
 import { ProductionQueue } from '@/features/production/ProductionQueue'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { MobileLayout } from '@/features/mobile'
@@ -60,6 +61,8 @@ function PageContent() {
       return <SettingsPage />
     case 'chat':
       return <ChatPage />
+    case 'wiki':
+      return <GameWikiPage />
 
     case 'inspect':
       return <InspectPage />
@@ -138,6 +141,7 @@ function GameLayout() {
       case 'leaderboard':
       case 'settings':
       case 'inspect':
+	  case 'wiki':
         playMusic('bgm_harbor_town')
         break
       default:

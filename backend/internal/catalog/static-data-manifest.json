@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "files": [
+    {
+      "path": "decompiled/data/resources.json",
+      "sha256": "c217c82d49eda22f5878639d603fa0d46be70508a58333983bcaafba35a1eca7"
+    },
+    {
+      "path": "decompiled/data/buildings.json",
+      "sha256": "b7db346e13a779736c6c607aed0bf794a8e2953a70e46ca952c36b0be6e35583"
+    },
+    {
+      "path": "decompiled/data/economy_model.json",
+      "sha256": "5722f38f247ff7568dfc15956ce749291f3dca265e53181ecb70e12a4220651d"
+    },
+    {
+      "path": "decompiled/data/resource_lookups.json",
+      "sha256": "66c582843d39f36f55e6fc0a6eb55cf8d52ac816ce68f5334ef043275c2495c5"
+    },
+    {
+      "path": "backend/configs/game.json",
+      "sha256": "8e3f88e8377c60e31747e8758ce392ceec7d16428a6f9ed8d5932bd19e729272"
+    }
+  ]
+}

@@ -7,7 +7,9 @@ const (
 	RetailZor           = 370.0
 )
 
-// Simplified executable version of decompiled retail model.
+// UnitsSoldPerHour computes how many units are sold per hour via retail NPC
+// consumers, given market conditions, building economics, and weather.
+// Returns zero when conditions prevent sales (price too low, NaN, etc.).
 func UnitsSoldPerHour(
 	buildingKindModifier float64,
 	buildingLevelsNeededPerUnitPerHour float64,
@@ -30,8 +32,6 @@ func UnitsSoldPerHour(
 	if m <= 0 {
 		return 0
 	}
-	v := modeledProductionCostPerUnit + (g+modeledStoreWages)/m
-	_ = v
 	den := price - modeledProductionCostPerUnit
 	if den <= 0.0001 {
 		return 0

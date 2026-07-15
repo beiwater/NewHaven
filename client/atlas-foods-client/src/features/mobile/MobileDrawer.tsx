@@ -15,6 +15,7 @@ const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature:
   { id: 'executives', label: 'Executives', sysIcon: 'executive', feature: 'executives' },
   { id: 'finance', label: 'Finance', sysIcon: 'financial', feature: 'finance' },
   { id: 'inspect', label: 'Inspect', sysIcon: 'achievement', feature: 'map' },
+  { id: 'wiki', label: 'Wiki', sysIcon: 'quest', feature: '__always__' },
   { id: 'leaderboard', label: 'Leaderboard', sysIcon: 'leaderboard', feature: 'leaderboard' },
   { id: 'settings', label: 'Settings', sysIcon: 'settings', feature: 'map' },
 ];

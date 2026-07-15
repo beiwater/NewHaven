@@ -2,8 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useUIStore } from '@/store/ui.store'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
 import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding, useStockShelf, useUnstockShelf, useSetShelfPrice } from '@/api/buildings.api'
-import { useWarehouse } from '@/api/inventory.api'
-import type { Building, ProductionJob, ShelfItem } from '@/game/types'
+import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
 import { resourceIcon, resourceName } from '@/game/resources'
 import { buildingIcon } from '@/game/icons'
@@ -63,7 +62,7 @@ function accruedAmount(job: ProductionJob, now: number): number {
   if (job.status === 'claimed') return job.amount
   if (!job.startedAt) return 0
   const elapsed = (now - new Date(job.startedAt).getTime()) / 1000
-  const duration = job.durationSeconds ?? 1
+  const duration = Math.max(1, (new Date(job.completesAt).getTime() - new Date(job.startedAt).getTime()) / 1000)
   return Math.min(job.amount, Math.floor((elapsed / duration) * job.amount))
 }
 
@@ -88,11 +87,11 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
   const { data: jobsData } = useProductionJobs()
   const { data: optionsData = [] } = useProductionOptions(building.id)
   const buildingJobs = (jobsData ?? []).filter((j) => j.buildingId === building.id)
+	const pendingBuildingJobs = buildingJobs.filter((j) => j.status !== 'claimed')
   const startProd = useStartProduction()
   const claimProd = useClaimProduction()
 
   // Retail hooks (only used for retail buildings)
-  const { data: warehouse } = useWarehouse()
   const stockShelf = useStockShelf()
   const unstockShelf = useUnstockShelf()
   const setShelfPriceMut = useSetShelfPrice()
@@ -104,9 +103,10 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
   const startBuildingMove = useUIStore((s) => s.startBuildingMove)
   const setActiveView = useUIStore((s) => s.setActiveView)
 
-  const runningJob = buildingJobs.find((j) => j.status === 'running')
-  const collectableJob = buildingJobs.find((j) => collectableAmount(j, now) > 0)
-  const shouldGuideProductionStart = !collectableJob && buildingJobs.length === 0
+	const runningJob = pendingBuildingJobs.find((j) => j.status === 'running')
+	const collectableJob = pendingBuildingJobs.find((j) => collectableAmount(j, now) > 0)
+	const blockedByCurrentRun = pendingBuildingJobs.length > 0
+	const shouldGuideProductionStart = !collectableJob && !blockedByCurrentRun
 
   // Countdown ticker
   useEffect(() => {
@@ -207,7 +207,6 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
       {/* ────── RETAIL BUILDING: Sell Tab ────── */}
       {building.isRetail ? <RetailSellSection
           building={building}
-          warehouse={warehouse}
           stockShelf={stockShelf}
           unstockShelf={unstockShelf}
           setShelfPriceApi={setShelfPriceMut}
@@ -342,13 +341,19 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
         ) : (
           <button
             onClick={handleStart}
-            disabled={startProd.isPending || !selectedOption}
+            disabled={startProd.isPending || !selectedOption || blockedByCurrentRun}
+            title={blockedByCurrentRun ? t('building.oneRunAtATime') : undefined}
             className={`${shouldGuideProductionStart ? 'tutorial-start-production' : ''} flex-1 py-2 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-xs font-bold rounded-md transition-colors`}
           >
-            {startProd.isPending ? t('building.starting') : t('building.start')}
+            {startProd.isPending ? t('building.starting') : blockedByCurrentRun ? t('building.finishCurrentRun') : t('building.start')}
           </button>
         )}
       </div>
+	  {blockedByCurrentRun && !collectableJob && (
+		<div className="mx-3 mb-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] font-semibold text-amber-700">
+		  {t('building.oneRunAtATime')}
+		</div>
+	  )}
       {startProd.error instanceof Error && (
         <div className="mx-3 mb-3 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] font-semibold text-red-700">
           {startProd.error.message}
@@ -358,10 +363,10 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
       {/* Active Jobs */}
       <div className="flex-1 px-3 py-2 overflow-y-auto">
         <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-1">
-          {t('building.activeJobs', { count: buildingJobs.length })}
+          {t('building.activeJobs', { count: pendingBuildingJobs.length })}
         </div>
         <div className="space-y-1.5">
-          {buildingJobs.map((job) => (
+          {pendingBuildingJobs.map((job) => (
             <div key={job.id} className="flex items-center gap-2 py-1 px-2 rounded bg-white/40 text-xs">
               <span className={`w-1.5 h-1.5 rounded-full ${collectableAmount(job, now) > 0 ? 'bg-green-500' : 'bg-blue-500'}`} />
               <span className="text-amber-800 truncate">{resourceName(job.resourceId)} x{job.amount}</span>
@@ -370,7 +375,7 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
               </span>
             </div>
           ))}
-          {buildingJobs.length === 0 && (
+          {pendingBuildingJobs.length === 0 && (
             <div className="text-[10px] text-amber-400 italic py-2">{t('building.noActiveJobs')}</div>
           )}
         </div>
@@ -486,12 +491,11 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
 
 /* ─── Retail Sell Section ─── */
 function RetailSellSection({
-  building, warehouse, stockShelf, unstockShelf, setShelfPriceApi,
+  building, stockShelf, unstockShelf, setShelfPriceApi,
   stockQuantity, setStockQuantity, stockResourceId, setStockResourceId,
   shelfPrice, setShelfPrice, t,
 }: {
   building: Building
-  warehouse: { inventory: Array<{ resourceId: number; quantity: number }> } | undefined
   stockShelf: ReturnType<typeof useStockShelf>
   unstockShelf: ReturnType<typeof useUnstockShelf>
   setShelfPriceApi: ReturnType<typeof useSetShelfPrice>

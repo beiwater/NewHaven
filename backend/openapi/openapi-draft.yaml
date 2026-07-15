@@ -1,0 +1,2245 @@
+openapi: "3.0.3"
+info:
+  title: NewHaven API
+  version: "0.1.0"
+  description: Backend API for NewHaven browser-based economy simulation game
+
+servers:
+  - url: http://localhost:8088
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: healthz
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      operationId: readyz
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v2/players/me/companies/:
+    get:
+      tags: [Companies]
+      summary: List my companies
+      operationId: listMyCompanies
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Company list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyCompaniesResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v3/companies/{companyId}/:
+    get:
+      tags: [Companies]
+      summary: Get the authenticated owner's company profile
+      operationId: getCompanyProfile
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: companyId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Company profile including account preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyProfileResponse'
+        "403":
+          description: Company profile belongs to another account
+
+  /api/v2/companies/me/story-progress/:
+    patch:
+      tags: [Companies]
+      summary: Save the authenticated company's current story position
+      operationId: updateStoryProgress
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryProgressRequest'
+      responses:
+        "200":
+          description: Saved story position
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryProgress'
+        "400":
+          description: Invalid story position
+
+  /api/v2/companies/me/warehouse/:
+    get:
+      tags: [Warehouse]
+      summary: Get my company warehouse
+      operationId: getMyWarehouse
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Warehouse data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMyWarehouseData'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/companies/me/buildings/:
+    get:
+      tags: [Buildings]
+      operationId: listMyBuildings
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Building list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/buildings/market/:
+    get:
+      tags: [Buildings]
+      summary: List buildings available for purchase
+      operationId: listBuildingMarket
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Building market list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BuildingMarketItem'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/buy/:
+    post:
+      tags: [Buildings]
+      summary: Buy a building
+      operationId: buyBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuyBuildingRequest'
+      responses:
+        "200":
+          description: Building bought
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuyBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/place/:
+    post:
+      tags: [Buildings]
+      summary: Place a building on the map
+      operationId: placeBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBuildingRequest'
+      responses:
+        "200":
+          description: Building placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/move/:
+    post:
+      tags: [Buildings]
+      summary: Move a building on the map
+      operationId: moveBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveBuildingRequest'
+      responses:
+        "200":
+          description: Building moved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoveBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/demolish/:
+    post:
+      tags: [Buildings]
+      summary: Demolish a building
+      operationId: demolishBuilding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemolishBuildingRequest'
+      responses:
+        "200":
+          description: Building demolished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemolishBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+
+  /api/v2/buildings/{buildingId}/stock/:
+    post:
+      tags: [Buildings]
+      summary: Stock items into a retail building's shelf
+      operationId: stockShelf
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockShelfRequest'
+      responses:
+        "200":
+          description: Shelf stocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfActionResponse'
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/{buildingId}/unstock/:
+    post:
+      tags: [Buildings]
+      summary: Unstock items from a retail building's shelf back to warehouse
+      operationId: unstockShelf
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnstockShelfRequest'
+      responses:
+        "200":
+          description: Shelf unstocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfActionResponse'
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /api/v2/buildings/{buildingId}/shelf-price/:
+    post:
+      tags: [Buildings]
+      summary: Set price for a shelf item
+      operationId: setShelfPrice
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetShelfPriceRequest'
+      responses:
+        "200":
+          description: Shelf price updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShelfActionResponse'
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+  /api/v1/buildings/{buildingId}/upgrade/:
+    post:
+      tags: [Buildings]
+      summary: Upgrade a building
+      operationId: upgradeBuilding
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Building upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpgradeBuildingResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/companies/me/warehouse/upgrade/:
+    post:
+      tags: [Warehouse]
+      summary: Upgrade warehouse capacity
+      operationId: upgradeWarehouse
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Warehouse upgraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WarehouseUpgradeResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+  /api/v2/production/jobs/:
+    get:
+      tags: [Production]
+      summary: List production jobs for my company
+      operationId: listProductionJobs
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Production job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionJobListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/start/:
+    post:
+      tags: [Production]
+      summary: Start a production job
+      operationId: startProduction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartProductionRequest'
+      responses:
+        "200":
+          description: Production job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartProductionResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/buildings/{buildingId}/busy/:
+    post:
+      tags: [Production]
+      summary: Start production through the legacy frontend compatibility route
+      operationId: startBuildingProductionV1
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartProductionV1Request'
+      responses:
+        "200":
+          description: Production started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartProductionResponse'
+        "400":
+          description: Invalid production request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/claim/{jobId}/:
+    post:
+      tags: [Production]
+      summary: Claim produced resources from a production job
+      operationId: claimProduction
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Production claimed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimProductionResponse'
+        "400":
+          description: Nothing claimable or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/claimable/:
+    get:
+      tags: [Production]
+      summary: List claimable production jobs
+      operationId: listClaimableJobs
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Claimable job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimableJobListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /api/v2/production/queue/:
+    get:
+      tags: [Production]
+      summary: Get production queue overview
+      operationId: getProductionQueue
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Production queue overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionQueueResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/buildings/{buildingId}/production-options/:
+    get:
+      tags: [Production]
+      summary: List production options for a building
+      operationId: getProductionOptions
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Production options list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResourceDefinition'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/cancel/:
+    post:
+      tags: [Production]
+      summary: Cancel a production job and refund inputs
+      operationId: cancelProduction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelJobRequest'
+      responses:
+        "200":
+          description: Production job cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelJobResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/production/claim-all/:
+    post:
+      tags: [Production]
+      summary: Claim all completed production jobs
+      operationId: claimAllProduction
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: All claimable jobs claimed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimAllResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/resources/:
+    get:
+      tags: [Market]
+      summary: List market-tradable resources
+      operationId: listResources
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Resource list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourcesResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  # --- Bonds ---
+  /api/bonds/:
+    get:
+      tags: [Bonds]
+      summary: List all active bonds on market
+      operationId: listBonds
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: rating
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bond list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BondListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Bonds]
+      summary: Issue a new bond
+      operationId: createBond
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBondRequest'
+      responses:
+        "200":
+          description: Bond created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBondResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/bonds/{bondId}/:
+    get:
+      tags: [Bonds]
+      summary: Get bond detail
+      operationId: getBond
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: bondId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bond detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBondResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Bond not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v2/companies/me/bonds/owned/:
+    get:
+      tags: [Bonds]
+      summary: Get my owned bonds
+      operationId: getOwnedBonds
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Owned bonds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BondListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v2/companies/me/bonds/sold/:
+    get:
+      tags: [Bonds]
+      summary: Get my issued bonds
+      operationId: getSoldBonds
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Issued bonds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BondListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v3/market-ticker/{resourceId}/:
+    get:
+      tags: [Market]
+      summary: Get market ticker for a resource
+      operationId: getMarketTicker
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market ticker data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketTickerResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/market-depth/{resourceId}/{quality}/:
+    get:
+      tags: [Market]
+      summary: Get market depth (order book) for a resource and quality
+      operationId: getMarketDepth
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quality
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market depth data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketDepthResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/market/{resourceId}/{quality}/:
+    get:
+      tags: [Market]
+      summary: List market orders for a resource and quality
+      operationId: listMarketOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: quality
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketOrderListResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/market-order/:
+    post:
+      tags: [Market]
+      summary: Create a market order
+      operationId: createMarketOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequestFrontend'
+      responses:
+        "200":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/market-order/cancel/{orderId}/:
+    delete:
+      tags: [Market]
+      summary: Cancel a market order
+      operationId: cancelMarketOrder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderResponse'
+        "400":
+          description: Bad request or conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/market-order/take/:
+    post:
+      tags: [Market]
+      summary: Take (buy from) market orders
+      operationId: takeMarketOrder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TakeOrderRequest'
+      responses:
+        "200":
+          description: Order taken successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TakeOrderResponse'
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/cashflow/recent/:
+    get:
+      tags: [Finance]
+      summary: Recent cashflow entries
+      operationId: getRecentCashflow
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Recent cashflow data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecentCashflowResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/income-statement/:
+    get:
+      tags: [Finance]
+      summary: Income statement
+      operationId: getIncomeStatement
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Income statement data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncomeStatementResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/balance-sheet/:
+    get:
+      tags: [Finance]
+      summary: Balance sheet
+      operationId: getBalanceSheet
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Balance sheet data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceSheetResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v2/companies/me/cashflow-statement/:
+    get:
+      tags: [Finance]
+      summary: Cashflow statement
+      operationId: getCashflowStatement
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Cashflow statement data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashflowStatementResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v3/companies/me/past-finances/:
+    get:
+      tags: [Finance]
+      summary: Past finances (daily net series)
+      operationId: getPastFinances
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Past finances series
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PastFinancesResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+    EmptyResponse:
+      type: object
+      properties: {}
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        password:
+          type: string
+          minLength: 6
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        player_id:
+          type: integer
+        company_id:
+          type: integer
+        username:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+        gender:
+          type: string
+        email:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+    # --- Company ---
+
+    CompanyResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        money:
+          type: number
+          format: float
+        level:
+          type: integer
+        xp:
+          type: integer
+        buildings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Building"
+        inventory:
+          type: object
+          additionalProperties:
+            type: integer
+
+    MyCompaniesResponse:
+      type: object
+      properties:
+        companies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanySummary'
+
+    CompanySummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        money:
+          type: number
+          format: float
+        level:
+          type: integer
+
+    CompanyProfileResponse:
+      type: object
+      required: [authCompany, authUser, levelInfo, preferences]
+      properties:
+        authCompany:
+          type: object
+          additionalProperties: true
+        authUser:
+          type: object
+          additionalProperties: true
+        levelInfo:
+          type: object
+          additionalProperties: true
+        preferences:
+          type: object
+          additionalProperties: true
+
+    StoryProgressRequest:
+      type: object
+      required: [storyId, stepId, status]
+      properties:
+        storyId:
+          type: string
+        stepId:
+          type: string
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, skipped]
+
+    StoryProgress:
+      type: object
+      required: [status, stepId]
+      properties:
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, skipped]
+        stepId:
+          type: string
+
+    Building:
+      type: object
+      properties:
+        id:
+          type: string
+        building_id:
+          type: integer
+        kind:
+          type: integer
+        name:
+          type: string
+        level:
+          type: integer
+        map_id:
+          type: string
+        slot_id:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+        robot_count:
+          type: integer
+
+
+    BuildingDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        building_id:
+          type: integer
+        name:
+          type: string
+        level:
+          type: integer
+        map_id:
+          type: string
+        slot_id:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+        robot_count:
+          type: integer
+        placed:
+          type: boolean
+        is_retail:
+          type: boolean
+        produces:
+          type: array
+          items:
+            type: integer
+        shelves:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShelfItem'
+    BuildingListResponse:
+      type: object
+      properties:
+        buildings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildingDTO'
+    # --- Building Operations ---
+
+    BuildingMarketItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: integer
+        cost:
+          type: number
+          format: double
+        unlock_level:
+          type: integer
+        description:
+          type: string
+        produces:
+          type: array
+          items:
+            type: integer
+        starter_produces:
+          type: array
+          items:
+            type: integer
+        starter_role:
+          type: string
+        is_retail:
+          type: boolean
+
+
+    BuyBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        requestId:
+          type: string
+        buildingId:
+          type: string
+
+    BuyBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        cost:
+          type: number
+          format: double
+
+    PlaceBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+        mapId:
+          type: string
+        slotId:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+
+    PlaceBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        status:
+          type: string
+
+    MoveBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+        mapId:
+          type: string
+        slotId:
+          type: string
+        x:
+          type: integer
+        y:
+          type: integer
+
+    MoveBuildingResponse:
+      type: object
+      properties:
+        building:
+          $ref: '#/components/schemas/BuildingDTO'
+        status:
+          type: string
+
+    DemolishBuildingRequest:
+      type: object
+      required: [buildingId]
+      properties:
+        buildingId:
+          type: string
+
+    DemolishBuildingResponse:
+      type: object
+      properties:
+        refund:
+          type: number
+          format: double
+        status:
+          type: string
+
+    UpgradeBuildingResponse:
+      type: object
+      properties:
+        building_id:
+          type: string
+        old_level:
+          type: integer
+        new_level:
+          type: integer
+        cost:
+          type: number
+          format: double
+        output_multiplier:
+          type: integer
+
+    ShelfItem:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        max_qty:
+          type: integer
+        price:
+          type: number
+          format: double
+        price_lock:
+          type: boolean
+        revenue:
+          type: number
+          format: double
+
+    StockShelfRequest:
+      type: object
+      required: [building_id, resource_id, quantity]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        price:
+          type: number
+          format: double
+
+    UnstockShelfRequest:
+      type: object
+      required: [building_id, resource_id, quantity]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+
+    SetShelfPriceRequest:
+      type: object
+      required: [building_id, resource_id, price]
+      properties:
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        price:
+          type: number
+          format: double
+        lock:
+          type: boolean
+
+    ShelfActionResponse:
+      type: object
+      properties:
+        shelf:
+          $ref: '#/components/schemas/ShelfItem'
+
+    WarehouseUpgradeResponse:
+      type: object
+      properties:
+        level:
+          type: integer
+        capacity:
+          type: integer
+        cost:
+          type: number
+          format: double
+    # --- Warehouse ---
+
+    WarehouseItem:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        resource_name:
+          type: string
+        quality:
+          type: integer
+        amount:
+          type: integer
+
+    GetMyWarehouseData:
+      type: object
+      properties:
+        company_id:
+          type: integer
+        capacity:
+          type: integer
+        used_capacity:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WarehouseItem'
+
+
+    # --- Market ---
+
+    MarketTicker:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        last_price:
+          type: number
+        volume_24h:
+          type: number
+        high_24h:
+          type: number
+        low_24h:
+          type: number
+        price_change_24h:
+          type: number
+        updated_at:
+          type: string
+          format: date-time
+
+    MarketDepth:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/DepthLevel"
+        asks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DepthLevel"
+
+    DepthLevel:
+      type: object
+      properties:
+        price:
+          type: number
+        quantity:
+          type: integer
+        orders:
+          type: integer
+
+    CreateOrderRequest:
+      type: object
+      required: [resource_id, is_buy, price, quantity]
+      properties:
+        resource_id:
+          type: integer
+          minimum: 1
+        is_buy:
+          type: boolean
+        price:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        quantity:
+          type: integer
+          minimum: 1
+
+    ResourceDefinition:
+      type: object
+      properties:
+        resourceId:
+          type: integer
+        name:
+          type: string
+        producedFrom:
+          type: object
+          additionalProperties:
+            type: integer
+        producedPerHourRaw:
+          type: integer
+        unitsSoldAnHour:
+          type: integer
+        hasEconomyModel:
+          type: boolean
+    ResourcesResponse:
+      type: object
+      properties:
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceDefinition'
+    MarketTickerPoint:
+      type: object
+      properties:
+        price:
+          type: number
+        time:
+          type: string
+          format: date-time
+    MarketTickerResponse:
+      type: object
+      properties:
+        resource:
+          type: integer
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketTickerPoint'
+    MarketDepthLevel:
+      type: object
+      properties:
+        price:
+          type: number
+        quantity:
+          type: integer
+        qty:
+          type: integer
+    MarketDepthResponse:
+      type: object
+      properties:
+        buys:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketDepthLevel'
+        sells:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketDepthLevel'
+    MarketOrderDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        resourceId:
+          type: integer
+        kind:
+          type: integer
+          enum: [0, 1]
+        price:
+          type: number
+        quality:
+          type: integer
+        quantity:
+          type: integer
+        remaining:
+          type: integer
+        companyId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+    MarketOrderListResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketOrderDTO'
+
+    CreateOrderRequestFrontend:
+      type: object
+      required: [resourceId, kind, quality, quantity, price]
+      properties:
+        requestId:
+          type: string
+        resourceId:
+          type: integer
+          minimum: 1
+        kind:
+          type: integer
+          enum: [0, 1]
+        quality:
+          type: integer
+          minimum: 0
+        quantity:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+    CreateOrderResponse:
+      type: object
+      properties:
+        order:
+          $ref: '#/components/schemas/MarketOrderDTO'
+    CancelOrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+
+    TradeDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        resourceId:
+          type: integer
+        quality:
+          type: integer
+        quantity:
+          type: integer
+        price:
+          type: number
+        buyOrderId:
+          type: string
+        sellOrderId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    TakeOrderRequest:
+      type: object
+      required: [resource, quantity, quality, maxPrice]
+      properties:
+        requestId:
+          type: string
+        resource:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          minimum: 1
+        quality:
+          type: integer
+          minimum: 0
+        maxPrice:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+    TakeOrderResponse:
+      type: object
+      properties:
+        amountBought:
+          type: integer
+        trades:
+          type: array
+          items:
+            $ref: '#/components/schemas/TradeDTO'
+        moneyDelta:
+          type: number
+    # --- Production ---
+
+    ProductionJob:
+      type: object
+      properties:
+        id:
+          type: string
+        company_id:
+          type: integer
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        target_quantity:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        status:
+          type: string
+          enum: [running, ready, claimed]
+
+    StartProductionRequest:
+      type: object
+      required: [building_id, resource_id, quantity]
+      properties:
+        requestId:
+          type: string
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 1
+
+    StartProductionV1Request:
+      type: object
+      required: [kind, amount]
+      properties:
+        requestId:
+          type: string
+        kind:
+          type: integer
+        amount:
+          type: integer
+          minimum: 1
+        estimatedSecondsToFinish:
+          type: integer
+
+    ProductionJobDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        quantity:
+          type: integer
+        target_quantity:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        claimed_amount:
+          type: integer
+        claimable_amount:
+          type: integer
+        status:
+          type: string
+          enum: [running, ready, claimed]
+    ProductionJobListData:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionJobDTO'
+    ProductionJobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionJobDTO'
+
+    BuildingProductionStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        busy:
+          type: boolean
+        job_id:
+          type: string
+    StartProductionResponse:
+      type: object
+      properties:
+        job:
+          $ref: '#/components/schemas/ProductionJobDTO'
+        building:
+          $ref: '#/components/schemas/BuildingProductionStatus'
+
+    ClaimProductionResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          enum: [running, ready, claimed]
+        output:
+          type: object
+          additionalProperties:
+            type: integer
+        claimed_amount:
+          type: integer
+        remaining:
+          type: integer
+        xp:
+          type: integer
+        level:
+          type: integer
+        market_unlocked:
+          type: boolean
+
+    ClaimableJobDTO:
+      type: object
+      properties:
+        job_id:
+          type: string
+        building_id:
+          type: string
+        resource_id:
+          type: integer
+        total_amount:
+          type: integer
+        claimed_amount:
+          type: integer
+        claimable_amount:
+          type: integer
+
+    ClaimableJobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimableJobDTO'
+
+    # --- Production Queue ---
+
+    ProductionQueueResponse:
+      type: object
+      properties:
+        byBuilding:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/ProductionJobDTO'
+        inUse:
+          type: integer
+        maxSlots:
+          type: integer
+
+    CancelJobRequest:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: string
+
+    CancelJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+
+    ClaimAllResponse:
+      type: object
+      properties:
+        claimed:
+          type: array
+          items: {}
+        errors:
+          type: array
+          items:
+            type: string
+        total:
+          type: integer
+
+    # --- Finance ---
+
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        company_id:
+          type: integer
+        kind:
+          type: string
+        amount:
+          type: number
+        direction:
+          type: string
+          enum: [in, out]
+        balance_after:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    Bond:
+      type: object
+      properties:
+        id:
+          type: string
+        issuer_company_id:
+          type: integer
+        face_value:
+          type: number
+        interest_rate:
+          type: number
+        total_quantity:
+          type: integer
+        issued_quantity:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CashflowEntry:
+      type: object
+      properties:
+        kind:
+          type: string
+        moneyDelta:
+          type: number
+        at:
+          type: string
+          format: date-time
+    RecentCashflowResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CashflowEntry'
+        oldestPulled:
+          type: string
+          format: date-time
+        money:
+          type: number
+    IncomeStatementResponse:
+      type: object
+      properties:
+        revenue:
+          type: number
+        expenses:
+          type: number
+        netIncome:
+          type: number
+    BalanceSheetResponse:
+      type: object
+      properties:
+        assets:
+          type: number
+        liabilities:
+          type: number
+        equity:
+          type: number
+    CashflowStatementResponse:
+      type: object
+      properties:
+        operating:
+          type: number
+        investing:
+          type: number
+        financing:
+          type: number
+    PastFinancePoint:
+      type: object
+      properties:
+        date:
+          type: string
+        net:
+          type: number
+    PastFinancesResponse:
+      type: object
+      properties:
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/PastFinancePoint'
+
+    # --- Bonds ---
+
+    BondDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: integer
+        interest:
+          type: number
+        purchased_at:
+          type: string
+          format: date-time
+        missed_payments:
+          type: integer
+        interestCollected:
+          type: number
+        ratingWhenPurchased:
+          type: string
+        dailyInterest:
+          type: number
+        periodInterest:
+          type: number
+        issuerCompanyId:
+          type: integer
+        ownerCompanyId:
+          type: integer
+        callableAfter:
+          type: string
+          format: date-time
+        restructure_percentage:
+          type: number
+
+    BondListResponse:
+      type: object
+      properties:
+        bonds:
+          type: array
+          items:
+            $ref: '#/components/schemas/BondDTO'
+
+    GetBondResponse:
+      type: object
+      properties:
+        bond:
+          $ref: '#/components/schemas/BondDTO'
+
+    CreateBondRequest:
+      type: object
+      required: [amount, interest]
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+        interest:
+          type: number
+          description: Interest percent (e.g. 1.5 means 1.5%)
+
+    CreateBondResponse:
+      type: object
+      properties:
+        bond:
+          $ref: '#/components/schemas/BondDTO'

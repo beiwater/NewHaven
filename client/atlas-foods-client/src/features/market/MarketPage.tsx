@@ -62,7 +62,6 @@ export function MarketPage() {
 
   const orderList = Array.isArray(orders) ? orders : []
   const currentCompanyId = Number(getCompanyId())
-  const myOrders = orderList.filter((o) => o.companyId === currentCompanyId && o.status !== 'filled')
   const activeOrders = orderList.filter((o) => o.remaining > 0 && o.status !== 'filled' && o.status !== 'cancelled')
   const sellOrders = activeOrders
     .filter((o) => o.kind === 0)
@@ -324,7 +323,7 @@ export function MarketPage() {
               ) : (
                 <div className="space-y-3">
                   {Object.entries(
-                    (myAllOrders as Array<{ id: string; resourceId: number; kind: number; price: number; remaining: number }>).reduce<Record<string, { resourceId: number; kind: number; totalRemaining: number; orders: typeof myAllOrders }>>((acc, order) => {
+                    (myAllOrders ?? []).reduce<Record<string, { resourceId: number; kind: number; totalRemaining: number; orders: NonNullable<typeof myAllOrders> }>>((acc, order) => {
                       const key = `${order.resourceId}-${order.kind}`
                       if (!acc[key]) {
                         acc[key] = { resourceId: order.resourceId, kind: order.kind, totalRemaining: 0, orders: [] }

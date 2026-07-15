@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { MAPS, type MapId } from '@/game/map.config'
 
-export type ActiveView = 'map' | 'build' | 'warehouse' | 'chain' | 'production' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect' | 'chat'
+export type ActiveView = 'map' | 'build' | 'warehouse' | 'chain' | 'production' | 'market' | 'contracts' | 'research' | 'executives' | 'finance' | 'leaderboard' | 'settings' | 'inspect' | 'chat' | 'wiki'
 
 interface UIState {
   activeView: ActiveView

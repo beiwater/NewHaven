@@ -2,96 +2,111 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
-	"go-sim-api/internal/config"
-	"go-sim-api/internal/data"
-	"go-sim-api/internal/formula"
-	"go-sim-api/internal/handler"
-	"go-sim-api/internal/middleware"
-	"go-sim-api/internal/scheduler"
-	"go-sim-api/internal/service"
-	"go-sim-api/internal/storage"
+	"github.com/beiwater/NewHaven/backend/internal/app"
+	"github.com/beiwater/NewHaven/backend/internal/catalog"
+	"github.com/beiwater/NewHaven/backend/internal/config"
+	"github.com/beiwater/NewHaven/backend/internal/httpapi"
+	"github.com/beiwater/NewHaven/backend/internal/scheduler"
+	"github.com/beiwater/NewHaven/backend/internal/storage/memory"
 )
 
-func findProjectRoot(wd string) string {
-	root := wd
-	for {
-		if _, err := os.Stat(filepath.Join(root, "decompiled", "data")); err == nil {
-			return root
-		}
-		parent := filepath.Dir(root)
-		if parent == root {
-			log.Fatalf("cannot find decompiled/data from %s", wd)
-		}
-		root = parent
-	}
-}
-
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
 	cfg := config.Load()
-	formula.SetBondFaceValue(cfg.Game.BondFaceValue)
-
-	var st storage.Storage = &storage.NoopStorage{}
-	if cfg.DatabaseURL != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		var err error
-		st, err = storage.New(ctx, cfg.DatabaseURL)
-		if err != nil {
-			log.Fatalf("storage: %v", err)
-		}
-		defer st.Close()
-	} else {
-		log.Println("no database url, running memory-only with NoopStorage")
+	if err := cfg.Validate(); err != nil {
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
 	}
-
-	wd, _ := os.Getwd()
-	d, err := data.Load(findProjectRoot(wd))
+	st := memory.New()
+	// Load static game data catalogs (best-effort in dev mode).
+	projectRoot := config.FindProjectRoot()
+	resources, err := catalog.LoadResources(projectRoot)
 	if err != nil {
-		log.Fatalf("load data: %v", err)
+		slog.Warn("failed to load resources catalog, production start will fail", "error", err)
+		resources = make(map[int]*catalog.ResourceEntry)
+	}
+	buildings, err := catalog.LoadBuildings(projectRoot)
+	if err != nil {
+		slog.Warn("failed to load buildings catalog, production start will fail", "error", err)
+		buildings = make(map[int]*catalog.BuildingEntry)
+	}
+	economy, err := catalog.LoadEconomyModel(projectRoot)
+	if err != nil {
+		slog.Warn("failed to load economy model, retail sales will be skipped", "error", err)
+		economy = make(map[int]*catalog.EconomyModelEntry)
 	}
 
-	svc := service.New(d, cfg, st)
+	application := app.New(cfg, st, resources, buildings, economy)
 
-	sched := scheduler.New(svc)
-	sched.Start()
-	defer sched.Stop()
+	// Scheduler for bot economy and background tasks including bond interest
+	sched := scheduler.New(application.MarketService, func(ctx context.Context) error {
+		_, err := application.FinanceService.SettleBondInterest(ctx)
+		return err
+	}, application.SaveAll)
+	mux := httpapi.NewRouter(cfg, &httpapi.RouterHandlers{
+		Auth: application.AuthHandler, Company: application.CompanyHandler, Warehouse: application.WarehouseHandler,
+		Building: application.BuildingHandler, Production: application.ProductionHandler, Market: application.MarketHandler,
+		Finance: application.FinanceHandler, Bond: application.BondHandler, Player: application.PlayerHandler,
+		Social: application.SocialHandler, Chat: application.ChatHandler, Contract: application.ContractHandler, Research: application.ResearchHandler,
+		Executive: application.ExecutiveHandler, Leaderboard: application.LeaderboardHandler, Admin: application.AdminHandler, Report: application.ReportHandler,
+	})
+	if cfg.DevMode {
+		slog.Info("dev mode enabled, bootstrapping dev user")
+		if err := application.AuthService.DevBootstrap(context.Background()); err != nil {
+			slog.Warn("dev bootstrap skipped", "error", err)
+		}
 
-	h := handler.New(svc, cfg.JWTSigningKey)
+		// Ensure Terminal system company exists.
+		if _, err := application.TerminalService.EnsureTerminalCompany(context.Background()); err != nil {
+			slog.Warn("terminal bootstrap skipped", "error", err)
+		}
 
-	mux := http.ServeMux{}
-	h.Register(&mux)
+		// Ensure bot company exists for market liquidity.
+		if err := application.MarketService.EnsureBotCompanies(context.Background()); err != nil {
+			slog.Warn("[main] bot company init skipped", "error", err)
+		}
+	}
 
 	srv := &http.Server{
 		Addr:         cfg.Addr,
-		Handler:      middleware.RequestID(middleware.Logger(middleware.CORS(middleware.Recovery(&mux)))),
+		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
+	// Start background scheduler
+	sched.Start()
+
 	go func() {
-		log.Printf("sim api on http://%s", cfg.Addr)
+		slog.Info("simapi starting", "addr", cfg.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
+			slog.Error("listen failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("shutting down...")
 
+	slog.Info("shutting down...")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("shutdown: %v", err)
+		slog.Error("shutdown failed", "error", err)
+	}
+
+	if application.PostgresStore != nil {
+		application.PostgresStore.Close()
 	}
 }
