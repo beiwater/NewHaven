@@ -2,6 +2,7 @@ package market
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
@@ -49,6 +50,23 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	}
 
 	isBuy := req.Kind == 1
+	requestID, err := normalizeRequestID(req.RequestId)
+	if err != nil {
+		return nil, err
+	}
+	if requestID != "" {
+		existing, err := s.findOrderByRequestID(ctx, companyID, requestID)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil {
+			if !sameCreateOrder(existing, req, isBuy) {
+				return nil, apperr.Conflict("requestId was already used for a different market order")
+			}
+			return createOrderResponse(existing), nil
+		}
+	}
+
 	var reservedCompanyID int
 	var originalMoney float64
 
@@ -78,6 +96,7 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	now := s.clock.Now().UTC()
 	order := &domainmarket.MarketOrder{
 		ID:             s.idgen.Next("order"),
+		ClientRequestID: requestID,
 		CompanyID:      companyID,
 		ResourceID:     req.ResourceId,
 		IsBuy:          isBuy,
@@ -127,10 +146,43 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 		s.matchNewSellOrder(ctx, order)
 	}
 
-	// Build response DTO.
+	return createOrderResponse(order), nil
+}
+
+func normalizeRequestID(value *string) (string, error) {
+	if value == nil {
+		return "", nil
+	}
+	requestID := strings.TrimSpace(*value)
+	if requestID == "" {
+		return "", apperr.BadRequest("requestId cannot be empty")
+	}
+	if len(requestID) > 128 {
+		return "", apperr.BadRequest("requestId cannot exceed 128 characters")
+	}
+	return requestID, nil
+}
+
+func (s *Service) findOrderByRequestID(ctx context.Context, companyID int, requestID string) (*domainmarket.MarketOrder, error) {
+	order, err := s.market.GetOrderByClientRequestID(ctx, companyID, requestID)
+	if err != nil {
+		return nil, apperr.Internalf("find idempotent market order: %v", err)
+	}
+	return order, nil
+}
+
+func sameCreateOrder(order *domainmarket.MarketOrder, req *openapi.CreateOrderRequestFrontend, isBuy bool) bool {
+	return order.ResourceID == req.ResourceId &&
+		order.IsBuy == isBuy &&
+		order.Price == float64(req.Price) &&
+		order.Quantity == req.Quantity &&
+		order.Quality == req.Quality
+}
+
+func createOrderResponse(order *domainmarket.MarketOrder) *openapi.CreateOrderResponse {
 	remaining := order.Remaining()
 	kindVal := openapi.MarketOrderDTOKind(1)
-	if !isBuy {
+	if !order.IsBuy {
 		kindVal = 0
 	}
 	var createdAt time.Time
@@ -153,7 +205,7 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 
 	return &openapi.CreateOrderResponse{
 		Order: &orderDTO,
-	}, nil
+	}
 }
 
 // CancelOrder cancels an existing open order and refunds the reserved funds/inventory.

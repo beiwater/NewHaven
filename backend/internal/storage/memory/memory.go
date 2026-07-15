@@ -42,6 +42,7 @@ type Store struct {
 	companies       map[int]*company.Company
 	byPlayer        map[int]*company.Company
 	orders          map[string]*market.MarketOrder
+	ordersByRequest map[string]*market.MarketOrder
 	trades          []market.Trade
 	tickers         map[int]*market.Ticker
 	jobs            map[string]*production.ProductionJob
@@ -77,6 +78,7 @@ func New() *Store {
 		companies:  make(map[int]*company.Company),
 		byPlayer:   make(map[int]*company.Company),
 		orders:     make(map[string]*market.MarketOrder),
+		ordersByRequest: make(map[string]*market.MarketOrder),
 		tickers:    make(map[int]*market.Ticker),
 		jobs:       make(map[string]*production.ProductionJob),
 		bonds:      make(map[string]*finance.Bond),
@@ -214,6 +216,12 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	s.orders = snap.Orders
 	if s.orders == nil {
 		s.orders = make(map[string]*market.MarketOrder)
+	}
+	s.ordersByRequest = make(map[string]*market.MarketOrder)
+	for _, order := range s.orders {
+		if order.ClientRequestID != "" {
+			s.ordersByRequest[marketRequestKey(order.CompanyID, order.ClientRequestID)] = order
+		}
 	}
 	if snap.Trades != nil {
 		s.trades = snap.Trades
@@ -499,6 +507,13 @@ func (s *Store) UpdateWarehouse(_ context.Context, w *warehouse.Warehouse) error
 func (s *Store) CreateOrder(_ context.Context, o *market.MarketOrder) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if o.ClientRequestID != "" {
+		key := marketRequestKey(o.CompanyID, o.ClientRequestID)
+		if _, exists := s.ordersByRequest[key]; exists {
+			return fmt.Errorf("%w: market request", storage.ErrAlreadyExists)
+		}
+		s.ordersByRequest[key] = o
+	}
 	s.orders[o.ID] = o
 	return nil
 }
@@ -511,6 +526,20 @@ func (s *Store) GetOrder(_ context.Context, orderID string) (*market.MarketOrder
 		return nil, fmt.Errorf("order not found")
 	}
 	return o, nil
+}
+
+func (s *Store) GetOrderByClientRequestID(_ context.Context, companyID int, requestID string) (*market.MarketOrder, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	order, ok := s.ordersByRequest[marketRequestKey(companyID, requestID)]
+	if !ok {
+		return nil, nil
+	}
+	return order, nil
+}
+
+func marketRequestKey(companyID int, requestID string) string {
+	return fmt.Sprintf("%d:%s", companyID, requestID)
 }
 
 func (s *Store) UpdateOrder(_ context.Context, o *market.MarketOrder) error {

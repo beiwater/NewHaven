@@ -21,6 +21,7 @@ const (
 // MarketOrder is a limit or market order on the exchange.
 type MarketOrder struct {
 	ID             string      `json:"id"`
+	ClientRequestID string      `json:"client_request_id,omitempty"`
 	CompanyID      int         `json:"company_id"`
 	ResourceID     int         `json:"resource_id"`
 	IsBuy          bool        `json:"is_buy"`

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	appmarket "github.com/beiwater/NewHaven/backend/internal/app/market"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
@@ -368,6 +369,92 @@ func TestCreateOrder_Buy_ReservesCashCreatesOpenOrderAndLedger(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected market_buy_reserve ledger entry for 250")
+	}
+}
+
+func TestCreateOrder_RequestIDMakesRetryIdempotent(t *testing.T) {
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	ctx := context.Background()
+	cid := newTestCompany(t, store, 45, "idempotent_buyer", 10000)
+	requestID := "place-order-123"
+	req := &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 25, RequestId: &requestID,
+	}
+
+	first, err := svc.CreateOrder(ctx, cid, req)
+	if err != nil {
+		t.Fatalf("first CreateOrder: %v", err)
+	}
+	second, err := svc.CreateOrder(ctx, cid, req)
+	if err != nil {
+		t.Fatalf("retry CreateOrder: %v", err)
+	}
+	if first.Order == nil || second.Order == nil || first.Order.Id == nil || second.Order.Id == nil || *first.Order.Id != *second.Order.Id {
+		t.Fatalf("retry returned a different order: first=%+v second=%+v", first.Order, second.Order)
+	}
+	company, _ := store.GetCompany(ctx, cid)
+	if company.Money != 9750 {
+		t.Fatalf("retry reserved cash more than once: money=%.2f", company.Money)
+	}
+	orders, _ := store.GetOrdersByCompany(ctx, cid)
+	if len(orders) != 1 || orders[0].ClientRequestID != requestID {
+		t.Fatalf("expected one persisted idempotent order, got %+v", orders)
+	}
+}
+
+func TestCreateOrder_RequestIDRejectsDifferentPayload(t *testing.T) {
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	ctx := context.Background()
+	cid := newTestCompany(t, store, 46, "idempotency_conflict", 10000)
+	requestID := "place-order-conflict"
+
+	_, err := svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 25, RequestId: &requestID,
+	})
+	if err != nil {
+		t.Fatalf("first CreateOrder: %v", err)
+	}
+	_, err = svc.CreateOrder(ctx, cid, &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 11, Price: 25, RequestId: &requestID,
+	})
+	if !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("expected requestId conflict, got %v", err)
+	}
+	company, _ := store.GetCompany(ctx, cid)
+	if company.Money != 9750 {
+		t.Fatalf("conflicting retry changed money: %.2f", company.Money)
+	}
+}
+
+func TestCreateOrder_RequestIDIsScopedPerCompany(t *testing.T) {
+	resources := map[int]*catalog.ResourceEntry{
+		5: {ID: 5, DbLetter: 5, Name: "Butter", IsExchangeTradable: true, BasePrice: 30},
+	}
+	svc, store := newTestSvc(resources)
+	ctx := context.Background()
+	companyA := newTestCompany(t, store, 47, "request_scope_a", 10000)
+	companyB := newTestCompany(t, store, 48, "request_scope_b", 10000)
+	requestID := "same-browser-request-id"
+	req := &openapi.CreateOrderRequestFrontend{
+		ResourceId: 5, Kind: 1, Quality: 0, Quantity: 10, Price: 25, RequestId: &requestID,
+	}
+
+	orderA, err := svc.CreateOrder(ctx, companyA, req)
+	if err != nil {
+		t.Fatalf("company A CreateOrder: %v", err)
+	}
+	orderB, err := svc.CreateOrder(ctx, companyB, req)
+	if err != nil {
+		t.Fatalf("company B CreateOrder: %v", err)
+	}
+	if orderA.Order == nil || orderB.Order == nil || orderA.Order.Id == nil || orderB.Order.Id == nil || *orderA.Order.Id == *orderB.Order.Id {
+		t.Fatalf("request IDs leaked across companies: A=%+v B=%+v", orderA.Order, orderB.Order)
 	}
 }
 

@@ -3,6 +3,10 @@ import { api } from './client'
 import type { MarketOrder, MarketDepth, MarketTickerData, ResourceDefinition } from '@/game/types'
 import { audio } from '@/audio/AudioManager'
 
+function newMarketRequestId() {
+  return globalThis.crypto?.randomUUID?.() ?? `market-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 // /api/v3/market-ticker/{id}/ returns { resource, series: [{price, time}] }
 export function useMarketTicker(resourceId: number) {
   return useQuery({
@@ -67,7 +71,11 @@ export function useCreateOrder() {
       quality: number
       quantity: number
       price: number
-    }) => api.post<{ order: MarketOrder }>('/api/v2/market-order/', order),
+      requestId?: string
+    }) => api.post<{ order: MarketOrder }>('/api/v2/market-order/', {
+      ...order,
+      requestId: order.requestId ?? newMarketRequestId(),
+    }),
     onSuccess: (_, vars) => {
       audio.playSfx(vars.kind === 0 ? 'money_coin_spend' : 'money_coin_gain')
       qc.invalidateQueries({ queryKey: ['marketOrders', vars.resourceId] })
