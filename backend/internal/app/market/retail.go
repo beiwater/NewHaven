@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"math"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
@@ -100,9 +101,12 @@ func (s *Service) processNPCRetail(ctx context.Context, company *domain.Company,
 func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error {
 	// Profile data is polled frequently and the same account may be open in
 	// multiple tabs. Serialize the read/compute/write settlement so two requests
-	// cannot sell the same shelf interval twice.
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// cannot sell the same shelf interval twice. The lock is per company so one
+	// busy player cannot stall retail settlement for every other account.
+	lockValue, _ := s.retailLocks.LoadOrStore(companyID, &sync.Mutex{})
+	companyLock := lockValue.(*sync.Mutex)
+	companyLock.Lock()
+	defer companyLock.Unlock()
 
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {

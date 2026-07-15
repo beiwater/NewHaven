@@ -18,6 +18,7 @@ import (
 // Service is the market application use case.
 type Service struct {
 	mu           sync.Mutex
+	retailLocks  sync.Map // companyID -> *sync.Mutex; isolates settlement contention per account
 	market       storage.MarketStorage
 	companies    storage.CompanyStorage
 	finance      storage.FinanceStorage

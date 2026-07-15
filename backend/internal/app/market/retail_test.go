@@ -30,7 +30,7 @@ func (s *overlapDetectingCompanyStore) GetCompany(ctx context.Context, companyID
 	defer s.active.Add(-1)
 	// Make simultaneous profile requests overlap reliably unless the service
 	// serializes the whole settlement transaction.
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(25 * time.Millisecond)
 	return s.CompanyStorage.GetCompany(ctx, companyID)
 }
 
@@ -335,5 +335,42 @@ func TestCatchUpPlayerRetail_SerializesConcurrentSettlements(t *testing.T) {
 	updated, _ := store.GetCompany(nil, companyID)
 	if updated.Money <= 500.0 {
 		t.Fatal("expected the elapsed retail interval to settle")
+	}
+}
+
+func TestCatchUpPlayerRetail_AllowsDifferentCompaniesToSettleConcurrently(t *testing.T) {
+	economy := map[int]*catalog.EconomyModelEntry{
+		1: {BuildingKindModifier: 0.8, BuildingLevelsNeededPerUnitPerHour: 0.01, ModeledProductionCostPerUnit: 8.0, ModeledStoreWages: 200.0, ModeledUnitsSoldAnHour: 15.0},
+	}
+	store := memory.New()
+	clock := platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC))
+	detector := &overlapDetectingCompanyStore{CompanyStorage: store}
+	svc := newRetailTestSvcWithCompanies(economy, store, detector, clock)
+
+	companyA := newTestCompany(t, store, 1010, "parallel_a", 500.0)
+	companyB := newTestCompany(t, store, 1011, "parallel_b", 500.0)
+
+	start := make(chan struct{})
+	errs := make(chan error, 2)
+	var wg sync.WaitGroup
+	for _, companyID := range []int{companyA, companyB} {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			<-start
+			errs <- svc.CatchUpPlayerRetail(context.Background(), id)
+		}(companyID)
+	}
+	close(start)
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("parallel catch-up failed: %v", err)
+		}
+	}
+	if !detector.overlapped.Load() {
+		t.Fatal("different companies were serialized behind one global retail lock")
 	}
 }
