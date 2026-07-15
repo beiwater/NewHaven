@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useUIStore } from '@/store/ui.store'
 import { useProductionJobs, useStartProduction, useClaimProduction, useProductionOptions } from '@/api/production.api'
-import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding, useStockShelf, useUnstockShelf, useSetShelfPrice } from '@/api/buildings.api'
+import { useMoveBuilding, useDemolishBuilding, useStashBuilding, useUpgradeBuilding, useStockShelf } from '@/api/buildings.api'
+import { useResources } from '@/api/market.api'
 import type { Building, ProductionJob } from '@/game/types'
 import { Icon } from '@/features/ui/Icon'
 import { resourceIcon, resourceName } from '@/game/resources'
@@ -93,8 +94,6 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
 
   // Retail hooks (only used for retail buildings)
   const stockShelf = useStockShelf()
-  const unstockShelf = useUnstockShelf()
-  const setShelfPriceMut = useSetShelfPrice()
 
   const moveBuilding = useMoveBuilding()
   const upgradeBuilding = useUpgradeBuilding()
@@ -176,7 +175,6 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
   // ─── Stock state (retail only) ───
   const [stockQuantity, setStockQuantity] = useState('10')
   const [stockResourceId, setStockResourceId] = useState<number | null>(building.produces?.[0] ?? null)
-  const [shelfPrice, setShelfPrice] = useState('')
 
   return (
     <div className="flex flex-col h-full">
@@ -208,14 +206,10 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
       {building.isRetail ? <RetailSellSection
           building={building}
           stockShelf={stockShelf}
-          unstockShelf={unstockShelf}
-          setShelfPriceApi={setShelfPriceMut}
           stockQuantity={stockQuantity}
           setStockQuantity={setStockQuantity}
           stockResourceId={stockResourceId}
           setStockResourceId={setStockResourceId}
-          shelfPrice={shelfPrice}
-          setShelfPrice={setShelfPrice}
           t={t}
         />
       : <>
@@ -491,25 +485,38 @@ export function BuildingCard({ building, hasFreeSlots, onClose }: BuildingCardPr
 
 /* ─── Retail Sell Section ─── */
 function RetailSellSection({
-  building, stockShelf, unstockShelf, setShelfPriceApi,
+  building, stockShelf,
   stockQuantity, setStockQuantity, stockResourceId, setStockResourceId,
-  shelfPrice, setShelfPrice, t,
+  t,
 }: {
   building: Building
   stockShelf: ReturnType<typeof useStockShelf>
-  unstockShelf: ReturnType<typeof useUnstockShelf>
-  setShelfPriceApi: ReturnType<typeof useSetShelfPrice>
   stockQuantity: string
   setStockQuantity: (v: string) => void
   stockResourceId: number | null
   setStockResourceId: (v: number | null) => void
-  shelfPrice: string
-  setShelfPrice: (v: string) => void
   t: (key: string) => string
 }) {
+  const { data: resourcesData } = useResources()
   const sellableResources = building.produces ?? []
   const shelves = building.shelves ?? []
+  const availableResources = sellableResources.filter((resourceId) => !shelves.some((shelf) => shelf.resourceId === resourceId))
+  const selectedSaleResourceId = stockResourceId !== null && availableResources.includes(stockResourceId)
+    ? stockResourceId
+    : availableResources[0] ?? null
   const totalRevenue = shelves.reduce((s, sh) => s + (sh.revenue ?? 0), 0)
+  const selectedResource = resourcesData?.resources?.find((resource) => resource.resourceId === selectedSaleResourceId)
+  const recommendedPrice = selectedResource?.recommendedSellPrice ?? selectedResource?.recommendedPrice ?? 0
+  const [priceInput, setPriceInput] = useState({ resourceId: null as number | null, value: '' })
+  const shelfPrice = priceInput.resourceId === selectedSaleResourceId
+    ? priceInput.value
+    : recommendedPrice > 0 ? recommendedPrice.toFixed(2) : ''
+  const setShelfPrice = (value: string) => setPriceInput({ resourceId: selectedSaleResourceId, value })
+  const numericStockQuantity = parseInt(stockQuantity, 10)
+  const hasValidQuantity = Number.isInteger(numericStockQuantity) && numericStockQuantity > 0
+  const numericShelfPrice = parseFloat(shelfPrice)
+  const hasValidPrice = Number.isFinite(numericShelfPrice) && numericShelfPrice > 0
+  const stockError = stockShelf.error instanceof Error ? stockShelf.error.message : ''
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -543,33 +550,13 @@ function RetailSellSection({
                 <div className="flex items-center gap-2 text-[10px]">
                   <span className="text-amber-700">{t('building.price')}: ${sh.price.toFixed(2)}</span>
                   {sh.priceLock && <span className="text-amber-400">🔒</span>}
+                  <span className="ml-auto rounded-full bg-green-100 px-1.5 py-0.5 font-bold text-green-700">{t('building.saleActive')}</span>
                   {sh.revenue > 0 && (
-                    <span className="ml-auto text-green-600">{t('building.revenue')}: ${sh.revenue.toFixed(2)}</span>
+                    <span className="text-green-600">{t('building.revenue')}: ${sh.revenue.toFixed(2)}</span>
                   )}
                 </div>
-                <div className="flex gap-1.5 mt-2">
-                  <button
-                    onClick={() => {
-                      unstockShelf.mutate({ buildingId: building.id, resourceId: sh.resourceId, quantity: sh.quantity })
-                    }}
-                    className="flex-1 py-1 bg-amber-200/70 hover:bg-amber-300/70 text-amber-900 text-[10px] font-bold rounded transition-colors"
-                  >
-                    {t('building.unstock')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      const price = prompt(t('building.setPricePrompt'), String(sh.price))
-                      if (price) {
-                        const numPrice = parseFloat(price)
-                        if (!isNaN(numPrice) && numPrice > 0) {
-                          setShelfPriceApi.mutate({ buildingId: building.id, resourceId: sh.resourceId, price: numPrice, lock: true })
-                        }
-                      }
-                    }}
-                    className="flex-1 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold rounded transition-colors"
-                  >
-                    {t('building.setPrice')}
-                  </button>
+                <div className="mt-2 rounded bg-amber-100/80 px-2 py-1.5 text-[10px] font-semibold leading-4 text-amber-700">
+                  🔒 {t('building.saleLockedUntilComplete')}
                 </div>
               </div>
             ))}
@@ -582,14 +569,14 @@ function RetailSellSection({
         <div className="text-[10px] text-amber-600 uppercase tracking-wider mb-2">{t('building.stockItems')}</div>
         <div className="flex gap-2 mb-2">
           <select
-            value={stockResourceId ?? ''}
+            value={selectedSaleResourceId ?? ''}
             onChange={(e) => {
               const rid = parseInt(e.target.value, 10)
               if (!isNaN(rid)) setStockResourceId(rid)
             }}
             className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
           >
-            {sellableResources.map((rid) => (
+            {availableResources.map((rid) => (
               <option key={rid} value={rid}>{resourceName(rid)}</option>
             ))}
           </select>
@@ -606,28 +593,41 @@ function RetailSellSection({
             type="number"
             step="0.01"
             min="0"
-            placeholder={t('building.priceOptional')}
+            placeholder={t('building.priceRequired')}
             value={shelfPrice}
             onChange={(e) => setShelfPrice(e.target.value)}
             className="flex-1 rounded border border-amber-300 bg-white px-2 py-1 text-[10px] text-amber-900"
           />
           <button
             onClick={() => {
-              if (stockResourceId === null) return
-              const price = shelfPrice ? parseFloat(shelfPrice) : undefined
+              if (selectedSaleResourceId === null) return
               stockShelf.mutate({
                 buildingId: building.id,
-                resourceId: stockResourceId,
-                quantity: parseInt(stockQuantity, 10) || 10,
-                price,
+                resourceId: selectedSaleResourceId,
+                quantity: numericStockQuantity,
+                price: numericShelfPrice,
               })
             }}
-            disabled={stockShelf.isPending || stockResourceId === null}
+            disabled={stockShelf.isPending || selectedSaleResourceId === null || !hasValidQuantity || !hasValidPrice}
             className="px-3 py-1 bg-cyan-700 hover:bg-cyan-800 disabled:bg-cyan-900/50 text-white text-[10px] font-bold rounded transition-colors"
           >
             {stockShelf.isPending ? t('building.stocking') : t('building.stock')}
           </button>
         </div>
+        {recommendedPrice > 0 && (
+          <button
+            type="button"
+            onClick={() => setShelfPrice(recommendedPrice.toFixed(2))}
+            className="mt-2 w-full rounded border border-cyan-200 bg-cyan-50 px-2 py-1.5 text-left text-[10px] font-bold text-cyan-800 hover:bg-cyan-100"
+          >
+            {t('building.recommendedSalePrice')}: ${recommendedPrice.toFixed(2)} · {t('market.useRecommended')}
+          </button>
+        )}
+        {stockError && (
+          <div className="mt-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] font-semibold text-red-700">
+            {stockError}
+          </div>
+        )}
       </div>
 
       {/* Revenue */}

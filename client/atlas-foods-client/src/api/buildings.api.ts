@@ -122,7 +122,7 @@ export function useStashBuilding() {
 export function useStockShelf() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (params: { buildingId: string; resourceId: number; quantity: number; price?: number }) =>
+    mutationFn: (params: { buildingId: string; resourceId: number; quantity: number; price: number }) =>
       api.post<{ shelf: import('@/game/types').ShelfItem }>(`/api/v2/buildings/${params.buildingId}/stock/`, {
         building_id: params.buildingId,
         resource_id: params.resourceId,

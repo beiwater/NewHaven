@@ -114,6 +114,7 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 	}
 
 	now := s.clock.Now().UTC()
+	legacyBatchLocked := s.lockLegacySaleBatches(ctx, company)
 
 	if company.LastRetailAt == "" {
 		company.LastRetailAt = now.Add(-60 * time.Second).Format(time.RFC3339)
@@ -126,6 +127,9 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 	}
 	elapsedSeconds := now.Sub(lastSettle).Seconds()
 	if elapsedSeconds <= 0 {
+		if legacyBatchLocked {
+			return s.companies.UpdateCompany(ctx, company)
+		}
 		return nil
 	}
 
@@ -170,6 +174,34 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 	company.RetailCarry = nextCarry
 	company.LastRetailAt = now.Format(time.RFC3339)
 	return s.companies.UpdateCompany(ctx, company)
+}
+
+// lockLegacySaleBatches migrates shelves created before sale batches became
+// immutable. Their current positive price (or today's market fallback) becomes
+// the committed batch price, so a deployment cannot leave old sales floating.
+func (s *Service) lockLegacySaleBatches(ctx context.Context, company *domain.Company) bool {
+	changed := false
+	for i := range company.Buildings {
+		building := &company.Buildings[i]
+		entry, ok := s.buildings[building.Kind]
+		if !ok || entry.Type != "retail" {
+			continue
+		}
+		for j := range building.Shelves {
+			shelf := &building.Shelves[j]
+			if shelf.Quantity <= 0 || shelf.PriceLock {
+				continue
+			}
+			if shelf.Price <= 0 {
+				shelf.Price = s.salePriceForResource(ctx, shelf.ResourceID)
+			}
+			if shelf.Price > 0 {
+				shelf.PriceLock = true
+				changed = true
+			}
+		}
+	}
+	return changed
 }
 
 // collectPlayerShelves gathers all non-empty shelves from the company's retail buildings.

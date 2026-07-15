@@ -68,11 +68,13 @@ func main() {
 		if _, err := application.TerminalService.EnsureTerminalCompany(context.Background()); err != nil {
 			slog.Warn("terminal bootstrap skipped", "error", err)
 		}
+	}
 
-		// Ensure bot company exists for market liquidity.
-		if err := application.MarketService.EnsureBotCompanies(context.Background()); err != nil {
-			slog.Warn("[main] bot company init skipped", "error", err)
-		}
+	// Market liquidity is a gameplay dependency, not a development fixture.
+	// Initialize it in every environment; opening the market also repairs any
+	// missing resource books idempotently.
+	if err := application.MarketService.EnsureMarketLiquidity(context.Background()); err != nil {
+		slog.Warn("[main] market liquidity bootstrap skipped", "error", err)
 	}
 
 	srv := &http.Server{

@@ -92,10 +92,7 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 		return nil
 	}
 
-	var ids []int
-	for id := range s.resources {
-		ids = append(ids, id)
-	}
+	ids := s.tradableResourceIDs()
 	if len(ids) == 0 {
 		return nil
 	}
@@ -120,6 +117,41 @@ func (s *Service) RunBotCycle(ctx context.Context) error {
 		s.processResourceCycle(ctx, rng, now, resourceID)
 	}
 	return nil
+}
+
+// EnsureMarketLiquidity gives every exchange-tradable resource a two-sided
+// bot book. It is safe to call whenever the market is opened: existing healthy
+// bot levels count against the target, so the call replenishes gaps without
+// multiplying orders on every page visit.
+func (s *Service) EnsureMarketLiquidity(ctx context.Context) error {
+	if !botCfg.enabled {
+		return nil
+	}
+	if err := s.EnsureBotCompanies(ctx); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ids := s.tradableResourceIDs()
+	rng := rand.New(rand.NewSource(s.clock.Now().UnixNano()))
+	now := s.clock.Now().UTC()
+	for _, resourceID := range ids {
+		s.processResourceCycle(ctx, rng, now, resourceID)
+	}
+	return nil
+}
+
+func (s *Service) tradableResourceIDs() []int {
+	ids := make([]int, 0, len(s.resources))
+	for _, resource := range s.resources {
+		if resource == nil || resource.DbLetter <= 0 || resource.IsResearch || !resource.IsExchangeTradable {
+			continue
+		}
+		ids = append(ids, resource.DbLetter)
+	}
+	sort.Ints(ids)
+	return ids
 }
 
 // processResourceCycle handles a single resource's bot cycle iteration.
@@ -156,6 +188,9 @@ func (s *Service) calculateFairPrice(
 		var highestBuy, lowestSell float64
 		lowestSell = math.MaxFloat64
 		for _, o := range allOrders {
+			if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
+				continue
+			}
 			if o.Remaining() <= 0 {
 				continue
 			}
@@ -173,7 +208,10 @@ func (s *Service) calculateFairPrice(
 		} else if lowestSell < math.MaxFloat64 {
 			fairPrice = lowestSell * 0.95
 		} else {
-			fairPrice = 10.0 + float64(resourceID)*5.0
+			fairPrice = s.basePriceForResource(resourceID)
+			if fairPrice <= 0 {
+				fairPrice = 20.0 + float64(resourceID%11)*3.0
+			}
 			jitter := 1.0 + (rng.Float64()-0.5)*0.1
 			fairPrice *= jitter
 		}
@@ -210,6 +248,9 @@ func (s *Service) cancelStaleBotOrders(ctx context.Context, allOrders []domainma
 	for i := range allOrders {
 		o := &allOrders[i]
 		if o.CompanyID != s.botCompanyID {
+			continue
+		}
+		if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
 			continue
 		}
 		if o.Remaining() <= 0 {
@@ -280,7 +321,7 @@ func (s *Service) placeBotOrderLevels(ctx context.Context, rng *rand.Rand, now t
 
 	// Place buy levels
 	for i := 0; i < 3 && i < wantedBuy; i++ {
-		price := buyPrices[i]
+		price := snapToMarketTick(buyPrices[i])
 		if price < 0.01 {
 			price = 0.01
 		}
@@ -308,7 +349,7 @@ func (s *Service) placeBotOrderLevels(ctx context.Context, rng *rand.Rand, now t
 
 	// Place sell levels
 	for i := 0; i < 3 && i < wantedSell; i++ {
-		price := sellPrices[i]
+		price := snapToMarketTick(sellPrices[i])
 		if price < 0.01 {
 			price = 0.01
 		}
@@ -421,7 +462,10 @@ func (s *Service) estimateMidPrice(ctx context.Context, resourceID int, rng *ran
 	if err == nil && ticker != nil {
 		return float64(ticker.LastPrice)
 	}
-	basePrice := 10.0 + float64(resourceID)*5.0
+	basePrice := s.basePriceForResource(resourceID)
+	if basePrice <= 0 {
+		basePrice = 20.0 + float64(resourceID%11)*3.0
+	}
 	jitter := 1.0 + (rng.Float64()-0.5)*0.2
 	return basePrice * jitter
 }

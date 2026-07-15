@@ -47,6 +47,9 @@ func NewService(market storage.MarketStorage, companies storage.CompanyStorage, 
 
 // ListResources returns market-tradable resource definitions.
 func (s *Service) ListResources(ctx context.Context) (*openapi.ResourcesResponse, error) {
+	if err := s.EnsureMarketLiquidity(ctx); err != nil {
+		return nil, err
+	}
 	dtos := make([]openapi.ResourceDefinition, 0)
 	for _, r := range s.resources {
 		if r.DbLetter <= 0 {
@@ -63,13 +66,17 @@ func (s *Service) ListResources(ctx context.Context) (*openapi.ResourcesResponse
 		for k, v := range r.ProducedFrom {
 			producedFrom[fmt.Sprintf("%d", k)] = v
 		}
+		recommendation := s.recommendedPrices(ctx, rid)
 		dto := openapi.ResourceDefinition{
-			ResourceId:         &rid,
-			Name:               &r.Name,
-			ProducedFrom:       &producedFrom,
-			ProducedPerHourRaw: &r.ProducedPerHourRaw,
-			UnitsSoldAnHour:    &r.UnitsSoldAnHour,
-			HasEconomyModel:    &r.HasEconomyModel,
+			ResourceId:           &rid,
+			Name:                 &r.Name,
+			ProducedFrom:         &producedFrom,
+			ProducedPerHourRaw:   &r.ProducedPerHourRaw,
+			UnitsSoldAnHour:      &r.UnitsSoldAnHour,
+			HasEconomyModel:      &r.HasEconomyModel,
+			RecommendedPrice:     &recommendation.Fair,
+			RecommendedBuyPrice:  &recommendation.Buy,
+			RecommendedSellPrice: &recommendation.Sell,
 		}
 		dtos = append(dtos, dto)
 	}

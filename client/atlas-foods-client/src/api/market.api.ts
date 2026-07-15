@@ -8,11 +8,12 @@ function newMarketRequestId() {
 }
 
 // /api/v3/market-ticker/{id}/ returns { resource, series: [{price, time}] }
-export function useMarketTicker(resourceId: number) {
+export function useMarketTicker(resourceId: number, enabled = true) {
   return useQuery({
     queryKey: ['marketTicker', resourceId],
     queryFn: () => api.get<MarketTickerData>(`/api/v3/market-ticker/${resourceId}/`),
     refetchInterval: 10_000,
+    enabled,
   })
 }
 
@@ -42,16 +43,17 @@ export function useMyOrders() {
     refetchInterval: 10_000,
   })
 }
-export function useMarketDepth(resourceId: number, quality = 0) {
+export function useMarketDepth(resourceId: number, quality = 0, enabled = true) {
   return useQuery({
     queryKey: ['marketDepth', resourceId, quality],
     queryFn: () => api.get<MarketDepth>(`/api/v3/market-depth/${resourceId}/${quality}/`),
     refetchInterval: 10_000,
+    enabled,
   })
 }
 
 // /api/v3/market/{id}/{quality}/ returns { orders: MarketOrder[] }
-export function useMarketOrders(resourceId: number, quality = 0) {
+export function useMarketOrders(resourceId: number, quality = 0, enabled = true) {
   return useQuery({
     queryKey: ['marketOrders', resourceId, quality],
     queryFn: async () => {
@@ -59,6 +61,7 @@ export function useMarketOrders(resourceId: number, quality = 0) {
       return resp.orders ?? [];
     },
     refetchInterval: 10_000,
+    enabled,
   })
 }
 

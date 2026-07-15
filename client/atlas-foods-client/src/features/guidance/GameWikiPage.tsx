@@ -46,9 +46,10 @@ const zhSections: WikiSection[] = [
   {
     id: 'retail',
     title: '零售：把货架变成现金',
-    summary: '上架、定价、等待需求结算。',
+    summary: '选择数量与价格，启动一个不可撤销的销售批次。',
     body: [
-      '零售建筑只会卖它允许经营的商品。先从仓库补货，再决定跟随市场价还是锁定自己的价格。',
+      '零售建筑只会卖它允许经营的商品。开始前选择商品、数量和销售价；界面会按照当前订单簿、最近成交价和商品基础价给出推荐价格。',
+      '点击“开始销售”后，这批货物和价格会锁定，不能撤货、追加或改价。商品全部售罄后，才能用新价格开始下一批销售。',
       '价格过高、没有需求或货架为空时不会产生销售。低流量商品的零星需求会被保留到下一次结算，不会因为页面轮询而丢失。',
       '不同零售建筑的货架独立结算；同一商品也不会从另一座店铺误扣库存。',
     ],
@@ -59,6 +60,7 @@ const zhSections: WikiSection[] = [
     summary: '用限价单保护你的现金和利润。',
     body: [
       '买单设定你愿意支付的最高价，卖单设定你愿意接受的最低价。成交前请确认数量、价格和仓库空间。',
+      '市场首次打开时会为全部可交易商品检查 Bot 流动性并补齐买卖盘。下单框的推荐价来自当前最优报价、最近成交价或商品基础价，不再使用固定的 $10。',
       '价格必须符合交易所最小变动单位（tick）。例如价格在 5–19.999 时，最小变动为 0.1。',
       '交易手续费按成交额的 4% 向上取整。计算利润时，也要加上原料与运输成本。',
     ],
@@ -92,12 +94,12 @@ const enSections: WikiSection[] = [
     formula: 'Current duration = max(30s, ceil(quantity ÷ (base hourly output × building level × production modifier) × 3600))',
   },
   {
-    id: 'retail', title: 'Retail: turn shelves into cash', summary: 'Stock, price, and let demand settle.',
-    body: ['Retail buildings sell only goods they are allowed to carry. Restock from the warehouse, then follow the market price or lock your own.', 'Overpriced, empty, or demandless shelves do not sell. Fractional low-volume demand is carried forward between settlements, so profile polling cannot erase it.', 'Shelves settle independently by building, even when two shops sell the same resource.'],
+    id: 'retail', title: 'Retail: turn shelves into cash', summary: 'Choose quantity and price, then commit an irreversible sale batch.',
+    body: ['Retail buildings sell only allowed goods. Before starting, choose the product, quantity, and sale price; the interface recommends a price from the live book, latest trade, or catalog fallback.', 'After you press Start selling, that batch and price are locked: no unstocking, topping up, or repricing. Start a new batch after every unit sells.', 'Overpriced, empty, or demandless shelves do not sell. Fractional low-volume demand carries into the next settlement.', 'Shelves settle independently by building, even when two shops sell the same resource.'],
   },
   {
     id: 'market', title: 'Market: buy and sell', summary: 'Use limit orders to protect cash and margin.',
-    body: ['A buy order sets your maximum price; a sell order sets your minimum. Check quantity, price, and warehouse space before confirming.', 'Prices must respect the exchange tick size. For example, the tick between 5 and 19.999 is 0.1.', 'The exchange takes a 4% fee rounded up. Include materials and transport when estimating profit.'],
+    body: ['A buy order sets your maximum price; a sell order sets your minimum. Check quantity, price, and warehouse space before confirming.', 'On first open, the market checks every tradable resource and fills missing Bot liquidity on both sides. Suggested prices use the best live quote, latest trade, or catalog base instead of a fixed $10.', 'Prices must respect the exchange tick size. For example, the tick between 5 and 19.999 is 0.1.', 'The exchange takes a 4% fee rounded up. Include materials and transport when estimating profit.'],
     formula: 'fee = ceil(quantity × filled price × 0.04)',
   },
   {
