@@ -79,6 +79,17 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const handleDeveloperMerchant = () => {
+    setShowLoading(true)
+    preloadPromiseRef.current = preloadGameAssets()
+    audio.unlockAudio()
+    audio.playSfx('ui_confirm')
+    login.mutate({
+      username: 'dev',
+      password: import.meta.env.VITE_DEV_PASSWORD || '123',
+    })
+  }
+
   return (
     <div className="w-screen h-screen bg-gradient-to-br from-amber-900 via-amber-800 to-amber-950 flex items-center justify-center">
       <div className="bg-amber-50 rounded-2xl shadow-2xl p-8 w-80 border-2 border-amber-700/30">
@@ -191,6 +202,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           >
             {isPending ? t('auth.connecting') : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
           </button>
+          {import.meta.env.DEV && mode === 'login' && (
+            <button
+              type="button"
+              onClick={handleDeveloperMerchant}
+              disabled={isPending}
+              className="w-full py-2 border border-dashed border-amber-500 text-amber-800 text-xs font-bold rounded-lg hover:bg-amber-100 disabled:opacity-50 transition-colors"
+            >
+              {t('auth.developerMerchant')}
+            </button>
+          )}
         </form>
 
         <div className="mt-4 text-center">

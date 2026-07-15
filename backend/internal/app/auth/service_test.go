@@ -8,6 +8,7 @@ import (
 
 	"github.com/beiwater/NewHaven/backend/internal/app/auth"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/auth"
+	companydomain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	"github.com/beiwater/NewHaven/backend/internal/platform"
 	"github.com/beiwater/NewHaven/backend/internal/storage/memory"
 )
@@ -158,6 +159,21 @@ func TestDevBootstrap(t *testing.T) {
 	}
 	if player.Username != "dev" {
 		t.Errorf("expected username 'dev', got %q", player.Username)
+	}
+	company, err := store.GetCompanyByPlayerID(ctx, player.ID)
+	if err != nil {
+		t.Fatalf("dev company not found after bootstrap: %v", err)
+	}
+	if company.Name != "Developer Merchant" || company.Money != 1000000000 || company.Level != 100 {
+		t.Fatalf("developer merchant not provisioned: %+v", company)
+	}
+	if len(company.Buildings) != 8 || company.Inventory[1] != 10000 || company.Inventory[12] != 10000 {
+		t.Fatalf("developer merchant sandbox assets missing: buildings=%d inventory=%v", len(company.Buildings), company.Inventory)
+	}
+	stories := company.Preferences["storyProgress"].(map[string]any)
+	story := stories[companydomain.ArrivalStoryID].(map[string]any)
+	if story["status"] != "completed" {
+		t.Fatalf("developer merchant should skip arrival story: %v", story)
 	}
 
 	// Second call should be a no-op.

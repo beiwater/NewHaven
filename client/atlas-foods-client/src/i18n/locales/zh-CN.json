@@ -48,6 +48,7 @@
     "customGender": "自定义性别",
     "emailPlaceholder": "邮箱（可选）",
     "signIn": "登录",
+    "developerMerchant": "开发者商户（跳过剧情）",
     "createAccount": "创建账号",
     "connecting": "连接中...",
     "switchToRegister": "没有账号？立即注册",

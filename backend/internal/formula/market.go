@@ -49,5 +49,7 @@ func TickStep(price float64) float64 {
 func IsValidTick(price float64) bool {
 	step := TickStep(price)
 	scaled := price / step
-	return math.Abs(scaled-math.Round(scaled)) < 1e-9
+	// API prices are generated as float32, so allow only enough tolerance for
+	// their wire-level representation while still rejecting off-tick quotes.
+	return math.Abs(scaled-math.Round(scaled)) < 1e-5
 }

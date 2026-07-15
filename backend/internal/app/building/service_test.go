@@ -262,6 +262,33 @@ func TestRollbackUpgradeBuildingOnFailure(t *testing.T) {
 	}
 }
 
+func TestUpgradeBuildingUsesCurrentSizeCost(t *testing.T) {
+	ctx := context.Background()
+	store := memory.New()
+	if err := store.CreatePlayer(ctx, &auth.Player{ID: 31, Username: "upgradecost"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CreateCompany(ctx, &domain.Company{
+		PlayerID: 31, Name: "Upgrade Cost Corp", Money: 100000, Level: 10,
+		Inventory: make(map[int]int),
+		Buildings: []domain.Building{{ID: "upgrade-me", BuildingID: 1, Kind: 1, Name: "Farm", Level: 3}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	company, _ := store.GetCompanyByPlayerID(ctx, 31)
+	svc := building.NewService(store, map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Kind: 1, Name: "Farm", BaseCost: 10000},
+	}, nil, nil, platform.NewIDGen())
+
+	resp, err := svc.UpgradeBuilding(ctx, company.ID, "upgrade-me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Cost == nil || *resp.Cost != 30000 {
+		t.Fatalf("level-3 upgrade should cost currentSize*baseCost = 30000, got %v", resp.Cost)
+	}
+}
+
 func TestRollbackPlaceBuildingOnFailure(t *testing.T) {
 	ctx := context.Background()
 	store := memory.New()

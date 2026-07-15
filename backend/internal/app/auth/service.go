@@ -175,40 +175,70 @@ func (s *Service) Login(ctx context.Context, req *domain.LoginRequest) (*domain.
 
 // DevBootstrap creates a dev user if no users exist and DevMode is enabled.
 func (s *Service) DevBootstrap(ctx context.Context) error {
-	_, err := s.players.GetPlayerByUsername(ctx, "dev")
-	if err == nil {
-		// dev user already exists
-		return nil
-	}
-	req := &domain.RegisterRequest{
-		Username: "dev",
-		Password: s.devPassword,
-		Name:     "Dev Player",
-		Gender:   "other",
-		Email:    "dev@newhaven.game",
+	player, err := s.players.GetPlayerByUsername(ctx, "dev")
+	if err != nil {
+		req := &domain.RegisterRequest{
+			Username: "dev",
+			Password: s.devPassword,
+			Name:     "Developer Merchant",
+			Gender:   "other",
+			Email:    "dev@newhaven.game",
+		}
+		if _, err := s.register(ctx, req, false); err != nil {
+			return fmt.Errorf("dev bootstrap: %w", err)
+		}
+		player, err = s.players.GetPlayerByUsername(ctx, "dev")
+		if err != nil {
+			return fmt.Errorf("dev bootstrap player: %w", err)
+		}
 	}
 
-	resp, err := s.register(ctx, req, false)
-	if err != nil {
-		return fmt.Errorf("dev bootstrap: %w", err)
-	}
-	devCompany, err := s.companies.GetCompany(ctx, resp.CompanyID)
+	devCompany, err := s.companies.GetCompanyByPlayerID(ctx, player.ID)
 	if err != nil {
 		return fmt.Errorf("dev bootstrap company: %w", err)
 	}
-	devCompany.Level = 100
-	devCompany.XP = 1000000000
-	devCompany.Money = 1000000000
-	devCompany.Preferences = completedArrivalPreferences()
+	provisionDeveloperMerchant(devCompany, s.idgen)
 	if err := s.companies.UpdateCompany(ctx, devCompany); err != nil {
 		return fmt.Errorf("dev bootstrap update: %w", err)
 	}
 
 	s.logger.Info("dev bootstrap complete",
-		"player_id", resp.PlayerID,
-		"company_id", resp.CompanyID,
+		"player_id", player.ID,
+		"company_id", devCompany.ID,
 	)
 	return nil
+}
+
+func provisionDeveloperMerchant(c *company.Company, idgen *platform.IDGen) {
+	c.Name = "Developer Merchant"
+	c.Level = 100
+	c.XP = 1000000000
+	c.Money = 1000000000
+	c.WarehouseLevel = 10
+	c.Preferences = completedArrivalPreferences()
+	c.Inventory = make(map[int]int, 12)
+	for resourceID := 1; resourceID <= 12; resourceID++ {
+		c.Inventory[resourceID] = 10000
+	}
+
+	if len(c.Buildings) == 0 {
+		names := []string{"Farm", "Barn", "Mill", "Kitchen", "Bakery", "Market Stall", "Cafe", "Food Truck"}
+		c.Buildings = make([]company.Building, 0, len(names))
+		for i, name := range names {
+			kind := i + 1
+			c.Buildings = append(c.Buildings, company.Building{
+				ID:         idgen.Next("dev-building"),
+				BuildingID: kind,
+				Kind:       kind,
+				Name:       name,
+				Level:      5,
+				MapID:      "harbor",
+				SlotID:     fmt.Sprintf("harbor-plot-%02d", kind),
+				X:          i%3 + 1,
+				Y:          i/3 + 1,
+			})
+		}
+	}
 }
 
 func completedArrivalPreferences() map[string]any {

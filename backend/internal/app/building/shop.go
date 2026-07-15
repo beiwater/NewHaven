@@ -6,6 +6,7 @@ import (
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
+	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 )
 
@@ -117,8 +118,9 @@ func (s *Service) UpgradeBuilding(ctx context.Context, companyID int, buildingID
 		if entry, ok := s.buildings[b.BuildingID]; ok && entry.BaseCost > 0 {
 			baseCost = float64(entry.BaseCost)
 		}
-		// Cost = (N+1) * baseCost where N is current level
-		cost := float64(nextLevel) * baseCost
+		// Upgrade consumption scales with the building's current size. Charging
+		// against nextLevel made every upgrade one full level too expensive.
+		cost := formula.UpgradeCost(baseCost, currLevel)
 
 		if company.Money < cost {
 			return nil, apperr.InsufficientFunds(fmt.Sprintf("need %.0f to upgrade to level %d, have %.0f", cost, nextLevel, company.Money))

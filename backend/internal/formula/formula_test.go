@@ -333,6 +333,48 @@ func TestUpgradeCost(t *testing.T) {
 	}
 }
 
+func TestBuildingMarketAndUpgradeResourceCosts(t *testing.T) {
+	qp := map[int]float64{101: 4, 102: 55, 108: 16, 111: 1}
+	prices := map[int]float64{101: 10, 102: 2, 108: 5, 111: 20}
+	if got := formula.BuildingMarketCost(prices, 2, qp); got != 500 {
+		t.Fatalf("BuildingMarketCost = %v; want 500", got)
+	}
+	delete(prices, 108)
+	if got := formula.BuildingMarketCost(prices, 2, qp); got != 6900 {
+		t.Fatalf("fallback BuildingMarketCost = %v; want 6900", got)
+	}
+	upgrade := formula.UpgradeResourceCost(qp, 2, 3)
+	if upgrade[101] != 24 || upgrade[102] != 330 || upgrade[108] != 96 || upgrade[111] != 6 {
+		t.Fatalf("UpgradeResourceCost = %v", upgrade)
+	}
+	if got := formula.WagePerTick(1.2, 3); got != 1242 {
+		t.Fatalf("WagePerTick = %v; want 1242", got)
+	}
+}
+
+func TestReferenceProductionChain(t *testing.T) {
+	base := formula.SalaryAdjustedBase(100, 345, 1)
+	if base != 100 {
+		t.Fatalf("SalaryAdjustedBase = %v; want 100", base)
+	}
+	produced := formula.ProducedPerHour(2, 20, 50, base, 10, true)
+	if math.Abs(produced-137.5) > 1e-9 {
+		t.Fatalf("ProducedPerHour = %v; want 137.5", produced)
+	}
+	withRobots := formula.AccumulatorProducedPerHour(2, 3, 20, 100, 0)
+	if math.Abs(withRobots-294.11764705882354) > 1e-9 {
+		t.Fatalf("AccumulatorProducedPerHour = %v", withRobots)
+	}
+	final := formula.FinalProductionSpeed(100, 20)
+	if final != 125 {
+		t.Fatalf("FinalProductionSpeed = %v; want 125", final)
+	}
+	timePerUnit := formula.ProductionTimePerUnit(1, 2, 345)
+	if timePerUnit != 2 || formula.QueueProductionTime(4, timePerUnit) != 6 {
+		t.Fatalf("queue timing mismatch: unit=%v queue=%v", timePerUnit, formula.QueueProductionTime(4, timePerUnit))
+	}
+}
+
 func TestTotalBuildingCost(t *testing.T) {
 	tests := []struct {
 		base  float64

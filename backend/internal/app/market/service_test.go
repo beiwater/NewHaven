@@ -431,6 +431,7 @@ func TestCreateOrder_InvalidPayloads(t *testing.T) {
 		{"bad kind", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 2, Quality: 0, Quantity: 1, Price: 10}},
 		{"zero quantity", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 0, Quantity: 0, Price: 10}},
 		{"zero price", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 0, Quantity: 1, Price: 0}},
+		{"off tick price", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 0, Quantity: 1, Price: 25.01}},
 		{"non-zero quality", openapi.CreateOrderRequestFrontend{ResourceId: 5, Kind: 1, Quality: 1, Quantity: 1, Price: 10}},
 	}
 	for _, tt := range tests {

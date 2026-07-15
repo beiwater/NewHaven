@@ -7,6 +7,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
+	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 )
 
@@ -37,6 +38,9 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	// Validate price.
 	if req.Price <= 0 {
 		return nil, apperr.BadRequest("price must be positive")
+	}
+	if !formula.IsValidTick(float64(req.Price)) {
+		return nil, apperr.BadRequestf("price must use a %.3f market tick", formula.TickStep(float64(req.Price)))
 	}
 
 	// Validate quality; backend only supports quality 0.

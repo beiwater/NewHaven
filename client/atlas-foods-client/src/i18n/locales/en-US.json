@@ -48,6 +48,7 @@
     "customGender": "Custom gender",
     "emailPlaceholder": "Email (optional)",
     "signIn": "Sign In",
+    "developerMerchant": "Developer Merchant (skip story)",
     "createAccount": "Create Account",
     "connecting": "Connecting...",
     "switchToRegister": "Don't have an account? Register",
