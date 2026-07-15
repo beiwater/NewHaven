@@ -67,8 +67,8 @@ func TestProductionQueueRefreshesAndGroupsJobs(t *testing.T) {
 	if resp.InUse == nil || *resp.InUse != 1 {
 		t.Fatalf("inUse = %v, want 1", resp.InUse)
 	}
-	if resp.MaxSlots == nil || *resp.MaxSlots != 3*len(company.Buildings) {
-		t.Fatalf("maxSlots = %v, want %d", resp.MaxSlots, 3*len(company.Buildings))
+	if resp.MaxSlots == nil || *resp.MaxSlots != len(company.Buildings) {
+		t.Fatalf("maxSlots = %v, want %d", resp.MaxSlots, len(company.Buildings))
 	}
 	jobs := (*resp.ByBuilding)[company.Buildings[0].ID]
 	if len(jobs) != 1 || jobs[0].Status == nil || *jobs[0].Status != "ready" {

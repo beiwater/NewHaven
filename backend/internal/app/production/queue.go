@@ -11,7 +11,8 @@ import (
 )
 
 // ProductionQueue returns the production queue overview grouped by building.
-// Returns byBuilding (map of buildingID -> jobs), inUse (count), maxSlots (total capacity).
+// Each owned building is one production line, matching StartProduction's
+// one-unfinished-job-per-building rule.
 func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.ProductionQueueResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -60,15 +61,7 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 		byBuilding[j.BuildingID] = append(byBuilding[j.BuildingID], dto)
 	}
 
-	// Calculate max slots
-	baseSlots := 3
-	if s.cfg != nil && s.cfg.BaseProductionSlots > 0 {
-		baseSlots = s.cfg.BaseProductionSlots
-	}
-	maxSlots := baseSlots * len(company.Buildings)
-	if maxSlots < 1 {
-		maxSlots = 1
-	}
+	maxSlots := len(company.Buildings)
 
 	return &openapi.ProductionQueueResponse{
 		ByBuilding: &byBuilding,
