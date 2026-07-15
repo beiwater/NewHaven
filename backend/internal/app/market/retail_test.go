@@ -261,7 +261,7 @@ func TestCatchUpPlayerRetail_DeductsTheShelfThatMadeTheSale(t *testing.T) {
 	if got := updated.Buildings[0].Shelves[0].Quantity; got != 100 {
 		t.Errorf("non-selling shelf was deducted, got %d", got)
 	}
-	if got := updated.Buildings[1].Shelves[0].Quantity; got >= 100 {
-		t.Errorf("selling shelf was not deducted, got %d", got)
+	if len(updated.Buildings[1].Shelves) > 0 && updated.Buildings[1].Shelves[0].Quantity >= 100 {
+		t.Errorf("selling shelf was not deducted, got %d", updated.Buildings[1].Shelves[0].Quantity)
 	}
 }

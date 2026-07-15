@@ -528,6 +528,7 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 	bldID := "bld-mill"
 	company.Buildings = []domain.Building{
 		{ID: bldID, BuildingID: 3, Level: 1},
+		{ID: "bld-mill-2", BuildingID: 3, Level: 1},
 	}
 	_ = store.UpdateCompany(ctx, company)
 
@@ -579,7 +580,7 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 	}
 
 	// Produce enough to exhaust all Grain (need 20 more for 10 Flour)
-	_, err = svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: bldID, ResourceId: 3, Quantity: 20})
+	_, err = svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: "bld-mill-2", ResourceId: 3, Quantity: 20})
 	if err != nil {
 		t.Fatalf("StartProduction: %v", err)
 	}
