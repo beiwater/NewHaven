@@ -761,7 +761,7 @@ func TestCancelOrder_ConcurrentRequestsRefundReservationOnce(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		name              string
-		kind              int
+		kind              openapi.CreateOrderRequestFrontendKind
 		startingMoney     float64
 		startingInventory int
 	}{
@@ -781,7 +781,7 @@ func TestCancelOrder_ConcurrentRequestsRefundReservationOnce(t *testing.T) {
 				platform.NewFakeClock(time.Date(2026, 6, 6, 12, 0, 0, 0, time.UTC)),
 				platform.NewIDGen(),
 			)
-			companyID := newTestCompany(t, store, 300+tc.kind, "concurrent-cancel-"+tc.name, tc.startingMoney)
+			companyID := newTestCompany(t, store, 300+int(tc.kind), "concurrent-cancel-"+tc.name, tc.startingMoney)
 			if tc.startingInventory > 0 {
 				if err := store.UpdateInventory(ctx, companyID, 5, tc.startingInventory); err != nil {
 					t.Fatalf("seed inventory: %v", err)
