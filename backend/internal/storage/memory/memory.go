@@ -468,6 +468,10 @@ func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { ret
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.updateInventoryLocked(companyID, resourceID, delta)
+}
+
+func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) error {
 	c, ok := s.companies[companyID]
 	if !ok {
 		return fmt.Errorf("company %d not found", companyID)
@@ -748,7 +752,44 @@ func (s *Store) GetJob(_ context.Context, jobID string) (*production.ProductionJ
 	if !ok {
 		return nil, fmt.Errorf("job not found")
 	}
-	return j, nil
+	copy := *j
+	return &copy, nil
+}
+
+// ClaimProductionOutput atomically moves a claimable amount into the owning
+// company's inventory, awards XP, and advances the job state. Keeping these
+// mutations under one lock prevents two service instances from claiming the
+// same output after both observed it as ready.
+func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int) (*production.ProductionJob, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.jobs[jobID]
+	if !ok || job.CompanyID != companyID {
+		return nil, fmt.Errorf("job not found")
+	}
+	if job.Status == production.StatusClaimed {
+		return nil, storage.ErrAlreadySettled
+	}
+	if job.ClaimableAmount <= 0 {
+		return nil, storage.ErrNothingToClaim
+	}
+	if expectedClaimAmount <= 0 || job.ClaimableAmount != expectedClaimAmount {
+		return nil, storage.ErrStateConflict
+	}
+	if err := s.updateInventoryLocked(companyID, job.ResourceID, expectedClaimAmount); err != nil {
+		return nil, err
+	}
+	company := s.companies[companyID]
+	company.XP += int64(xpEarned)
+	job.ClaimedAmount += expectedClaimAmount
+	if job.ClaimedAmount >= job.TargetQuantity {
+		job.ClaimedAmount = job.TargetQuantity
+		job.Status = production.StatusClaimed
+	}
+	job.ClaimableAmount = 0
+	job.XPAwarded += xpEarned
+	copy := *job
+	return &copy, nil
 }
 
 func (s *Store) GetJobByClientRequestID(_ context.Context, companyID int, requestID string) (*production.ProductionJob, error) {
@@ -792,6 +833,13 @@ func (s *Store) GetJobsByBuilding(_ context.Context, buildingID string) ([]produ
 func (s *Store) UpdateJob(_ context.Context, j *production.ProductionJob) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if existing, ok := s.jobs[j.ID]; ok {
+		if existing.ClaimedAmount > j.ClaimedAmount ||
+			existing.XPAwarded > j.XPAwarded ||
+			(existing.Status == production.StatusClaimed && j.Status != production.StatusClaimed) {
+			return storage.ErrStateConflict
+		}
+	}
 	s.jobs[j.ID] = j
 	if j.ClientRequestID != "" {
 		s.jobsByRequest[productionRequestKey(j.CompanyID, j.ClientRequestID)] = j

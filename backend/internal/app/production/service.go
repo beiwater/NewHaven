@@ -2,6 +2,7 @@ package production
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -102,6 +103,11 @@ func (s *Service) refreshJobStatuses(ctx context.Context, companyID int) error {
 		}
 
 		if err := s.production.UpdateJob(ctx, j); err != nil {
+			if errors.Is(err, storage.ErrStateConflict) {
+				// Another service instance advanced this job while this refresh
+				// was computing from an older snapshot. Never overwrite a claim.
+				continue
+			}
 			return fmt.Errorf("refresh job %s: %w", j.ID, err)
 		}
 	}

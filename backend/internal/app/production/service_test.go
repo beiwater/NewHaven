@@ -3,6 +3,7 @@ package production_test
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -848,6 +849,87 @@ func TestClaimProduction_JobCompleted_CreditsInventory(t *testing.T) {
 	}
 	if entries[0].Amount != 10 {
 		t.Errorf("expected ledger amount 10, got %v", entries[0].Amount)
+	}
+}
+
+func TestClaimProduction_IsAtomicAcrossServiceInstances(t *testing.T) {
+	ctx := context.Background()
+	svc, store := newTestService(t, nil, nil)
+	clock := platform.NewFakeClock(time.Date(2026, 6, 5, 12, 0, 0, 0, time.UTC))
+	secondSvc := production.NewService(
+		store,
+		store,
+		store,
+		store,
+		&config.GameConfig{ProductionMod: 1},
+		nil,
+		nil,
+		clock,
+		platform.NewIDGen(),
+	)
+	if err := store.CreatePlayer(ctx, &auth.Player{ID: 130, Username: "parallel-claimer"}); err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	if err := store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  130,
+		Name:      "Parallel Claim Corp",
+		Money:     100000,
+		Level:     1,
+		Inventory: map[int]int{},
+	}); err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, _ := store.GetCompanyByPlayerID(ctx, 130)
+	if err := store.CreateJob(ctx, &proddmn.ProductionJob{
+		ID:              "parallel-claim-job",
+		CompanyID:       company.ID,
+		BuildingID:      "parallel-building",
+		ResourceID:      5,
+		Quantity:        10,
+		TargetQuantity:  10,
+		StartedAt:       clock.Now().Add(-time.Hour),
+		DurationSeconds: 60,
+		Status:          proddmn.StatusRunning,
+	}); err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	services := []*production.Service{svc, secondSvc}
+	errs := make([]error, len(services))
+	var wg sync.WaitGroup
+	for i := range services {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_, errs[i] = services[i].ClaimProduction(ctx, company.ID, "parallel-claim-job")
+		}(i)
+	}
+	wg.Wait()
+	successes := 0
+	for i, err := range errs {
+		if err == nil {
+			successes++
+			continue
+		}
+		if !apperr.HasKind(err, apperr.KindConflict) {
+			t.Fatalf("parallel claim %d returned unexpected error: %v", i, err)
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("successful claims = %d, want exactly 1", successes)
+	}
+
+	updatedCompany, _ := store.GetCompany(ctx, company.ID)
+	job, _ := store.GetJob(ctx, "parallel-claim-job")
+	if updatedCompany.Inventory[5] != 10 || updatedCompany.XP != 10 {
+		t.Fatalf("claim duplicated rewards: inventory=%d xp=%d", updatedCompany.Inventory[5], updatedCompany.XP)
+	}
+	if job.Status != proddmn.StatusClaimed || job.ClaimedAmount != 10 || job.XPAwarded != 10 {
+		t.Fatalf("unexpected settled job: %+v", job)
+	}
+	entries, _ := store.GetLedgerEntries(ctx, company.ID, 10)
+	if len(entries) != 1 {
+		t.Fatalf("production ledger entries = %d, want 1", len(entries))
 	}
 }
 

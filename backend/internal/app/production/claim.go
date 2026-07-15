@@ -2,6 +2,7 @@ package production
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // ClaimProduction claims available produced resources from a production job.
@@ -46,40 +48,26 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 
 	claimAmount := job.ClaimableAmount
 
-	// Add produced resource to inventory.
-	if err := s.companies.UpdateInventory(ctx, companyID, job.ResourceID, claimAmount); err != nil {
-		return nil, apperr.Internalf("add output to inventory: %v", err)
+	// Calculate the post-claim XP before committing, then atomically move the
+	// output, XP, and job lifecycle together in storage. The expected amount is
+	// an optimistic guard against another service instance claiming first.
+	projectedJob := *job
+	projectedJob.ClaimedAmount += claimAmount
+	if projectedJob.ClaimedAmount > projectedJob.TargetQuantity {
+		projectedJob.ClaimedAmount = projectedJob.TargetQuantity
 	}
-
-	// Update job fields.
-	job.ClaimedAmount += claimAmount
-	if job.ClaimedAmount >= job.TargetQuantity {
-		job.ClaimedAmount = job.TargetQuantity
-		job.ClaimableAmount = 0
-		job.Status = proddmn.StatusClaimed
-	} else {
-		job.ClaimableAmount = 0
-	}
-
-	if err := s.production.UpdateJob(ctx, job); err != nil {
-		return nil, apperr.Internalf("update job: %v", err)
-	}
-
-	// Award incremental production XP.
-	xpEarned := s.productionXPForClaim(job, claimAmount)
-	if xpEarned > 0 {
-		company, err := s.companies.GetCompany(ctx, companyID)
-		if err != nil {
-			return nil, apperr.Internalf("get company for XP: %v", err)
-		}
-		company.XP += int64(xpEarned)
-		if err := s.companies.UpdateCompany(ctx, company); err != nil {
-			return nil, apperr.Internalf("save company XP: %v", err)
-		}
-		// Persist XP awarded on job for future incremental calculation.
-		job.XPAwarded += xpEarned
-		if err := s.production.UpdateJob(ctx, job); err != nil {
-			return nil, apperr.Internalf("update job xp: %v", err)
+	xpEarned := s.productionXPForClaim(&projectedJob, claimAmount)
+	job, err = s.production.ClaimProductionOutput(ctx, companyID, jobID, claimAmount, xpEarned)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrAlreadySettled):
+			return nil, apperr.Conflict("job already claimed")
+		case errors.Is(err, storage.ErrNothingToClaim):
+			return nil, apperr.Validation("nothing to claim yet")
+		case errors.Is(err, storage.ErrStateConflict):
+			return nil, apperr.Conflict("production claim changed; refresh and try again")
+		default:
+			return nil, apperr.Internalf("commit production claim: %v", err)
 		}
 	}
 

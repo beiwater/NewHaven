@@ -20,6 +20,9 @@ var (
 	ErrIdempotencyConflict = errors.New("idempotency conflict")
 	ErrInsufficientFunds   = errors.New("insufficient funds")
 	ErrLimitReached        = errors.New("limit reached")
+	ErrAlreadySettled      = errors.New("already settled")
+	ErrNothingToClaim      = errors.New("nothing to claim")
+	ErrStateConflict       = errors.New("state conflict")
 )
 
 // PlayerStorage handles player/auth persistence.
@@ -67,6 +70,7 @@ type MarketStorage interface {
 type ProductionStorage interface {
 	CreateJob(ctx context.Context, j *production.ProductionJob) error
 	GetJob(ctx context.Context, jobID string) (*production.ProductionJob, error)
+	ClaimProductionOutput(ctx context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int) (*production.ProductionJob, error)
 	GetJobByClientRequestID(ctx context.Context, companyID int, requestID string) (*production.ProductionJob, error)
 	GetJobsByCompany(ctx context.Context, companyID int) ([]production.ProductionJob, error)
 	GetJobsByBuilding(ctx context.Context, buildingID string) ([]production.ProductionJob, error)
