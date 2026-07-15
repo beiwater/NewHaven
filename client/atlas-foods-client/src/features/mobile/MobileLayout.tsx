@@ -22,6 +22,7 @@ import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { InspectPage } from '@/features/inspect/InspectPage'
 import { ProductionQueue } from '@/features/production/ProductionQueue'
+import { GameWikiPage } from '@/features/guidance/GameWikiPage'
 
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
 
@@ -52,6 +53,8 @@ function MobilePageContent() {
       return <SettingsPage />
     case 'inspect':
       return <InspectPage />
+    case 'wiki':
+      return <GameWikiPage />
     case 'map':
     default:
       return null

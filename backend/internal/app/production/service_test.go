@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/app/production"
+	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	"github.com/beiwater/NewHaven/backend/internal/config"
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
@@ -300,6 +301,45 @@ func TestStartProduction_Success_CreatesJobAndDeductsInventory(t *testing.T) {
 	}
 	if listResp.Jobs == nil || len(*listResp.Jobs) != 1 {
 		t.Fatalf("expected 1 job in list, got %d", len(*listResp.Jobs))
+	}
+}
+
+func TestStartProduction_BlocksSecondRunInTheSameBuilding(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		1: {ID: 1, Name: "Grain", ProducedPerHourRaw: 500, ProducedFrom: map[int]int{}},
+		6: {ID: 6, Name: "Sugar", ProducedPerHourRaw: 500, ProducedFrom: map[int]int{}},
+	}
+	buildings := map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Name: "Farm", Produces: []int{1, 6}},
+	}
+	svc, store := newTestService(t, resources, buildings)
+
+	if err := store.CreatePlayer(ctx, &auth.Player{ID: 100, Username: "single_line"}); err != nil {
+		t.Fatalf("CreatePlayer: %v", err)
+	}
+	if err := store.CreateCompany(ctx, &domain.Company{PlayerID: 100, Name: "Single Line", Inventory: map[int]int{}}); err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, _ := store.GetCompanyByPlayerID(ctx, 100)
+	company.Buildings = []domain.Building{{ID: "farm-1", BuildingID: 1, Level: 1, Name: "Farm"}}
+	if err := store.UpdateCompany(ctx, company); err != nil {
+		t.Fatalf("UpdateCompany: %v", err)
+	}
+
+	if _, err := svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: "farm-1", ResourceId: 1, Quantity: 1}); err != nil {
+		t.Fatalf("start first run: %v", err)
+	}
+	if _, err := svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: "farm-1", ResourceId: 6, Quantity: 1}); !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("second run error = %v, want conflict", err)
+	}
+
+	jobs, err := store.GetJobsByBuilding(ctx, "farm-1")
+	if err != nil {
+		t.Fatalf("GetJobsByBuilding: %v", err)
+	}
+	if len(jobs) != 1 {
+		t.Errorf("expected exactly one queued run, got %d", len(jobs))
 	}
 }
 

@@ -35,6 +35,19 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		return nil, apperr.NotFoundf("building %s not found for company %d", req.BuildingId, companyID)
 	}
 
+	// A building is a single production line: it may produce only one item at a
+	// time. A finished run remains assigned until the player collects or cancels
+	// it, so input and output states cannot overlap invisibly.
+	existingJobs, err := s.production.GetJobsByBuilding(ctx, building.ID)
+	if err != nil {
+		return nil, apperr.Internalf("load production jobs for building %s: %v", building.ID, err)
+	}
+	for _, job := range existingJobs {
+		if job.CompanyID == companyID && job.Status != proddmn.StatusClaimed {
+			return nil, apperr.Conflict("this building is already producing; collect or cancel its current run first")
+		}
+	}
+
 	// Look up building type in static catalog.
 	bldEntry, ok := s.buildings[building.BuildingID]
 	if !ok {

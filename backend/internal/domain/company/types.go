@@ -26,6 +26,10 @@ type Company struct {
 	WarehouseLevel int            `json:"warehouse_level"`
 	CreatedAt      string         `json:"created_at"`
 	LastRetailAt   string         `json:"last_retail_at,omitempty"`
+	// RetailCarry preserves fractional shelf demand between short player
+	// catch-ups. Without it, routine profile polling would round every small
+	// interval down to zero and low-volume stores would never make a sale.
+	RetailCarry map[string]float64 `json:"retail_carry,omitempty"`
 }
 
 // NewPlayerPreferences returns preferences for a newly registered account.

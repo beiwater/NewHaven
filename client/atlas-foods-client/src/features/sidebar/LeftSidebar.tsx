@@ -16,6 +16,7 @@ const navItems: Array<{ id: ActiveView; label: string; sysIcon: string; feature:
   { id: 'finance', label: 'finance', sysIcon: 'financial', feature: 'finance' },
   { id: 'leaderboard', label: 'leaderboard', sysIcon: 'leaderboard', feature: 'leaderboard' },
   { id: 'inspect', label: 'inspect', sysIcon: 'achievement', feature: 'map' },
+  { id: 'wiki', label: 'wiki', sysIcon: 'quest', feature: '__always__' },
   { id: 'settings', label: 'settings', sysIcon: 'settings', feature: 'map' },
 ]
 export function LeftSidebar() {
