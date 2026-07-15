@@ -96,7 +96,7 @@ func (h *BuildingHandler) handleBuyBuilding(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	resp, err := h.svc.BuyBuilding(r.Context(), companyID, req.BuildingId)
+	resp, err := h.svc.BuyBuilding(r.Context(), companyID, req.BuildingId, req.RequestId)
 	if err != nil {
 		writeAppErr(w, err)
 		return

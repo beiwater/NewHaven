@@ -2,15 +2,27 @@ package building
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
-func (s *Service) BuyBuilding(ctx context.Context, companyID int, buildingID string) (*openapi.BuyBuildingResponse, error) {
+func (s *Service) BuyBuilding(ctx context.Context, companyID int, buildingID string, requestIDValue ...*string) (*openapi.BuyBuildingResponse, error) {
+	var rawRequestID *string
+	if len(requestIDValue) > 0 {
+		rawRequestID = requestIDValue[0]
+	}
+	requestID, err := normalizeBuildingPurchaseRequestID(rawRequestID)
+	if err != nil {
+		return nil, err
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	company, err := s.companies.GetCompany(ctx, companyID)
@@ -39,45 +51,66 @@ func (s *Service) BuyBuilding(ctx context.Context, companyID int, buildingID str
 		return nil, apperr.BadRequestf("building unlocks at level %d", buildingUnlockLevel(kind))
 	}
 
-	// Check building slot limit
+	// Money and slot checks happen in the same storage critical section as the
+	// purchase, preventing concurrent requests from overwriting each other.
 	maxBuildings := 2 + company.Level/2
-	if len(company.Buildings) >= maxBuildings {
-		return nil, apperr.BadRequestf("building limit reached: %d/%d slots used", len(company.Buildings), maxBuildings)
-	}
-
 	cost := *item.Cost
-	if company.Money < cost {
-		return nil, apperr.InsufficientFunds(fmt.Sprintf("not enough money: need %.0f, have %.0f", cost, company.Money))
-	}
 
-	origMoney := company.Money
-	company.Money -= cost
-
-	b := &domain.Building{
-		ID:         s.idgen.Next("b"),
-		BuildingID: kind,
-		Kind:       kind,
-		Name:       *item.Name,
-		Level:      1,
-		MapID:      "",
-		SlotID:     "",
-		X:          0,
-		Y:          0,
-		RobotCount: 0,
+	b := domain.Building{
+		ID:                    s.idgen.Next("b"),
+		BuildingID:            kind,
+		Kind:                  kind,
+		Name:                  *item.Name,
+		Level:                 1,
+		MapID:                 "",
+		SlotID:                "",
+		X:                     0,
+		Y:                     0,
+		RobotCount:            0,
+		PurchaseRequestID:     requestID,
+		PurchaseCatalogItemID: buildingID,
+		PurchaseCost:          cost,
 	}
 
 	// Initialize empty shelves for retail buildings
 	if entry, ok := s.buildings[kind]; ok && entry.Type == "retail" {
 		b.Shelves = []domain.ShelfItem{}
 	}
-	company.Buildings = append(company.Buildings, *b)
 
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		company.Money = origMoney
-		company.Buildings = company.Buildings[:len(company.Buildings)-1]
-		return nil, apperr.Internalf("save company: %v", err)
+	purchased, replayed, err := s.companies.PurchaseBuilding(ctx, companyID, b, cost, maxBuildings)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrIdempotencyConflict):
+			return nil, apperr.Conflict("requestId was already used for a different building purchase")
+		case errors.Is(err, storage.ErrLimitReached):
+			return nil, apperr.BadRequestf("building limit reached: %d/%d slots used", len(company.Buildings), maxBuildings)
+		case errors.Is(err, storage.ErrInsufficientFunds):
+			return nil, apperr.InsufficientFunds(fmt.Sprintf("not enough money: need %.0f, have %.0f", cost, company.Money))
+		default:
+			return nil, apperr.Internalf("save building purchase: %v", err)
+		}
 	}
+	if replayed {
+		cost = purchased.PurchaseCost
+	}
+	return buyBuildingResponse(purchased, cost), nil
+}
 
+func normalizeBuildingPurchaseRequestID(value *string) (string, error) {
+	if value == nil {
+		return "", nil
+	}
+	requestID := strings.TrimSpace(*value)
+	if requestID == "" {
+		return "", apperr.BadRequest("requestId cannot be empty")
+	}
+	if len(requestID) > 128 {
+		return "", apperr.BadRequest("requestId cannot exceed 128 characters")
+	}
+	return requestID, nil
+}
+
+func buyBuildingResponse(b *domain.Building, cost float64) *openapi.BuyBuildingResponse {
 	placed := b.MapID != ""
 	return &openapi.BuyBuildingResponse{
 		Building: &openapi.BuildingDTO{
@@ -93,7 +126,7 @@ func (s *Service) BuyBuilding(ctx context.Context, companyID int, buildingID str
 			Placed:     &placed,
 		},
 		Cost: &cost,
-	}, nil
+	}
 }
 
 func (s *Service) UpgradeBuilding(ctx context.Context, companyID int, buildingID string) (*openapi.UpgradeBuildingResponse, error) {

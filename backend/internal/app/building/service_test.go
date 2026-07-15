@@ -3,9 +3,11 @@ package building_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/beiwater/NewHaven/backend/internal/app/building"
+	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
@@ -156,6 +158,14 @@ func (s *rollbackStore) UpdateCompany(ctx context.Context, c *domain.Company) er
 	return s.CompanyStorage.UpdateCompany(ctx, c)
 }
 
+func (s *rollbackStore) PurchaseBuilding(ctx context.Context, companyID int, b domain.Building, cost float64, maxBuildings int) (*domain.Building, bool, error) {
+	s.calls++
+	if s.calls == s.failOn {
+		return nil, false, errors.New("injected building purchase failure")
+	}
+	return s.CompanyStorage.PurchaseBuilding(ctx, companyID, b, cost, maxBuildings)
+}
+
 func TestRollbackBuyBuildingOnFailure(t *testing.T) {
 	ctx := context.Background()
 	store := memory.New()
@@ -206,6 +216,93 @@ func TestRollbackBuyBuildingOnFailure(t *testing.T) {
 	}
 	if len(updated.Buildings) != origLen {
 		t.Errorf("expected %d buildings, got %d", origLen, len(updated.Buildings))
+	}
+}
+
+func TestBuyBuilding_RequestIdIsAtomicAndCompanyScoped(t *testing.T) {
+	ctx := context.Background()
+	store := memory.New()
+	buildings := map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Kind: 1, Name: "Bakery", BaseCost: 5000},
+		2: {ID: 2, Kind: 2, Name: "Workshop", BaseCost: 7000},
+	}
+	requestID := "buy-building-once"
+
+	createCompany := func(playerID int, username string) *domain.Company {
+		t.Helper()
+		if err := store.CreatePlayer(ctx, &auth.Player{ID: playerID, Username: username}); err != nil {
+			t.Fatalf("CreatePlayer: %v", err)
+		}
+		if err := store.CreateCompany(ctx, &domain.Company{
+			PlayerID:  playerID,
+			Name:      username + " Corp",
+			Money:     100000,
+			Level:     10,
+			Inventory: map[int]int{},
+		}); err != nil {
+			t.Fatalf("CreateCompany: %v", err)
+		}
+		company, err := store.GetCompanyByPlayerID(ctx, playerID)
+		if err != nil {
+			t.Fatalf("GetCompanyByPlayerID: %v", err)
+		}
+		return company
+	}
+
+	firstCompany := createCompany(120, "atomic-buyer")
+	services := []*building.Service{
+		building.NewService(store, buildings, nil, nil, platform.NewIDGen()),
+		building.NewService(store, buildings, nil, nil, platform.NewIDGen()),
+	}
+	responses := make([]*openapi.BuyBuildingResponse, len(services))
+	errs := make([]error, len(services))
+	var wg sync.WaitGroup
+	for i := range services {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			responses[i], errs[i] = services[i].BuyBuilding(ctx, firstCompany.ID, "b-shop-1", &requestID)
+		}(i)
+	}
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent purchase %d: %v", i, err)
+		}
+	}
+	if responses[0].Building == nil || responses[1].Building == nil || responses[0].Building.Id == nil || responses[1].Building.Id == nil || *responses[0].Building.Id != *responses[1].Building.Id {
+		t.Fatalf("retry returned different buildings: first=%+v second=%+v", responses[0].Building, responses[1].Building)
+	}
+	updated, _ := store.GetCompany(ctx, firstCompany.ID)
+	if updated.Money != 95000 || len(updated.Buildings) != 1 {
+		t.Fatalf("idempotent purchase left money=%.0f buildings=%d, want 95000 and 1", updated.Money, len(updated.Buildings))
+	}
+	if updated.Buildings[0].PurchaseRequestID != requestID {
+		t.Fatalf("purchase request ID was not persisted: %+v", updated.Buildings[0])
+	}
+	restored := memory.New()
+	restored.LoadFromSnapshot(store.GetSnapshotData())
+	restoredService := building.NewService(restored, buildings, nil, nil, platform.NewIDGen())
+	restoredReplay, err := restoredService.BuyBuilding(ctx, firstCompany.ID, "b-shop-1", &requestID)
+	if err != nil {
+		t.Fatalf("purchase replay after snapshot restore: %v", err)
+	}
+	restoredCompany, _ := restored.GetCompany(ctx, firstCompany.ID)
+	if restoredReplay.Building == nil || restoredReplay.Building.Id == nil || *restoredReplay.Building.Id != updated.Buildings[0].ID || restoredCompany.Money != 95000 || len(restoredCompany.Buildings) != 1 {
+		t.Fatalf("restored replay was not idempotent: response=%+v company=%+v", restoredReplay.Building, restoredCompany)
+	}
+
+	if _, err := services[0].BuyBuilding(ctx, firstCompany.ID, "b-shop-2", &requestID); !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("changed purchase error = %v, want conflict", err)
+	}
+
+	secondCompany := createCompany(121, "other-buyer")
+	if _, err := services[0].BuyBuilding(ctx, secondCompany.ID, "b-shop-1", &requestID); err != nil {
+		t.Fatalf("same requestId in another company must be isolated: %v", err)
+	}
+	secondUpdated, _ := store.GetCompany(ctx, secondCompany.ID)
+	if secondUpdated.Money != 95000 || len(secondUpdated.Buildings) != 1 {
+		t.Fatalf("second company money=%.0f buildings=%d, want 95000 and 1", secondUpdated.Money, len(secondUpdated.Buildings))
 	}
 }
 

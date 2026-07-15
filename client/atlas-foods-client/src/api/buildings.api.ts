@@ -4,6 +4,11 @@ import type { Building } from '@/game/types'
 import type { MapId } from '@/game/map.config'
 import { camelBuildingResponse, normalizeBuildingList } from './compat'
 
+function newBuildingPurchaseRequestId() {
+  return globalThis.crypto?.randomUUID?.()
+    ?? `building-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 export function useBuildings() {
   return useQuery({
     queryKey: ['buildings'],
@@ -24,7 +29,10 @@ export function useBuyBuilding() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (buildingId: string) =>
-      api.post<Record<string, unknown>>('/api/v2/buildings/buy/', { buildingId }).then(camelBuildingResponse),
+      api.post<Record<string, unknown>>('/api/v2/buildings/buy/', {
+        buildingId,
+        requestId: newBuildingPurchaseRequestId(),
+      }).then(camelBuildingResponse),
     onSuccess: (data) => {
       qc.setQueryData<Building[]>(['buildings'], (current = []) => {
         const next = { ...data.building, placed: false }

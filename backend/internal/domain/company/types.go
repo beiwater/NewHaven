@@ -46,17 +46,20 @@ func NewPlayerPreferences() map[string]any {
 
 // Building represents a building placed on a map.
 type Building struct {
-	ID         string      `json:"id"`
-	BuildingID int         `json:"building_id"`
-	Kind       int         `json:"kind"`
-	Name       string      `json:"name"`
-	Level      int         `json:"level"`
-	MapID      string      `json:"map_id"`
-	SlotID     string      `json:"slot_id"`
-	X          int         `json:"x"`
-	Y          int         `json:"y"`
-	RobotCount int         `json:"robot_count"`
-	Shelves    []ShelfItem `json:"shelves,omitempty"`
+	ID                    string      `json:"id"`
+	BuildingID            int         `json:"building_id"`
+	Kind                  int         `json:"kind"`
+	Name                  string      `json:"name"`
+	Level                 int         `json:"level"`
+	MapID                 string      `json:"map_id"`
+	SlotID                string      `json:"slot_id"`
+	X                     int         `json:"x"`
+	Y                     int         `json:"y"`
+	RobotCount            int         `json:"robot_count"`
+	Shelves               []ShelfItem `json:"shelves,omitempty"`
+	PurchaseRequestID     string      `json:"purchase_request_id,omitempty"`
+	PurchaseCatalogItemID string      `json:"purchase_catalog_item_id,omitempty"`
+	PurchaseCost          float64     `json:"purchase_cost,omitempty"`
 }
 
 // ShelfItem represents items stocked in a retail building's shelf.

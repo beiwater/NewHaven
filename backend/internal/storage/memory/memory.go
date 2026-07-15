@@ -411,6 +411,41 @@ func (s *Store) GetAllCompanies(_ context.Context) ([]*company.Company, error) {
 	return result, nil
 }
 
+// PurchaseBuilding atomically applies a building purchase and its money
+// deduction. The request ID is scoped to a company, so retries cannot create
+// duplicate buildings while unrelated players remain independent.
+func (s *Store) PurchaseBuilding(_ context.Context, companyID int, building company.Building, cost float64, maxBuildings int) (*company.Building, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, false, fmt.Errorf("company %d not found", companyID)
+	}
+	if building.PurchaseRequestID != "" {
+		for i := range c.Buildings {
+			existing := &c.Buildings[i]
+			if existing.PurchaseRequestID != building.PurchaseRequestID {
+				continue
+			}
+			if existing.PurchaseCatalogItemID != building.PurchaseCatalogItemID {
+				return nil, false, storage.ErrIdempotencyConflict
+			}
+			copy := *existing
+			return &copy, true, nil
+		}
+	}
+	if len(c.Buildings) >= maxBuildings {
+		return nil, false, storage.ErrLimitReached
+	}
+	if c.Money < cost {
+		return nil, false, storage.ErrInsufficientFunds
+	}
+	c.Money -= cost
+	c.Buildings = append(c.Buildings, building)
+	created := c.Buildings[len(c.Buildings)-1]
+	return &created, false, nil
+}
+
 func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

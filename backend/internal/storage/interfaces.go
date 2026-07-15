@@ -15,7 +15,12 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/domain/warehouse"
 )
 
-var ErrAlreadyExists = errors.New("already exists")
+var (
+	ErrAlreadyExists       = errors.New("already exists")
+	ErrIdempotencyConflict = errors.New("idempotency conflict")
+	ErrInsufficientFunds   = errors.New("insufficient funds")
+	ErrLimitReached        = errors.New("limit reached")
+)
 
 // PlayerStorage handles player/auth persistence.
 type PlayerStorage interface {
@@ -31,6 +36,7 @@ type CompanyStorage interface {
 	GetCompany(ctx context.Context, id int) (*company.Company, error)
 	GetCompanyByPlayerID(ctx context.Context, playerID int) (*company.Company, error)
 	GetAllCompanies(ctx context.Context) ([]*company.Company, error)
+	PurchaseBuilding(ctx context.Context, companyID int, building company.Building, cost float64, maxBuildings int) (*company.Building, bool, error)
 	UpdateCompany(ctx context.Context, c *company.Company) error
 	SaveBuilding(ctx context.Context, b *company.Building) error
 	RemoveBuilding(ctx context.Context, buildingID string) error
