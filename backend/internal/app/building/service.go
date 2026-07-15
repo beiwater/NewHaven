@@ -25,6 +25,25 @@ type Service struct {
 	idgen     *platform.IDGen
 }
 
+// PublicBuildingDTO contains only the fields another player needs to render a
+// company map. Operational fields such as shelves, prices, revenue, and robot
+// counts are intentionally excluded.
+type PublicBuildingDTO struct {
+	ID         string `json:"id"`
+	BuildingID int    `json:"building_id"`
+	Name       string `json:"name"`
+	Level      int    `json:"level"`
+	MapID      string `json:"map_id"`
+	SlotID     string `json:"slot_id"`
+	X          int    `json:"x"`
+	Y          int    `json:"y"`
+	Placed     bool   `json:"placed"`
+}
+
+type PublicBuildingListResponse struct {
+	Buildings []PublicBuildingDTO `json:"buildings"`
+}
+
 func NewService(companies storage.CompanyStorage, buildings map[int]*catalog.BuildingEntry, cfg *config.GameConfig, clock platform.Clock, idgen *platform.IDGen) *Service {
 	return &Service{
 		companies: companies,
@@ -46,6 +65,31 @@ func (s *Service) ListMyBuildings(ctx context.Context, companyID int) (*openapi.
 		dtos = append(dtos, s.buildingToDTO(&b))
 	}
 	return &openapi.BuildingListResponse{Buildings: &dtos}, nil
+}
+
+// ListPublicBuildings returns the safe, visitable portion of another
+// company's map without exposing private production or retail state.
+func (s *Service) ListPublicBuildings(ctx context.Context, companyID int) (*PublicBuildingListResponse, error) {
+	company, err := s.companies.GetCompany(ctx, companyID)
+	if err != nil {
+		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
+	}
+
+	buildings := make([]PublicBuildingDTO, 0, len(company.Buildings))
+	for _, b := range company.Buildings {
+		buildings = append(buildings, PublicBuildingDTO{
+			ID:         b.ID,
+			BuildingID: b.BuildingID,
+			Name:       b.Name,
+			Level:      b.Level,
+			MapID:      b.MapID,
+			SlotID:     b.SlotID,
+			X:          b.X,
+			Y:          b.Y,
+			Placed:     b.MapID != "",
+		})
+	}
+	return &PublicBuildingListResponse{Buildings: buildings}, nil
 }
 
 // BuildingMarket returns the list of buildings available for purchase.

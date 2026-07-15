@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
@@ -88,7 +91,16 @@ func (h *PlayerHandler) handleSavePreferences(w http.ResponseWriter, r *http.Req
 		writeErr(w, 401, ErrorUnauthorized, "player not authenticated", nil)
 		return
 	}
-	_ = playerID // stub: will persist preferences later
+	requestedPlayerID, err := strconv.Atoi(chi.URLParam(r, "playerId"))
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid player id", nil)
+		return
+	}
+	if requestedPlayerID != playerID {
+		// Do not reveal whether the requested player exists.
+		writeErr(w, http.StatusNotFound, ErrorNotFound, "player not found", nil)
+		return
+	}
 
 	var prefs map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&prefs); err != nil {

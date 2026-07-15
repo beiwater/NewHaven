@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +42,10 @@ func (h *SocialHandler) handleMessages(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		chatroom := r.URL.Query().Get("chatroom")
+		if isLegacyPrivateChannel(chatroom) {
+			writeErr(w, http.StatusGone, ErrorForbidden, "legacy private chat is disabled; use room-based chat", nil)
+			return
+		}
 		msgs, err := h.social.GetMessages(r.Context(), chatroom, 50)
 		if err != nil {
 			writeErr(w, http.StatusInternalServerError, ErrorInternal, "failed to fetch messages", nil)
@@ -77,13 +80,9 @@ func (h *SocialHandler) handleMessages(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "message too long", nil)
 			return
 		}
-		if strings.HasPrefix(req.Chatroom, "C:") {
-			otherIDStr := strings.TrimPrefix(req.Chatroom, "C:")
-			otherID, err := strconv.Atoi(otherIDStr)
-			if err != nil || otherID == companyID {
-				writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid private chat room", nil)
-				return
-			}
+		if isLegacyPrivateChannel(req.Chatroom) {
+			writeErr(w, http.StatusGone, ErrorForbidden, "legacy private chat is disabled; use room-based chat", nil)
+			return
 		}
 		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{
@@ -132,13 +131,9 @@ func (h *SocialHandler) handleV2Message(w http.ResponseWriter, r *http.Request) 
 			writeErr(w, http.StatusBadRequest, ErrorValidation, "message too long", nil)
 			return
 		}
-		if strings.HasPrefix(req.Chatroom, "C:") {
-			otherIDStr := strings.TrimPrefix(req.Chatroom, "C:")
-			otherID, err := strconv.Atoi(otherIDStr)
-			if err != nil || otherID == companyID {
-				writeErr(w, http.StatusBadRequest, ErrorValidation, "invalid private chat room", nil)
-				return
-			}
+		if isLegacyPrivateChannel(req.Chatroom) {
+			writeErr(w, http.StatusGone, ErrorForbidden, "legacy private chat is disabled; use room-based chat", nil)
+			return
 		}
 		companyName := h.lookupCompanyName(r.Context(), companyID)
 		msg := &social.Message{
@@ -175,6 +170,10 @@ func (h *SocialHandler) handleChatroom(w http.ResponseWriter, r *http.Request) {
 		channel := r.URL.Query().Get("channel")
 		if channel == "" {
 			channel = "general"
+		}
+		if isLegacyPrivateChannel(channel) {
+			writeErr(w, http.StatusGone, ErrorForbidden, "legacy private chat is disabled; use room-based chat", nil)
+			return
 		}
 		msgs, err := h.social.GetMessages(r.Context(), channel, 50)
 		if err != nil {
@@ -240,4 +239,8 @@ func (h *SocialHandler) handleMarkRead(w http.ResponseWriter, r *http.Request) {
 	path = strings.TrimSuffix(path, "/read/")
 	_ = path
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func isLegacyPrivateChannel(channel string) bool {
+	return strings.HasPrefix(strings.TrimSpace(channel), "C:")
 }

@@ -2,12 +2,13 @@ package httpapi
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/beiwater/NewHaven/backend/internal/app/building"
+	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 )
 
 // BuildingHandler handles building-related HTTP endpoints.
@@ -46,13 +47,17 @@ func (h *BuildingHandler) handleListMyBuildingsV2(w http.ResponseWriter, r *http
 
 // handleListCompanyBuildings returns buildings for a specific company (by companyId).
 func (h *BuildingHandler) handleListCompanyBuildings(w http.ResponseWriter, r *http.Request) {
+	if _, ok := CompanyIDFromCtx(r.Context()); !ok {
+		writeErr(w, http.StatusUnauthorized, ErrorUnauthorized, "company not authenticated", nil)
+		return
+	}
 	companyID, err := strconv.Atoi(chi.URLParam(r, "companyId"))
 	if err != nil {
 		writeErr(w, 400, ErrorValidation, "invalid company id", nil)
 		return
 	}
 
-	resp, err := h.svc.ListMyBuildings(r.Context(), companyID)
+	resp, err := h.svc.ListPublicBuildings(r.Context(), companyID)
 	if err != nil {
 		writeAppErr(w, err)
 		return
