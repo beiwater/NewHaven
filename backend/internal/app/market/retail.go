@@ -37,6 +37,9 @@ type retailShelf struct {
 // Real player companies are identified by their positive PlayerID and skipped;
 // LastRetailAt is settlement state, not a safe account-type discriminator.
 func (s *Service) ProcessRetailSales(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if len(s.economy) == 0 {
 		slog.Debug("[retail] no economy model loaded, skipping")
 		return nil
@@ -95,6 +98,12 @@ func (s *Service) processNPCRetail(ctx context.Context, company *domain.Company,
 // CatchUpPlayerRetail computes retail sales for a player company since its last
 // settlement. Only sells from retail building shelves.
 func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error {
+	// Profile data is polled frequently and the same account may be open in
+	// multiple tabs. Serialize the read/compute/write settlement so two requests
+	// cannot sell the same shelf interval twice.
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
 		return err
