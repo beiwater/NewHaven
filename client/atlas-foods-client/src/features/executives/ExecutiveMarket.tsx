@@ -27,14 +27,14 @@ export function ExecutiveMarket() {
   }
 
   return (
-    <section>
+    <section className="rounded-[28px] border border-amber-950/10 bg-amber-50/80 p-4 shadow-[0_18px_60px_rgba(89,57,24,0.13)] md:p-6">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <svg className="h-5 w-5 text-amber-800" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
           </svg>
-          <h3 className="text-base font-black uppercase tracking-wider text-amber-900">
+          <h3 className="text-xl font-black text-amber-950">
             {t('executives.market')}
           </h3>
         </div>
@@ -45,7 +45,7 @@ export function ExecutiveMarket() {
           <button
             onClick={() => refetch()}
             disabled={isLoading}
-            className="rounded-lg bg-amber-800 px-3 py-1.5 text-[11px] font-black text-white hover:bg-amber-900 disabled:bg-amber-400 transition-colors"
+            className="rounded-xl bg-[#16221f] px-4 py-2 text-[10px] font-black uppercase tracking-wider text-amber-100 hover:bg-[#24352f] disabled:bg-amber-400 transition-colors"
           >
             {isLoading ? t('executives.refreshing') : t('executives.refresh')}
           </button>
@@ -88,7 +88,7 @@ export function ExecutiveMarket() {
 
       {/* Market cards grid */}
       {!isLoading && !isError && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {executives.length === 0 && (
             <div className="col-span-full rounded-xl border border-dashed border-amber-300/50 bg-white/40 py-8 text-center">
               <p className="text-xs text-amber-500">{t('executives.noExecutivesAvailable')}</p>

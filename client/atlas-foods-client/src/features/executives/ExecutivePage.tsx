@@ -4,17 +4,20 @@ import type { ExecutivePosition } from '@/game/executives'
 import { ExecutiveMarket } from './ExecutiveMarket'
 import { MyExecutives } from './MyExecutives'
 import { ExecutiveDetail } from './ExecutiveDetail'
+import { ExecutiveBoardroom } from './ExecutiveBoardroom'
 import { audio } from '@/audio/AudioManager'
 
 export function ExecutivePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [assigningId, setAssigningId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'boardroom' | 'market'>('boardroom')
 
   const { data: myExecs, isLoading: myLoading, refetch: refetchMy } = useMyExecutives()
   const trainExec = useTrainExecutive()
   const assignPosition = useAssignExecutivePosition()
 
   const ownedExecs = myExecs ?? []
+  const resolvedSelectedId = selectedId ?? ownedExecs.find((executive) => executive.position)?.id ?? ownedExecs[0]?.id ?? null
 
   const handleTrain = useCallback(async (id: string) => {
     try {
@@ -41,48 +44,35 @@ export function ExecutivePage() {
   }, [refetchMy])
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-7xl p-4 md:p-6">
-        {/* Page header */}
-        <div className="mb-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700/70">
-            Human Resources
-          </p>
-          <h2 className="text-2xl font-black text-amber-950">Executives</h2>
-        </div>
-
-        {/* Main grid: left side (market + my execs + training) | right side (detail) */}
-        <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-          {/* Left column */}
-          <div className="space-y-6">
-            <ExecutiveMarket />
-
-            <MyExecutives
-              executives={ownedExecs}
-              isLoading={myLoading}
-              onSelect={setSelectedId}
-              onTrain={handleTrain}
-              onAssign={handleAssign}
-              selectedId={selectedId}
-              assigningId={assigningId}
-            />
+    <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top,#fff8df_0%,#f6e7bd_42%,#ead09a_100%)]">
+      <div className="mx-auto max-w-[1440px] p-3 md:p-6">
+        <header className="mb-5 overflow-hidden rounded-[26px] border border-amber-950/10 bg-amber-50/80 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-4 px-5 py-5 md:flex-row md:items-end md:justify-between md:px-7">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-amber-700/65">New Haven Commerce Guild</p>
+              <h2 className="mt-1 text-3xl font-black tracking-tight text-amber-950">Leadership HQ</h2>
+              <p className="mt-1 max-w-xl text-xs leading-5 text-amber-800/65">Build a cabinet around the way your company earns: production, retail, operations and finance.</p>
+            </div>
+            <div className="flex gap-2 rounded-2xl border border-amber-900/10 bg-white/55 p-1.5">
+              <button type="button" onClick={() => setActiveTab('boardroom')} className={`rounded-xl px-4 py-2 text-[11px] font-black uppercase tracking-wider transition ${activeTab === 'boardroom' ? 'bg-[#16221f] text-amber-100 shadow' : 'text-amber-800 hover:bg-amber-100'}`}>Boardroom</button>
+              <button type="button" onClick={() => setActiveTab('market')} className={`rounded-xl px-4 py-2 text-[11px] font-black uppercase tracking-wider transition ${activeTab === 'market' ? 'bg-[#16221f] text-amber-100 shadow' : 'text-amber-800 hover:bg-amber-100'}`}>Talent market</button>
+            </div>
           </div>
+        </header>
 
-          {/* Right column — detail panel */}
-          <div className="lg:sticky lg:top-4 lg:self-start">
-            <ExecutiveDetail
-              executiveId={selectedId}
-              onTrainingComplete={handleTrainingComplete}
-            />
+        {activeTab === 'boardroom' ? (
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="space-y-5">
+              <ExecutiveBoardroom executives={ownedExecs} selectedId={resolvedSelectedId} assigningId={assigningId} onSelect={setSelectedId} />
+              <MyExecutives executives={ownedExecs} isLoading={myLoading} onSelect={setSelectedId} onTrain={handleTrain} onAssign={handleAssign} selectedId={resolvedSelectedId} assigningId={assigningId} />
+            </div>
+            <div className="xl:sticky xl:top-4 xl:self-start">
+              <ExecutiveDetail executiveId={resolvedSelectedId} onTrainingComplete={handleTrainingComplete} />
+            </div>
           </div>
-        </div>
-
-        {/* System hint (mobile) */}
-        <div className="mt-6 rounded-lg border border-amber-200/30 bg-amber-100/30 px-4 py-2 text-center lg:hidden">
-          <p className="text-[10px] text-amber-600">
-            <span className="font-bold">Leadership is explicit:</span> only an assigned CMO or CTO changes the current retail or production loop.
-          </p>
-        </div>
+        ) : (
+          <ExecutiveMarket />
+        )}
       </div>
     </div>
   )

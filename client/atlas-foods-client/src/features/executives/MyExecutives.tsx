@@ -21,39 +21,42 @@ const positions: Array<{ value: ExecutivePosition; label: string }> = [
 
 export function MyExecutives({ executives, isLoading, onSelect, onTrain, onAssign, selectedId, assigningId }: MyExecutivesProps) {
   if (isLoading) {
-    return <section><h3 className="mb-3 text-base font-black uppercase tracking-wider text-amber-900">Leadership team</h3><div className="rounded-xl border border-amber-200/60 bg-white/50 py-8 text-center text-xs font-semibold text-amber-600">Loading executives…</div></section>
+    return <section className="rounded-[24px] border border-amber-900/10 bg-amber-50/75 p-5"><h3 className="mb-3 text-base font-black text-amber-950">Talent bench</h3><div className="py-8 text-center text-xs font-semibold text-amber-600">Loading executives…</div></section>
   }
 
   return (
-    <section>
-      <div className="mb-3 flex items-end justify-between gap-3">
+    <section className="rounded-[24px] border border-amber-900/10 bg-amber-50/75 p-4 shadow-sm md:p-5">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <h3 className="text-base font-black uppercase tracking-wider text-amber-900">Leadership team ({executives.length})</h3>
-          <p className="mt-1 text-[11px] text-amber-700">Each chair has one active holder. Reassigning a chair moves its previous holder to unassigned.</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.28em] text-amber-700/60">Owned executives</p>
+          <h3 className="mt-0.5 text-lg font-black text-amber-950">Talent bench <span className="text-amber-600">{executives.length}</span></h3>
         </div>
       </div>
 
       {executives.length === 0 && (
-        <div className="rounded-xl border border-dashed border-amber-300/50 bg-white/40 py-8 text-center"><p className="text-xs text-amber-500">Recruit a candidate, then place them in the chair where their specialty matters.</p></div>
+        <div className="rounded-2xl border border-dashed border-amber-400/50 bg-white/40 py-8 text-center"><p className="text-xs text-amber-600">Recruit a candidate, then appoint them to a chair.</p></div>
       )}
 
-      <div className="space-y-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {executives.map((executive) => {
           const selected = selectedId === executive.id
           return (
-            <div key={executive.id} onClick={() => onSelect(executive.id)} className={`cursor-pointer rounded-xl border-2 p-3 transition ${selected ? 'border-amber-500 bg-amber-50' : 'border-amber-200/60 bg-white/60 hover:border-amber-300'}`}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2"><span className="font-bold text-amber-950">{executive.name}</span><span className="rounded bg-amber-200/60 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">Lv. {executive.level}</span></div>
-                  <div className="mt-0.5 text-[11px] font-semibold text-amber-700">{executive.title} · {executive.specialty.toUpperCase()} specialist</div>
-                  <div className="mt-1 text-[10px] text-amber-600">M {Math.round(executive.skills.management)} · A {Math.round(executive.skills.accounting)} · C {Math.round(executive.skills.communication)} · S {Math.round(executive.skills.science)}</div>
+            <div key={executive.id} onClick={() => onSelect(executive.id)} className={`cursor-pointer rounded-2xl border p-3 transition ${selected ? 'border-amber-500 bg-white shadow-md ring-2 ring-amber-300/40' : 'border-amber-900/10 bg-white/55 hover:-translate-y-0.5 hover:border-amber-400/60 hover:bg-white'}`}>
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#24352f] text-sm font-black text-amber-100">{executive.name.slice(0, 1)}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2"><span className="truncate font-black text-amber-950">{executive.name}</span><span className="rounded-full bg-amber-200/70 px-2 py-0.5 text-[9px] font-black text-amber-900">LV {executive.level}</span></div>
+                  <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700/65">{executive.specialty} specialist · {executive.rarity}</div>
+                  <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[9px] text-amber-700">
+                    {([['M', executive.skills.management], ['A', executive.skills.accounting], ['C', executive.skills.communication], ['S', executive.skills.science]] as const).map(([label, value]) => <span key={label} className="rounded-md bg-amber-100/70 py-1"><b className="text-amber-950">{label}</b> {Math.round(value)}</span>)}
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                  <select value={executive.position} onChange={(event) => onAssign(executive.id, event.target.value as ExecutivePosition)} disabled={assigningId === executive.id} className="rounded-lg border border-cyan-800/25 bg-cyan-50 px-2 py-1.5 text-[11px] font-bold text-cyan-950 disabled:opacity-50">
-                    {positions.map((position) => <option key={position.value || 'unassigned'} value={position.value}>{position.label}</option>)}
-                  </select>
-                  <button onClick={() => onTrain(executive.id)} className="rounded-lg bg-green-700 px-3 py-1.5 text-[11px] font-black text-white hover:bg-green-800">Develop · ${formatMoney(executive.trainingCost)}</button>
-                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2 border-t border-amber-900/10 pt-3" onClick={(event) => event.stopPropagation()}>
+                <select value={executive.position} onChange={(event) => onAssign(executive.id, event.target.value as ExecutivePosition)} disabled={assigningId === executive.id} aria-label={`Assign ${executive.name} to leadership chair`} className="min-w-0 flex-1 rounded-xl border border-amber-900/15 bg-amber-50 px-2 py-2 text-[10px] font-black text-amber-950 outline-none focus:border-amber-500 disabled:opacity-50">
+                  {positions.map((position) => <option key={position.value || 'unassigned'} value={position.value}>{position.label}</option>)}
+                </select>
+                <button onClick={() => onTrain(executive.id)} className="rounded-xl bg-[#2e6a51] px-3 py-2 text-[10px] font-black text-white hover:bg-[#245540]">Develop · ${formatMoney(executive.trainingCost)}</button>
               </div>
             </div>
           )

@@ -39,29 +39,33 @@ export function ExecutiveDetail({ executiveId, onTrainingComplete }: ExecutiveDe
 
   return (
     <Panel>
-      <div className="mb-4 border-b border-amber-200/60 pb-3">
-        <div className={`mb-2 inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${RARITY_COLORS[detail.rarity]}`}>{detail.rarity}</div>
-        <h3 className="text-lg font-black text-amber-950">{detail.name}</h3>
-        <p className="text-xs font-semibold text-amber-700">{detail.title} · Level {detail.level}</p>
+      <div className="-mx-5 -mt-5 mb-5 rounded-t-[24px] border-b border-white/10 bg-[#20312b] p-5 text-white">
+        <div className="flex items-center gap-3">
+          <div className="grid h-14 w-14 place-items-center rounded-2xl border border-amber-100/20 bg-gradient-to-br from-amber-200 to-amber-500 text-xl font-black text-amber-950">{detail.name.slice(0, 1)}</div>
+          <div className="min-w-0">
+            <div className={`mb-1 inline-block rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${RARITY_COLORS[detail.rarity]}`}>{detail.rarity}</div>
+            <h3 className="truncate text-lg font-black">{detail.name}</h3>
+            <p className="text-[10px] font-semibold text-amber-100/55">{detail.title} · Level {detail.level}</p>
+          </div>
+        </div>
       </div>
 
       <div className="mb-4">
-        <h4 className="mb-2 text-[10px] font-black uppercase tracking-wider text-amber-700">Skill profile</h4>
+        <h4 className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-amber-700">Skill profile</h4>
         <SkillGrid executive={detail} />
       </div>
 
-      <div className="mb-4 rounded-xl border border-cyan-800/20 bg-cyan-50 p-3">
-        <div className="text-xs font-black text-cyan-950">{effect.title}</div>
-        <p className="mt-1 text-[11px] leading-5 text-cyan-900">{effect.body}</p>
-        <p className="mt-2 text-[10px] font-bold text-cyan-800">Current chair: {detail.position ? detail.position.toUpperCase() : 'unassigned'}</p>
+      <div className="mb-4 rounded-2xl border border-emerald-900/15 bg-[#e8f1e6] p-3">
+        <div className="flex items-center justify-between gap-2"><div className="text-xs font-black text-emerald-950">{effect.title}</div><span className="rounded-full bg-emerald-950 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-emerald-100">{detail.position ? 'Active chair' : 'Bench'}</span></div>
+        <p className="mt-2 text-[10px] leading-5 text-emerald-900/75">{effect.body}</p>
       </div>
 
-      <div className="mb-3 rounded-lg border border-amber-200/50 bg-white/60 p-3 text-xs">
+      <div className="mb-3 rounded-2xl border border-amber-900/10 bg-white/70 p-3 text-xs">
         <div className="flex justify-between"><span className="text-amber-700">Development cost</span><span className="font-black text-amber-950">${formatMoney(detail.trainingCost)}</span></div>
         <p className="mt-1 text-[10px] leading-4 text-amber-600">Development is immediate and server-charged: +1 to every skill and +3 more to this executive's specialty. There is no fake timer.</p>
       </div>
 
-      <button onClick={develop} disabled={!canDevelop || train.isPending} className={`w-full rounded-lg py-3 text-sm font-black uppercase tracking-wider ${canDevelop ? 'bg-green-700 text-white hover:bg-green-800 disabled:bg-green-300' : 'bg-gray-300 text-gray-500'}`}>
+      <button onClick={develop} disabled={!canDevelop || train.isPending} className={`w-full rounded-2xl py-3 text-xs font-black uppercase tracking-[0.18em] transition ${canDevelop ? 'bg-[#2e6a51] text-white shadow-lg shadow-emerald-950/10 hover:-translate-y-0.5 hover:bg-[#245540] disabled:bg-green-300' : 'bg-gray-300 text-gray-500'}`}>
         {train.isPending ? 'Developing…' : canDevelop ? 'Develop executive' : `Need $${formatMoney(detail.trainingCost - cash)} more`}
       </button>
       {train.isError && <p className="mt-2 text-center text-[10px] font-semibold text-red-700">{train.error instanceof Error ? train.error.message : 'Development failed'}</p>}
@@ -74,5 +78,5 @@ function EmptyDetail() {
 }
 
 function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border-2 border-amber-300/50 bg-gradient-to-b from-amber-50 to-amber-100/30 p-5 shadow-sm">{children}</div>
+  return <div className="overflow-hidden rounded-[24px] border border-amber-950/10 bg-[#fffaf0] p-5 shadow-[0_18px_50px_rgba(89,57,24,0.14)]">{children}</div>
 }

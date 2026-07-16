@@ -25,7 +25,8 @@ export function ExecutiveCard({ executive, mode, isPending, canAfford = true, on
   const cardBg = RARITY_BG[executive.rarity]
 
   return (
-    <div className={`rounded-xl border-2 p-4 shadow-sm transition-shadow hover:shadow-md ${cardBg}`}>
+    <div className={`group relative overflow-hidden rounded-[22px] border p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl ${cardBg}`}>
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/45 blur-2xl" />
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${rarityColor}`}>
           {t('executives.rarity_' + executive.rarity.toLowerCase())}
@@ -36,7 +37,7 @@ export function ExecutiveCard({ executive, mode, isPending, canAfford = true, on
       </div>
 
       <div className="mb-3 flex items-center gap-3">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-black text-white ${
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/70 text-lg font-black text-white shadow-md ${
           executive.rarity === 'Legendary' ? 'bg-orange-500' : executive.rarity === 'Epic' ? 'bg-purple-500' : executive.rarity === 'Rare' ? 'bg-blue-500' : 'bg-gray-400'
         }`}>
           {executive.name.charAt(0)}
@@ -54,7 +55,7 @@ export function ExecutiveCard({ executive, mode, isPending, canAfford = true, on
         <button
           onClick={() => onRecruit?.(executive.id)}
           disabled={isPending || !canAfford}
-          className={`mt-3 w-full rounded-lg py-2 text-xs font-black uppercase tracking-wider transition-colors ${canAfford ? 'bg-green-700 text-white hover:bg-green-800 disabled:bg-green-300' : 'cursor-not-allowed bg-gray-300 text-gray-500'}`}
+          className={`mt-3 w-full rounded-xl py-2.5 text-[11px] font-black uppercase tracking-wider transition ${canAfford ? 'bg-[#2e6a51] text-white shadow hover:bg-[#245540] disabled:bg-green-300' : 'cursor-not-allowed bg-gray-300 text-gray-500'}`}
         >
           {isPending ? t('executives.recruiting') : canAfford ? `${t('executives.hire')} $${formatMoney(executive.recruitCost)}` : t('executives.notEnoughCash')}
         </button>
@@ -74,16 +75,17 @@ export function ExecutiveCard({ executive, mode, isPending, canAfford = true, on
 
 export function SkillGrid({ executive }: { executive: Pick<Executive, 'skills'> }) {
   const skills = [
-    ['Management', executive.skills.management],
-    ['Accounting', executive.skills.accounting],
-    ['Communication', executive.skills.communication],
-    ['Science', executive.skills.science],
+    ['Management', 'MGT', executive.skills.management],
+    ['Accounting', 'ACC', executive.skills.accounting],
+    ['Communication', 'COM', executive.skills.communication],
+    ['Science', 'SCI', executive.skills.science],
   ] as const
   return (
-    <div className="grid grid-cols-2 gap-1 border-t border-amber-200/60 pt-2 text-[10px]">
-      {skills.map(([label, value]) => (
-        <div key={label} className="flex justify-between rounded bg-white/55 px-2 py-1 text-amber-700">
-          <span>{label}</span><span className="font-black text-amber-950">{Math.round(value)}</span>
+    <div className="grid grid-cols-2 gap-2 border-t border-amber-900/10 pt-3 text-[10px]">
+      {skills.map(([label, shortLabel, value]) => (
+        <div key={label} title={label} className="rounded-lg bg-white/60 px-2 py-1.5 text-amber-700">
+          <div className="flex justify-between"><span className="text-[8px] font-black tracking-wider">{shortLabel}</span><span className="font-black text-amber-950">{Math.round(value)}</span></div>
+          <div className="mt-1 h-1 overflow-hidden rounded-full bg-amber-900/10"><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} /></div>
         </div>
       ))}
     </div>
