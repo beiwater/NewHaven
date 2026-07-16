@@ -124,5 +124,8 @@ export interface ResourceDefinition {
   producedPerHourRaw?: number
   unitsSoldAnHour?: number
   hasEconomyModel?: boolean
+  recommendedPrice?: number
+  recommendedBuyPrice?: number
+  recommendedSellPrice?: number
   recipe?: Array<{ resourceId: number; resourceName?: string; quantity: number }>
 }

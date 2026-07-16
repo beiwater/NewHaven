@@ -32,20 +32,21 @@ export function MarketPage() {
   const [selectedGroup, setSelectedGroup] = useState<MarketGroupId>('all')
   const [orderKind, setOrderKind] = useState<'buy' | 'sell'>('buy')
   const [quantity, setQuantity] = useState('10')
-  const [price, setPrice] = useState('10.00')
+  const [priceInput, setPriceInput] = useState({ recommendationKey: '', value: '' })
   const [activeTab, setActiveTab] = useState<'market' | 'myorders'>('market')
 
   const { data: resourcesData } = useResources()
   const resources = resourcesData?.resources?.length ? resourcesData.resources : FALLBACK_MARKET_RESOURCES
+  const marketReady = Boolean(resourcesData?.resources?.length)
   const activeIds = selectedGroup === 'all' ? ALL_RESOURCE_IDS : (MARKET_GROUPS.find((g) => g.id === selectedGroup)?.ids ?? ALL_RESOURCE_IDS)
   const visibleResources = useMemo(
     () => activeIds.map((id) => resources.find((r) => r.resourceId === id)).filter(Boolean),
     [activeIds, resources],
   )
 
-  const { data: ticker } = useMarketTicker(selectedResource)
-  const { data: depth } = useMarketDepth(selectedResource)
-  const { data: orders } = useMarketOrders(selectedResource)
+  const { data: ticker } = useMarketTicker(selectedResource, marketReady)
+  const { data: depth } = useMarketDepth(selectedResource, 0, marketReady)
+  const { data: orders } = useMarketOrders(selectedResource, 0, marketReady)
   const { data: companyData } = useCompany()
   const { data: warehouse } = useWarehouse()
   const createOrder = useCreateOrder()
@@ -71,6 +72,15 @@ export function MarketPage() {
     .sort((a, b) => b.price - a.price)
   const bestBid = depth?.buys?.[0]?.price ?? 0
   const bestAsk = depth?.sells?.[0]?.price ?? 0
+  const selectedResourceData = resources.find((resource) => resource.resourceId === selectedResource)
+  const recommendedPrice = orderKind === 'buy'
+    ? (selectedResourceData?.recommendedBuyPrice ?? selectedResourceData?.recommendedPrice ?? 0)
+    : (selectedResourceData?.recommendedSellPrice ?? selectedResourceData?.recommendedPrice ?? 0)
+  const recommendationKey = `${selectedResource}:${orderKind}`
+  const price = priceInput.recommendationKey === recommendationKey
+    ? priceInput.value
+    : recommendedPrice > 0 ? recommendedPrice.toFixed(2) : ''
+  const setPrice = (value: string) => setPriceInput({ recommendationKey, value })
   const selectedName = formatResourceName(selectedResource, resources)
   const selectedInventory = warehouse?.inventory
     ?.filter((item) => item.resourceId === selectedResource && (item.quality ?? 0) === 0)
@@ -273,6 +283,16 @@ export function MarketPage() {
                   onChange={(e) => setPrice(e.target.value)}
                   className="tutorial-market-price mb-3 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-amber-950"
                 />
+                {recommendedPrice > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPrice(recommendedPrice.toFixed(2))}
+                    className="mb-3 flex w-full items-center justify-between rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-left text-[11px] font-bold text-cyan-900 hover:bg-cyan-100"
+                  >
+                    <span>{t('market.recommendedPrice')}</span>
+                    <span>${recommendedPrice.toFixed(2)} · {t('market.useRecommended')}</span>
+                  </button>
+                )}
                 <button
                   onClick={handleCreateOrder}
                   disabled={createOrder.isPending || !!localOrderError}

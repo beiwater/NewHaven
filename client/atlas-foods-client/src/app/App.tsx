@@ -5,6 +5,7 @@ import { AuthGate } from '@/features/auth/AuthGate'
 import { TopBar } from '@/features/topbar/TopBar'
 import { LeftSidebar } from '@/features/sidebar/LeftSidebar'
 import { BuildingPanel } from '@/features/buildings/BuildingPanel'
+import { BuildingOperationsModal } from '@/features/buildings/BuildingOperationsModal'
 import { MarketTicker } from '@/features/market/MarketTicker'
 import { MarketPage } from '@/features/market/MarketPage'
 import { InventoryBar } from '@/features/inventory/InventoryBar'
@@ -163,6 +164,7 @@ function GameLayout() {
       </div>
       <FarmNotes />
       {isMapView ? <BuildingPanel /> : <div className="right-panel page-spacer" />}
+      <BuildingOperationsModal />
       <MarketTicker />
       {!chatOpen && activeView !== 'chat' && (
         <button

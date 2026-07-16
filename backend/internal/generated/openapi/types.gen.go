@@ -543,12 +543,15 @@ type RegisterRequest struct {
 
 // ResourceDefinition defines model for ResourceDefinition.
 type ResourceDefinition struct {
-	HasEconomyModel    *bool           `json:"hasEconomyModel,omitempty"`
-	Name               *string         `json:"name,omitempty"`
-	ProducedFrom       *map[string]int `json:"producedFrom,omitempty"`
-	ProducedPerHourRaw *int            `json:"producedPerHourRaw,omitempty"`
-	ResourceId         *int            `json:"resourceId,omitempty"`
-	UnitsSoldAnHour    *int            `json:"unitsSoldAnHour,omitempty"`
+	HasEconomyModel      *bool           `json:"hasEconomyModel,omitempty"`
+	Name                 *string         `json:"name,omitempty"`
+	ProducedFrom         *map[string]int `json:"producedFrom,omitempty"`
+	ProducedPerHourRaw   *int            `json:"producedPerHourRaw,omitempty"`
+	RecommendedBuyPrice  *float64        `json:"recommendedBuyPrice,omitempty"`
+	RecommendedPrice     *float64        `json:"recommendedPrice,omitempty"`
+	RecommendedSellPrice *float64        `json:"recommendedSellPrice,omitempty"`
+	ResourceId           *int            `json:"resourceId,omitempty"`
+	UnitsSoldAnHour      *int            `json:"unitsSoldAnHour,omitempty"`
 }
 
 // ResourcesResponse defines model for ResourcesResponse.
@@ -603,10 +606,10 @@ type StartProductionV1Request struct {
 
 // StockShelfRequest defines model for StockShelfRequest.
 type StockShelfRequest struct {
-	BuildingId string   `json:"building_id"`
-	Price      *float64 `json:"price,omitempty"`
-	Quantity   int      `json:"quantity"`
-	ResourceId int      `json:"resource_id"`
+	BuildingId string  `json:"building_id"`
+	Price      float64 `json:"price"`
+	Quantity   int     `json:"quantity"`
+	ResourceId int     `json:"resource_id"`
 }
 
 // StoryProgress defines model for StoryProgress.

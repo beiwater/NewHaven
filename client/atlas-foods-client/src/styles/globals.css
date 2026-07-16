@@ -782,3 +782,34 @@ body {
     display: none;
   }
 }
+
+@keyframes building-modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes building-modal-shell-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.building-modal-backdrop {
+  animation: building-modal-backdrop-in 160ms ease-out both;
+}
+
+.building-modal-shell {
+  animation: building-modal-shell-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .building-modal-backdrop,
+  .building-modal-shell {
+    animation: none;
+  }
+}

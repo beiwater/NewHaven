@@ -2,7 +2,7 @@ package building
 
 import (
 	"context"
-	"fmt"
+	"math"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
@@ -11,12 +11,17 @@ import (
 )
 
 // StockShelf moves items from the company warehouse into a retail building's shelf.
-// If price is nil, the existing shelf price is kept (or 0 for new items — the retail
-// tick refreshes from market price). If priceLock is set via SetShelfPrice, the price
-// is frozen; otherwise the retail tick updates it from the market ticker.
-func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID string, resourceID int, quantity int, price *float64) (*openapi.ShelfActionResponse, error) {
+// A stock action starts an immutable sale batch. Its price and quantity remain
+// committed until demand sells the batch out; players then start a fresh batch.
+func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID string, resourceID int, quantity int, price float64) (*openapi.ShelfActionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if quantity <= 0 {
+		return nil, apperr.BadRequest("sale quantity must be positive")
+	}
+	if price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
+		return nil, apperr.BadRequest("sale price must be positive")
+	}
 
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
@@ -39,41 +44,19 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 		return nil, apperr.BadRequestf("building %q cannot sell resource %d", building.Name, resourceID)
 	}
 
-	// Find or create shelf slot
-	shelfIdx := -1
+	// A resource already on a shelf is an active batch. Restocking it would let
+	// a player change the committed quantity while the sale is running.
 	for i := range building.Shelves {
 		if building.Shelves[i].ResourceID == resourceID {
-			shelfIdx = i
-			break
+			return nil, apperr.Conflict("sale already active; wait until this batch sells out")
 		}
 	}
-
-	if shelfIdx == -1 {
-		// New shelf: check slot count
-		if len(building.Shelves) >= maxSlots {
-			return nil, apperr.BadRequestf("shelf limit reached (%d/%d)", len(building.Shelves), maxSlots)
-		}
-		// Determine starting price
-		var startPrice float64
-		if price != nil {
-			startPrice = *price
-		}
-		maxQty := s.shelfCapacity(entry, building.Level)
-		building.Shelves = append(building.Shelves, domain.ShelfItem{
-			ResourceID: resourceID,
-			Quantity:   0,
-			MaxQty:     maxQty,
-			Price:      startPrice,
-			PriceLock:  price != nil,
-		})
-		shelfIdx = len(building.Shelves) - 1
+	if len(building.Shelves) >= maxSlots {
+		return nil, apperr.BadRequestf("shelf limit reached (%d/%d)", len(building.Shelves), maxSlots)
 	}
-
-	shelf := &building.Shelves[shelfIdx]
-
-	// Check max quantity
-	if shelf.Quantity+quantity > shelf.MaxQty {
-		return nil, apperr.BadRequestf("shelf capacity exceeded: %d + %d > %d", shelf.Quantity, quantity, shelf.MaxQty)
+	maxQty := s.shelfCapacity(entry, building.Level)
+	if quantity > maxQty {
+		return nil, apperr.BadRequestf("shelf capacity exceeded: %d > %d", quantity, maxQty)
 	}
 
 	// Deduct from warehouse inventory
@@ -81,14 +64,14 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 		return nil, apperr.WrapMsg(apperr.KindBadRequest, "insufficient warehouse inventory", err)
 	}
 
-	// Add to shelf
-	shelf.Quantity += quantity
-
-	// Update price if provided
-	if price != nil {
-		shelf.Price = *price
-		shelf.PriceLock = true
-	}
+	building.Shelves = append(building.Shelves, domain.ShelfItem{
+		ResourceID: resourceID,
+		Quantity:   quantity,
+		MaxQty:     maxQty,
+		Price:      price,
+		PriceLock:  true,
+	})
+	shelf := &building.Shelves[len(building.Shelves)-1]
 
 	if err := s.companies.UpdateCompany(ctx, company); err != nil {
 		// Rollback inventory
@@ -102,7 +85,7 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 }
 
 // UnstockShelf moves items from a retail building's shelf back to the warehouse.
-func (s *Service) UnstockShelf(ctx context.Context, companyID int, buildingID string, resourceID int, quantity int) (*openapi.ShelfActionResponse, error) {
+func (s *Service) UnstockShelf(ctx context.Context, companyID int, buildingID string, resourceID int, _ int) (*openapi.ShelfActionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -116,51 +99,16 @@ func (s *Service) UnstockShelf(ctx context.Context, companyID int, buildingID st
 		return nil, err
 	}
 
-	shelfIdx := -1
 	for i := range building.Shelves {
 		if building.Shelves[i].ResourceID == resourceID {
-			shelfIdx = i
-			break
+			return nil, apperr.Conflict("active sale batches cannot be cancelled; wait until the batch sells out")
 		}
 	}
-	if shelfIdx == -1 {
-		return nil, apperr.NotFoundf("resource %d not found on shelves", resourceID)
-	}
-
-	shelf := &building.Shelves[shelfIdx]
-	if quantity > shelf.Quantity {
-		return nil, apperr.BadRequestf("not enough items on shelf: have %d, want %d", shelf.Quantity, quantity)
-	}
-
-	shelf.Quantity -= quantity
-
-	// Add back to warehouse
-	if err := s.companies.UpdateInventory(ctx, companyID, resourceID, quantity); err != nil {
-		return nil, apperr.Internal("failed to return items to warehouse")
-	}
-
-	// Remove shelf if empty
-	if shelf.Quantity <= 0 {
-		building.Shelves = append(building.Shelves[:shelfIdx], building.Shelves[shelfIdx+1:]...)
-	}
-
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		return nil, apperr.Internal("failed to save company after unstock")
-	}
-
-	// Return the updated shelf (or nil if removed)
-	if shelf.Quantity > 0 {
-		return &openapi.ShelfActionResponse{
-			Shelf: s.shelfToDTO(shelf),
-		}, nil
-	}
-	return &openapi.ShelfActionResponse{
-		Shelf: nil,
-	}, nil
+	return nil, apperr.NotFoundf("resource %d not found on shelves", resourceID)
 }
 
 // SetShelfPrice updates the price and lock status for a shelf item.
-func (s *Service) SetShelfPrice(ctx context.Context, companyID int, buildingID string, resourceID int, price float64, lock bool) (*openapi.ShelfActionResponse, error) {
+func (s *Service) SetShelfPrice(ctx context.Context, companyID int, buildingID string, resourceID int, _ float64, _ bool) (*openapi.ShelfActionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -176,14 +124,7 @@ func (s *Service) SetShelfPrice(ctx context.Context, companyID int, buildingID s
 
 	for i := range building.Shelves {
 		if building.Shelves[i].ResourceID == resourceID {
-			building.Shelves[i].Price = price
-			building.Shelves[i].PriceLock = lock
-			if err := s.companies.UpdateCompany(ctx, company); err != nil {
-				return nil, apperr.Internal("failed to save company after price update")
-			}
-			return &openapi.ShelfActionResponse{
-				Shelf: s.shelfToDTO(&building.Shelves[i]),
-			}, nil
+			return nil, apperr.Conflict("active sale price is locked until the batch sells out")
 		}
 	}
 
@@ -240,5 +181,3 @@ func (s *Service) shelfToDTO(sh *domain.ShelfItem) *openapi.ShelfItem {
 		Revenue:    &revenue,
 	}
 }
-
-var _ = fmt.Sprintf // keep fmt import available

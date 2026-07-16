@@ -277,7 +277,7 @@ paths:
   /api/v2/buildings/{buildingId}/stock/:
     post:
       tags: [Buildings]
-      summary: Stock items into a retail building's shelf
+      summary: Start an immutable retail sale batch
       operationId: stockShelf
       security:
         - BearerAuth: []
@@ -302,13 +302,15 @@ paths:
                 $ref: '#/components/schemas/ShelfActionResponse'
         "400":
           description: Bad request
+        "409":
+          description: A sale for this resource is already active
         "401":
           description: Unauthorized
 
   /api/v2/buildings/{buildingId}/unstock/:
     post:
       tags: [Buildings]
-      summary: Unstock items from a retail building's shelf back to warehouse
+      summary: Legacy unstock route; active sale batches return a conflict
       operationId: unstockShelf
       security:
         - BearerAuth: []
@@ -333,13 +335,15 @@ paths:
                 $ref: '#/components/schemas/ShelfActionResponse'
         "400":
           description: Bad request
+        "409":
+          description: Active sale batches cannot be cancelled
         "401":
           description: Unauthorized
 
   /api/v2/buildings/{buildingId}/shelf-price/:
     post:
       tags: [Buildings]
-      summary: Set price for a shelf item
+      summary: Legacy price route; active sale prices return a conflict
       operationId: setShelfPrice
       security:
         - BearerAuth: []
@@ -364,6 +368,8 @@ paths:
                 $ref: '#/components/schemas/ShelfActionResponse'
         "400":
           description: Bad request
+        "409":
+          description: Active sale prices cannot be changed
         "401":
           description: Unauthorized
   /api/v1/buildings/{buildingId}/upgrade/:
@@ -1547,7 +1553,7 @@ components:
 
     StockShelfRequest:
       type: object
-      required: [building_id, resource_id, quantity]
+      required: [building_id, resource_id, quantity, price]
       properties:
         building_id:
           type: string
@@ -1558,6 +1564,7 @@ components:
         price:
           type: number
           format: double
+          exclusiveMinimum: 0
 
     UnstockShelfRequest:
       type: object
@@ -1708,6 +1715,18 @@ components:
           type: integer
         hasEconomyModel:
           type: boolean
+        recommendedPrice:
+          type: number
+          format: double
+          description: Fair reference price derived from the live book, ticker, or catalog fallback.
+        recommendedBuyPrice:
+          type: number
+          format: double
+          description: Suggested tick-valid limit price for a new buy order.
+        recommendedSellPrice:
+          type: number
+          format: double
+          description: Suggested tick-valid limit price for a new sell order.
     ResourcesResponse:
       type: object
       properties:

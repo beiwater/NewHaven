@@ -76,7 +76,7 @@ func TestListResources_FiltersCorrectly(t *testing.T) {
 		3: {ID: 3, DbLetter: 3, Name: "ResearchOnly", IsExchangeTradable: false, IsResearch: true},
 		4: {ID: 4, DbLetter: 0, Name: "NoDbLetter", IsExchangeTradable: true},
 	}
-	svc, _ := newTestSvc(resources)
+	svc, store := newTestSvc(resources)
 	resp, err := svc.ListResources(ctx)
 	if err != nil {
 		t.Fatalf("ListResources failed: %v", err)
@@ -91,6 +91,43 @@ func TestListResources_FiltersCorrectly(t *testing.T) {
 	}
 	if r.Name == nil || *r.Name != "Grain" {
 		t.Errorf("expected name 'Grain', got %v", r.Name)
+	}
+	for _, resource := range *resp.Resources {
+		if resource.ResourceId == nil || resource.RecommendedPrice == nil || resource.RecommendedBuyPrice == nil || resource.RecommendedSellPrice == nil {
+			t.Fatalf("resource recommendation is incomplete: %+v", resource)
+		}
+		for _, price := range []float64{*resource.RecommendedPrice, *resource.RecommendedBuyPrice, *resource.RecommendedSellPrice} {
+			if price <= 0 || !formula.IsValidTick(price) {
+				t.Fatalf("recommended price %.4f must be positive and tick-valid", price)
+			}
+		}
+		orders, err := store.GetOrdersByResource(ctx, *resource.ResourceId)
+		if err != nil {
+			t.Fatal(err)
+		}
+		buyLevels, sellLevels := 0, 0
+		for _, order := range orders {
+			if order.Status != domainmarket.StatusOpen || order.Remaining() <= 0 {
+				continue
+			}
+			if order.IsBuy {
+				buyLevels++
+			} else {
+				sellLevels++
+			}
+		}
+		if buyLevels == 0 || sellLevels == 0 {
+			t.Fatalf("resource %d missing first-open liquidity: buys=%d sells=%d", *resource.ResourceId, buyLevels, sellLevels)
+		}
+	}
+
+	before, _ := store.GetOrdersByResource(ctx, 1)
+	if _, err := svc.ListResources(ctx); err != nil {
+		t.Fatalf("second ListResources failed: %v", err)
+	}
+	after, _ := store.GetOrdersByResource(ctx, 1)
+	if len(after) != len(before) {
+		t.Fatalf("idempotent market open multiplied bot orders: before=%d after=%d", len(before), len(after))
 	}
 }
 

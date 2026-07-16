@@ -155,6 +155,34 @@ func TestCatchUpPlayerRetail_FirstTime_SetsBaseline(t *testing.T) {
 	}
 }
 
+func TestCatchUpPlayerRetail_LocksLegacySaleBatchAtCurrentPrice(t *testing.T) {
+	t.Parallel()
+	svc, store, clock := newRetailTestSvc(map[int]*catalog.EconomyModelEntry{
+		1: {BuildingKindModifier: 0.8, BuildingLevelsNeededPerUnitPerHour: 0.01, ModeledProductionCostPerUnit: 8.0, ModeledStoreWages: 200.0, ModeledUnitsSoldAnHour: 15.0},
+	})
+	setupRetailTicker(t, store, 1, 24.0)
+
+	companyID := newTestCompany(t, store, 1014, "legacy_sale_batch", 500.0)
+	c, _ := store.GetCompany(nil, companyID)
+	c.Buildings = []company.Building{{
+		ID: "bld-retail-legacy", Kind: 6, Name: "Market Stall", Level: 1,
+		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 10, MaxQty: 100}},
+	}}
+	c.LastRetailAt = clock.Now().UTC().Format(time.RFC3339)
+	if err := store.UpdateCompany(nil, c); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
+		t.Fatalf("CatchUpPlayerRetail: %v", err)
+	}
+	updated, _ := store.GetCompany(nil, companyID)
+	shelf := updated.Buildings[0].Shelves[0]
+	if !shelf.PriceLock || shelf.Price != 24 {
+		t.Fatalf("legacy batch was not locked at current price: %+v", shelf)
+	}
+}
+
 func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
 	t.Parallel()
 	economy := map[int]*catalog.EconomyModelEntry{
