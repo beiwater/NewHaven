@@ -282,13 +282,13 @@ func TestCatchUpPlayerRetail_QualityAddsTwoPercentDemandPerLevel(t *testing.T) {
 		{q0Company, 0},
 		{q10Company, 10},
 	} {
-		company, _ := store.GetCompany(nil, setup.companyID)
-		company.Buildings = []company.Building{{
+		comp, _ := store.GetCompany(nil, setup.companyID)
+		comp.Buildings = []company.Building{{
 			ID: "retail", Kind: 6, Name: "Market Stall", Level: 1,
 			Shelves: []company.ShelfItem{{ResourceID: 1, Quality: setup.quality, Quantity: 1000, MaxQty: 1000, Price: 40, PriceLock: true}},
 		}}
-		company.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
-		if err := store.UpdateCompany(nil, company); err != nil {
+		comp.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
+		if err := store.UpdateCompany(nil, comp); err != nil {
 			t.Fatal(err)
 		}
 	}
