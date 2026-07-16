@@ -760,9 +760,9 @@ func TestStartProduction_AssignedCTOUsesScienceSkill(t *testing.T) {
 	}
 	svc, store := newTestService(t, resources, buildings)
 	if err := store.CreateCompany(ctx, &domain.Company{
-		PlayerID: 91,
-		Name:     "CTO Corp",
-		Money:    100000,
+		PlayerID:  91,
+		Name:      "CTO Corp",
+		Money:     100000,
 		Inventory: map[int]int{},
 		Buildings: []domain.Building{{ID: "farm-cto", BuildingID: 1, Level: 1, Name: "Farm"}},
 		Executives: []domain.Executive{{

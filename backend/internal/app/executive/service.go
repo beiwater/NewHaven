@@ -18,9 +18,9 @@ import (
 // Service handles executive candidates, recruitment, development and role
 // assignment. All money-changing writes go through ExecutiveStorage.
 type Service struct {
-	companies storage.CompanyStorage
+	companies  storage.CompanyStorage
 	executives storage.ExecutiveStorage
-	clock     platform.Clock
+	clock      platform.Clock
 }
 
 func NewService(companies storage.CompanyStorage, executives storage.ExecutiveStorage, clock platform.Clock) *Service {
