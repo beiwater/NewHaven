@@ -23,6 +23,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage'
 import { InspectPage } from '@/features/inspect/InspectPage'
 import { ProductionQueue } from '@/features/production/ProductionQueue'
 import { GameWikiPage } from '@/features/guidance/GameWikiPage'
+import { BuildingOperationsModal } from '@/features/buildings/BuildingOperationsModal'
 
 const GameCanvas = lazy(() => import('@/game/GameCanvas'))
 
@@ -127,6 +128,7 @@ export function MobileLayout() {
       )}
       <ChatPanel />
       <PowerPanel />
+      <BuildingOperationsModal />
 
       {/* Bottom nav */}
       <MobileBottomNav />
