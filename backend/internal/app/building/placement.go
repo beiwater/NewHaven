@@ -86,6 +86,9 @@ func (s *Service) MoveBuilding(ctx context.Context, companyID int, req *openapi.
 		if b.ID != req.BuildingId {
 			continue
 		}
+		if b.UpgradeTargetLevel > 0 || b.UpgradeCompletesAt != "" {
+			return nil, apperr.Conflict("building cannot be moved while it is being upgraded")
+		}
 		// Validate target map position via legacy placement logic
 		moveMapID := ""
 		if req.MapId != nil {
@@ -148,6 +151,9 @@ func (s *Service) DemolishBuilding(ctx context.Context, companyID int, req *open
 		if b.ID != req.BuildingId {
 			continue
 		}
+		if b.UpgradeTargetLevel > 0 || b.UpgradeCompletesAt != "" {
+			return nil, apperr.Conflict("building cannot be demolished while it is being upgraded")
+		}
 		// Refund = 50% of base cost
 		baseCost := float64(b.BuildingID) * 5000
 		if entry, ok := s.buildings[b.BuildingID]; ok && entry.BaseCost > 0 {
@@ -189,6 +195,9 @@ func (s *Service) StashBuilding(ctx context.Context, companyID int, buildingID s
 	for i, b := range company.Buildings {
 		if b.ID != buildingID {
 			continue
+		}
+		if b.UpgradeTargetLevel > 0 || b.UpgradeCompletesAt != "" {
+			return nil, apperr.Conflict("building cannot be stashed while it is being upgraded")
 		}
 		if b.MapID == "" {
 			return nil, apperr.BadRequest("building is already stashed")

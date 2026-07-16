@@ -47,6 +47,15 @@ type CompanyStorage interface {
 	UpdateInventory(ctx context.Context, companyID int, resourceID int, delta int) error
 }
 
+// BuildingUpgradeStorage provides the compare-and-set operations used by
+// construction. It is intentionally separate from CompanyStorage so older
+// adapters can still serve read-only building endpoints, while production
+// stores can make the money reservation and construction state atomic.
+type BuildingUpgradeStorage interface {
+	StartBuildingUpgrade(ctx context.Context, companyID int, buildingID string, expectedLevel, targetLevel int, cost float64, startedAt, completesAt string) (*company.Building, error)
+	CompleteBuildingUpgrade(ctx context.Context, companyID int, buildingID string, expectedTargetLevel int, expectedCompletesAt string) (*company.Building, bool, error)
+}
+
 // MarketStorage handles order book and trade persistence.
 type MarketStorage interface {
 	CreateOrder(ctx context.Context, o *market.MarketOrder) error

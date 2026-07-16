@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
@@ -59,6 +60,30 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	}
 	if building == nil {
 		return nil, apperr.NotFoundf("building %s not found for company %d", req.BuildingId, companyID)
+	}
+	if building.UpgradeTargetLevel > 0 || building.UpgradeCompletesAt != "" {
+		completesAt, parseErr := time.Parse(time.RFC3339, building.UpgradeCompletesAt)
+		if parseErr == nil && !s.clock.Now().Before(completesAt) {
+			if upgrades, ok := s.companies.(storage.BuildingUpgradeStorage); ok {
+				if _, _, err := upgrades.CompleteBuildingUpgrade(ctx, companyID, building.ID, building.UpgradeTargetLevel, building.UpgradeCompletesAt); err != nil {
+					return nil, apperr.Internalf("complete building upgrade: %v", err)
+				}
+				company, err = s.companies.GetCompany(ctx, companyID)
+				if err != nil {
+					return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
+				}
+				building = nil
+				for i, candidate := range company.Buildings {
+					if candidate.ID == req.BuildingId {
+						building = &company.Buildings[i]
+						break
+					}
+				}
+			}
+		}
+		if building == nil || building.UpgradeTargetLevel > 0 || building.UpgradeCompletesAt != "" {
+			return nil, apperr.Conflict("this building is under construction; wait for the upgrade to finish")
+		}
 	}
 
 	// A building is a single production line: it may produce only one item at a

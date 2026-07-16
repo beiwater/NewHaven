@@ -18,6 +18,11 @@ export interface Building {
   status?: 'idle' | 'running' | 'ready'
   isRetail?: boolean
   shelves?: ShelfItem[]
+  nextUpgradeCost?: number
+  nextUpgradeDurationSeconds?: number
+  upgradeTargetLevel?: number
+  upgradeStartedAt?: string
+  upgradeCompletesAt?: string
 }
 
 export interface ShelfItem {

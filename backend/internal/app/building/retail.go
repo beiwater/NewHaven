@@ -32,6 +32,9 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 	if err != nil {
 		return nil, err
 	}
+	if building.UpgradeTargetLevel > 0 || building.UpgradeCompletesAt != "" {
+		return nil, apperr.Conflict("building is under construction; start sales after the upgrade finishes")
+	}
 
 	// Calculate max shelf slots for this building
 	maxSlots := entry.RetailSlots + (building.Level-1)*entry.SlotPerLevel

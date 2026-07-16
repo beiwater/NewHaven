@@ -13,6 +13,9 @@ export function useBuildings() {
   return useQuery({
     queryKey: ['buildings'],
     queryFn: async () => normalizeBuildingList(await api.get<unknown>('/api/v2/companies/me/buildings/')),
+    refetchInterval: (query) => query.state.data?.some((building) => building.upgradeTargetLevel && building.upgradeTargetLevel > building.level)
+      ? 5_000
+      : false,
   })
 }
 
@@ -81,14 +84,7 @@ export function useUpgradeBuilding() {
         cost: Number(data.cost ?? 0),
         outputMultiplier: Number(data.outputMultiplier ?? data.output_multiplier ?? 0),
       })),
-    onSuccess: (data) => {
-      qc.setQueryData<Building[]>(['buildings'], (current = []) =>
-        current.map((building) =>
-          building.id === data.buildingId
-            ? { ...building, level: data.newLevel }
-            : building,
-        ),
-      )
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['buildings'] })
       qc.invalidateQueries({ queryKey: ['company'] })
       qc.invalidateQueries({ queryKey: ['productionOptions'] })

@@ -175,19 +175,24 @@ type BondListResponse struct {
 
 // BuildingDTO defines model for BuildingDTO.
 type BuildingDTO struct {
-	BuildingId *int         `json:"building_id,omitempty"`
-	Id         *string      `json:"id,omitempty"`
-	IsRetail   *bool        `json:"is_retail,omitempty"`
-	Level      *int         `json:"level,omitempty"`
-	MapId      *string      `json:"map_id,omitempty"`
-	Name       *string      `json:"name,omitempty"`
-	Placed     *bool        `json:"placed,omitempty"`
-	Produces   *[]int       `json:"produces,omitempty"`
-	RobotCount *int         `json:"robot_count,omitempty"`
-	Shelves    *[]ShelfItem `json:"shelves,omitempty"`
-	SlotId     *string      `json:"slot_id,omitempty"`
-	X          *int         `json:"x,omitempty"`
-	Y          *int         `json:"y,omitempty"`
+	BuildingId                  *int         `json:"building_id,omitempty"`
+	Id                          *string      `json:"id,omitempty"`
+	IsRetail                    *bool        `json:"is_retail,omitempty"`
+	Level                       *int         `json:"level,omitempty"`
+	MapId                       *string      `json:"map_id,omitempty"`
+	Name                        *string      `json:"name,omitempty"`
+	NextUpgradeCost             *float64     `json:"next_upgrade_cost,omitempty"`
+	NextUpgradeDurationSeconds  *int         `json:"next_upgrade_duration_seconds,omitempty"`
+	Placed                      *bool        `json:"placed,omitempty"`
+	Produces                    *[]int       `json:"produces,omitempty"`
+	RobotCount                  *int         `json:"robot_count,omitempty"`
+	Shelves                     *[]ShelfItem `json:"shelves,omitempty"`
+	SlotId                      *string      `json:"slot_id,omitempty"`
+	UpgradeCompletesAt          *time.Time   `json:"upgrade_completes_at,omitempty"`
+	UpgradeStartedAt            *time.Time   `json:"upgrade_started_at,omitempty"`
+	UpgradeTargetLevel          *int         `json:"upgrade_target_level,omitempty"`
+	X                           *int         `json:"x,omitempty"`
+	Y                           *int         `json:"y,omitempty"`
 }
 
 // BuildingListResponse defines model for BuildingListResponse.
@@ -668,11 +673,13 @@ type UnstockShelfRequest struct {
 
 // UpgradeBuildingResponse defines model for UpgradeBuildingResponse.
 type UpgradeBuildingResponse struct {
-	BuildingId       *string  `json:"building_id,omitempty"`
-	Cost             *float64 `json:"cost,omitempty"`
-	NewLevel         *int     `json:"new_level,omitempty"`
-	OldLevel         *int     `json:"old_level,omitempty"`
-	OutputMultiplier *int     `json:"output_multiplier,omitempty"`
+	BuildingId          *string    `json:"building_id,omitempty"`
+	Cost                *float64   `json:"cost,omitempty"`
+	NewLevel            *int       `json:"new_level,omitempty"`
+	OldLevel            *int       `json:"old_level,omitempty"`
+	OutputMultiplier    *int       `json:"output_multiplier,omitempty"`
+	Status              *string    `json:"status,omitempty"`
+	UpgradeCompletesAt  *time.Time `json:"upgrade_completes_at,omitempty"`
 }
 
 // WarehouseItem defines model for WarehouseItem.

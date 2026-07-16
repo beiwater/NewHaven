@@ -51,6 +51,17 @@ export function normalizeBuilding(value: unknown): Building {
     starterRole: string(raw.starterRole ?? raw.starter_role) || undefined,
     isRetail: typeof raw.is_retail === 'boolean' ? raw.is_retail : typeof raw.isRetail === 'boolean' ? raw.isRetail : undefined,
     shelves,
+    nextUpgradeCost: typeof (raw.nextUpgradeCost ?? raw.next_upgrade_cost) === 'number'
+      ? number(raw.nextUpgradeCost ?? raw.next_upgrade_cost)
+      : undefined,
+    nextUpgradeDurationSeconds: typeof (raw.nextUpgradeDurationSeconds ?? raw.next_upgrade_duration_seconds) === 'number'
+      ? number(raw.nextUpgradeDurationSeconds ?? raw.next_upgrade_duration_seconds)
+      : undefined,
+    upgradeTargetLevel: typeof (raw.upgradeTargetLevel ?? raw.upgrade_target_level) === 'number'
+      ? number(raw.upgradeTargetLevel ?? raw.upgrade_target_level)
+      : undefined,
+    upgradeStartedAt: string(raw.upgradeStartedAt ?? raw.upgrade_started_at) || undefined,
+    upgradeCompletesAt: string(raw.upgradeCompletesAt ?? raw.upgrade_completes_at) || undefined,
   }
 }
 
