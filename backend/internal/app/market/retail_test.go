@@ -269,6 +269,48 @@ func TestCatchUpPlayerRetail_AssignedCMOIncreasesDemandSpeed(t *testing.T) {
 	}
 }
 
+func TestCatchUpPlayerRetail_QualityAddsTwoPercentDemandPerLevel(t *testing.T) {
+	t.Parallel()
+	svc, store, clock := newRetailTestSvc(nil)
+	setupRetailTicker(t, store, 1, 24.0)
+	q0Company := newTestCompany(t, store, 1083, "quality-q0", 5000)
+	q10Company := newTestCompany(t, store, 1084, "quality-q10", 5000)
+	for _, setup := range []struct {
+		companyID int
+		quality   int
+	}{
+		{q0Company, 0},
+		{q10Company, 10},
+	} {
+		company, _ := store.GetCompany(nil, setup.companyID)
+		company.Buildings = []company.Building{{
+			ID: "retail", Kind: 6, Name: "Market Stall", Level: 1,
+			Shelves: []company.ShelfItem{{ResourceID: 1, Quality: setup.quality, Quantity: 1000, MaxQty: 1000, Price: 40, PriceLock: true}},
+		}}
+		company.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
+		if err := store.UpdateCompany(nil, company); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := svc.CatchUpPlayerRetail(context.Background(), q0Company); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.CatchUpPlayerRetail(context.Background(), q10Company); err != nil {
+		t.Fatal(err)
+	}
+	q0, _ := store.GetCompany(nil, q0Company)
+	q10, _ := store.GetCompany(nil, q10Company)
+	q0Sold := 1000 - q0.Buildings[0].Shelves[0].Quantity
+	q10Sold := 1000 - q10.Buildings[0].Shelves[0].Quantity
+	if q10Sold <= q0Sold {
+		t.Fatalf("Q10 sold %d, want more than Q0 %d", q10Sold, q0Sold)
+	}
+	wantMinimum := float64(q0Sold) * 1.15
+	if float64(q10Sold) < wantMinimum {
+		t.Fatalf("Q10 sold %d vs Q0 %d, want about +20%% before integer rounding", q10Sold, q0Sold)
+	}
+}
+
 func TestCatchUpPlayerRetail_OverpricedBatchStallsAndStillPaysPayroll(t *testing.T) {
 	t.Parallel()
 	economy := map[int]*catalog.EconomyModelEntry{

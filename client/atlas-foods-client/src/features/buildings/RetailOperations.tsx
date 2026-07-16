@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useStockShelf } from '@/api/buildings.api'
 import { useWarehouse } from '@/api/inventory.api'
 import { useResources } from '@/api/market.api'
+import { QualitySelector } from '@/features/quality/QualitySelector'
+import { qualitySalesBonusPct } from '@/game/quality'
 import { resourceIcon, resourceName } from '@/game/resources'
 import type { Building, ResourceDefinition, ShelfItem } from '@/game/types'
 
@@ -51,6 +53,7 @@ function ActiveSaleRow({ shelf, workerCount, hourlyWage }: { shelf: ShelfItem; w
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate text-base font-black text-amber-950">{resourceName(shelf.resourceId)}</h3>
+              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-black text-violet-700">Q{shelf.quality} · +{qualitySalesBonusPct(shelf.quality)}%</span>
               <span className="rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-green-700">{t('building.saleActive')}</span>
             </div>
             <dl className="mt-2 space-y-1 text-[11px] text-amber-700">
@@ -83,6 +86,8 @@ function ActiveSaleRow({ shelf, workerCount, hourlyWage }: { shelf: ShelfItem; w
 function NewSaleRow({
   resource,
   warehouseStock,
+  quality,
+  setQuality,
   quantity,
   price,
   setQuantity,
@@ -95,6 +100,8 @@ function NewSaleRow({
 }: {
   resource: ResourceDefinition
   warehouseStock: number
+  quality: number
+  setQuality: (quality: number) => void
   quantity: string
   price: string
   setQuantity: (value: string) => void
@@ -103,16 +110,17 @@ function NewSaleRow({
   workerCount: number
   hourlyWage: number
   level: number
-  onStart: (quantity: number, price: number) => void
+  onStart: (quantity: number, price: number, quality: number) => void
 }) {
   const { t } = useTranslation()
   const recommendedPrice = retailRecommendation(resource, hourlyWage, level)
-  const liveDemand = (resource.retailDemandPerHour ?? 30) * (resource.demandMultiplier ?? 1) * Math.max(1, level)
+  const qualityMultiplier = 1 + qualitySalesBonusPct(quality) / 100
+  const liveDemand = (resource.retailDemandPerHour ?? 30) * (resource.demandMultiplier ?? 1) * Math.max(1, level) * qualityMultiplier
   const numericQuantity = parseInt(quantity, 10)
   const numericPrice = parseFloat(price)
   const validQuantity = Number.isInteger(numericQuantity) && numericQuantity > 0 && numericQuantity <= warehouseStock
   const validPrice = Number.isFinite(numericPrice) && numericPrice > 0
-  const demandSpeed = priceSpeedMultiplier(numericPrice, recommendedPrice)
+  const demandSpeed = priceSpeedMultiplier(numericPrice, recommendedPrice) * qualityMultiplier
   const demandSpeedLabel = demandSpeed * 100 < 0.0001
     ? '<0.0001%'
     : `${(demandSpeed * 100).toFixed(demandSpeed < 0.01 ? 4 : 1)}%`
@@ -144,7 +152,8 @@ function NewSaleRow({
         </div>
 
         <div>
-          <div className="grid grid-cols-2 gap-2">
+          <QualitySelector value={quality} onChange={setQuality} disabled={pending} />
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <label className="text-[10px] font-black uppercase tracking-wider text-amber-600">
               {t('building.quantity')}
               <input
@@ -181,7 +190,7 @@ function NewSaleRow({
           )}
           <button
             type="button"
-            onClick={() => onStart(numericQuantity, numericPrice)}
+            onClick={() => onStart(numericQuantity, numericPrice, quality)}
             disabled={pending || !validQuantity || !validPrice}
             className="mt-2 w-full rounded-lg bg-cyan-700 px-3 py-2.5 text-xs font-black text-white transition-colors hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
@@ -201,6 +210,7 @@ export function RetailOperations({ building }: { building: Building }) {
   const stockShelf = useStockShelf()
   const [quantities, setQuantities] = useState<Record<number, string>>({})
   const [prices, setPrices] = useState<Record<number, string>>({})
+  const [qualities, setQualities] = useState<Record<number, number>>({})
   const resources = resourcesData?.resources ?? []
   const sellableResources = (building.produces ?? [])
     .map((resourceId) => resources.find((resource) => resource.resourceId === resourceId) ?? { resourceId, name: resourceName(resourceId) })
@@ -208,8 +218,8 @@ export function RetailOperations({ building }: { building: Building }) {
   const totalRevenue = shelves.reduce((sum, shelf) => sum + (shelf.revenue ?? 0), 0)
   const workerCount = building.workerCount ?? 0
   const hourlyWage = building.hourlyWage ?? 0
-  const warehouseStock = (resourceId: number) => warehouse?.inventory
-    .filter((item) => item.resourceId === resourceId && (item.quality ?? 0) === 0)
+  const warehouseStock = (resourceId: number, quality: number) => warehouse?.inventory
+    .filter((item) => item.resourceId === resourceId && (item.quality ?? 0) === quality)
     .reduce((sum, item) => sum + item.quantity, 0) ?? 0
 
   return (
@@ -230,7 +240,12 @@ export function RetailOperations({ building }: { building: Building }) {
             const activeShelf = shelves.find((shelf) => shelf.resourceId === resource.resourceId)
             if (activeShelf) return <ActiveSaleRow key={resource.resourceId} shelf={activeShelf} workerCount={workerCount} hourlyWage={hourlyWage} />
 
-            const stock = warehouseStock(resource.resourceId)
+            const availableQualities = (warehouse?.inventory ?? [])
+              .filter((item) => item.resourceId === resource.resourceId && item.quantity > 0)
+              .map((item) => item.quality ?? 0)
+              .sort((left, right) => left - right)
+            const quality = qualities[resource.resourceId] ?? availableQualities[0] ?? 0
+            const stock = warehouseStock(resource.resourceId, quality)
             const recommendation = retailRecommendation(resource, hourlyWage, building.level)
             const defaultQuantity = String(Math.min(10, Math.max(1, stock)))
             const price = prices[resource.resourceId] ?? (recommendation > 0 ? recommendation.toFixed(2) : '')
@@ -239,6 +254,8 @@ export function RetailOperations({ building }: { building: Building }) {
                 key={resource.resourceId}
                 resource={resource}
                 warehouseStock={stock}
+                quality={quality}
+                setQuality={(nextQuality) => setQualities((current) => ({ ...current, [resource.resourceId]: nextQuality }))}
                 quantity={quantities[resource.resourceId] ?? defaultQuantity}
                 price={price}
                 setQuantity={(value) => setQuantities((current) => ({ ...current, [resource.resourceId]: value }))}
@@ -247,9 +264,10 @@ export function RetailOperations({ building }: { building: Building }) {
                 workerCount={workerCount}
                 hourlyWage={hourlyWage}
                 level={building.level}
-                onStart={(quantity, salePrice) => stockShelf.mutate({
+                onStart={(quantity, salePrice, saleQuality) => stockShelf.mutate({
                   buildingId: building.id,
                   resourceId: resource.resourceId,
+                  quality: saleQuality,
                   quantity,
                   price: salePrice,
                 })}

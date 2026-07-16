@@ -3,12 +3,11 @@ package production
 import (
 	"context"
 	"errors"
-	"fmt"
-	"math"
 	"strings"
 	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
+	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
@@ -26,6 +25,13 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	requestID, err := normalizeProductionRequestID(req.RequestId)
 	if err != nil {
 		return nil, err
+	}
+	quality := 0
+	if req.Quality != nil {
+		quality = *req.Quality
+	}
+	if !formula.ValidProductQuality(quality) {
+		return nil, apperr.Validationf("quality must be between Q%d and Q%d", formula.MinProductQuality, formula.MaxProductQuality)
 	}
 
 	s.mu.Lock()
@@ -123,27 +129,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		return nil, apperr.NotFoundf("resource %d not found in catalog", req.ResourceId)
 	}
 
-	// Calculate required input amounts from producedFrom recipe.
-	type inputReq struct {
-		resourceID int
-		amount     int
-	}
-	var inputs []inputReq
-	for rid, amountPerUnit := range resEntry.ProducedFrom {
-		needed := int(math.Ceil(float64(amountPerUnit) * float64(req.Quantity)))
-		inputs = append(inputs, inputReq{resourceID: rid, amount: needed})
-	}
-
-	// Pre-check inventory for sufficient inputs.
-	for _, inp := range inputs {
-		var curAmt int
-		if company.Inventory != nil {
-			curAmt = company.Inventory[inp.resourceID]
-		}
-		if curAmt < inp.amount {
-			return nil, apperr.InsufficientInventory(fmt.Sprintf("insufficient inventory: resource %d has %d, need %d", inp.resourceID, curAmt, inp.amount))
-		}
-	}
+	inputs := qualityProductionInputs(resEntry, req.ResourceId, req.Quantity, quality)
 
 	// Calculate duration via governed formula.
 	level := building.Level
@@ -178,18 +164,6 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		return nil, apperr.Validationf("production duration %ds exceeds maximum %ds; reduce quantity", durationSeconds, MaxDurationSeconds)
 	}
 
-	// Deduct input resources from inventory via UpdateInventory (rejects negative final amounts).
-	deductedInputs := make([]inputReq, 0, len(inputs))
-	for _, inp := range inputs {
-		if err := s.companies.UpdateInventory(ctx, companyID, inp.resourceID, -inp.amount); err != nil {
-			for _, deducted := range deductedInputs {
-				_ = s.companies.UpdateInventory(ctx, companyID, deducted.resourceID, deducted.amount)
-			}
-			return nil, apperr.Internalf("deduct input %d: %v", inp.resourceID, err)
-		}
-		deductedInputs = append(deductedInputs, inp)
-	}
-
 	// Create the production job.
 	now := s.clock.Now()
 	job := &proddmn.ProductionJob{
@@ -198,18 +172,16 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		CompanyID:       companyID,
 		BuildingID:      req.BuildingId,
 		ResourceID:      req.ResourceId,
+		Quality:         quality,
 		Quantity:        req.Quantity,
 		TargetQuantity:  req.Quantity,
+		ConsumedInputs:  inputs,
 		StartedAt:       now,
 		DurationSeconds: float64(durationSeconds),
 		Status:          proddmn.StatusRunning,
 	}
 
-	if err := s.production.CreateJob(ctx, job); err != nil {
-		// Rollback inventory deduction on job creation failure.
-		for _, inp := range inputs {
-			_ = s.companies.UpdateInventory(ctx, companyID, inp.resourceID, inp.amount)
-		}
+	if err := s.production.StartProductionJob(ctx, job, inputs); err != nil {
 		if errors.Is(err, storage.ErrAlreadyExists) {
 			if requestID != "" {
 				existing, findErr := s.production.GetJobByClientRequestID(ctx, companyID, requestID)
@@ -218,6 +190,9 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 				}
 			}
 			return nil, apperr.Conflict("this building is already producing; collect or cancel its current run first")
+		}
+		if errors.Is(err, storage.ErrInsufficientInventory) {
+			return nil, apperr.InsufficientInventory(err.Error())
 		}
 		return nil, apperr.Internalf("create job: %v", err)
 	}
@@ -240,9 +215,39 @@ func normalizeProductionRequestID(value *string) (string, error) {
 }
 
 func sameStartProduction(job *proddmn.ProductionJob, req *openapi.StartProductionRequest) bool {
+	quality := 0
+	if req.Quality != nil {
+		quality = *req.Quality
+	}
 	return job.BuildingID == req.BuildingId &&
 		job.ResourceID == req.ResourceId &&
+		job.Quality == quality &&
 		job.TargetQuantity == req.Quantity
+}
+
+func qualityProductionInputs(resource *catalog.ResourceEntry, resourceID, quantity, quality int) []proddmn.InventoryStack {
+	if resource == nil || quantity <= 0 {
+		return nil
+	}
+	inputQuality := 0
+	multiplier := 1
+	if quality > 0 {
+		inputQuality = quality - 1
+		multiplier = formula.QualityInputMultiplier
+	}
+	inputs := make([]proddmn.InventoryStack, 0, len(resource.ProducedFrom))
+	for inputResourceID, amountPerUnit := range resource.ProducedFrom {
+		needed := amountPerUnit * quantity * multiplier
+		if needed > 0 {
+			inputs = append(inputs, proddmn.InventoryStack{ResourceID: inputResourceID, Quality: inputQuality, Quantity: needed})
+		}
+	}
+	// A raw resource has no upstream recipe. Higher-quality raw output is a
+	// refinement run that converts two units of the previous quality into one.
+	if quality > 0 && len(inputs) == 0 {
+		inputs = append(inputs, proddmn.InventoryStack{ResourceID: resourceID, Quality: inputQuality, Quantity: quantity * formula.QualityInputMultiplier})
+	}
+	return inputs
 }
 
 func startProductionResponse(job *proddmn.ProductionJob) *openapi.StartProductionResponse {
@@ -250,6 +255,7 @@ func startProductionResponse(job *proddmn.ProductionJob) *openapi.StartProductio
 	jobID := job.ID
 	buildingID := job.BuildingID
 	resourceID := job.ResourceID
+	quality := job.Quality
 	quantity := job.Quantity
 	targetQty := job.TargetQuantity
 	startedAt := job.StartedAt
@@ -262,6 +268,7 @@ func startProductionResponse(job *proddmn.ProductionJob) *openapi.StartProductio
 		Id:              &jobID,
 		BuildingId:      &buildingID,
 		ResourceId:      &resourceID,
+		Quality:         &quality,
 		Quantity:        &quantity,
 		TargetQuantity:  &targetQty,
 		StartedAt:       &startedAt,

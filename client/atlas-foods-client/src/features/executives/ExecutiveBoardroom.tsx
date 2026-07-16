@@ -22,7 +22,18 @@ const chairs: Array<{
   { position: 'cto', shortName: 'CTO', title: 'Technology', skill: 'science', effect: 'Production speed +2% / effective point', accent: 'text-violet-200', glow: 'border-violet-400/40 bg-violet-400/10' },
 ]
 
+function effectiveSkill(raw: number): number {
+  if (raw <= 60) return Math.max(0, raw)
+  if (raw <= 80) return 60 + (raw - 60) / 2
+  return 70 + (raw - 80) / 2
+}
+
 export function ExecutiveBoardroom({ executives, selectedId, assigningId, onSelect }: ExecutiveBoardroomProps) {
+  const cto = executives.find((executive) => executive.position === 'cto')
+  const cmo = executives.find((executive) => executive.position === 'cmo')
+  const productionBonus = cto ? Math.min(200, effectiveSkill(cto.skills.science) * 2) : 0
+  const retailBonus = cmo ? Math.min(50, effectiveSkill(cmo.skills.communication) / 2) : 0
+  const activeSeats = executives.filter((executive) => executive.position).length
   return (
     <section className="overflow-hidden rounded-[28px] border border-amber-200/20 bg-[#16221f] shadow-[0_22px_70px_rgba(63,39,16,0.22)]">
       <div className="relative border-b border-white/10 px-5 py-5 md:px-7">
@@ -36,6 +47,20 @@ export function ExecutiveBoardroom({ executives, selectedId, assigningId, onSele
             One active holder per chair. Moving an executive here atomically releases the previous holder.
           </p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-px border-b border-white/10 bg-white/10 sm:grid-cols-4">
+        {[
+          ['Active cabinet', `${activeSeats} / 4`],
+          ['Production speed', `+${productionBonus.toFixed(1)}%`],
+          ['Retail demand', `+${retailBonus.toFixed(1)}%`],
+          ['Admin & finance', 'Reserved'],
+        ].map(([label, value]) => (
+          <div key={label} className="bg-[#1b2a26] px-4 py-3">
+            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-amber-200/40">{label}</div>
+            <div className="mt-1 text-sm font-black text-amber-50">{value}</div>
+          </div>
+        ))}
       </div>
 
       <div className="grid gap-3 p-4 sm:grid-cols-2 md:p-6">

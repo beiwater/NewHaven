@@ -242,6 +242,8 @@
     "estimatedTime": "Estimated time",
     "requirements": "Requirements",
     "noRequirements": "No input materials",
+    "inWarehouse": "in warehouse",
+    "missingQualityInputs": "Missing quality inputs",
     "quantity": "Quantity",
     "startThisRun": "Start this run",
     "saleProgress": "Batch remaining",
@@ -307,7 +309,19 @@
     "warehouse": "Warehouse",
     "supplyChain": "Supply Chain",
     "capacity": "{{used}} / {{capacity}}",
-    "moreItems": "+{{count}} more items"
+    "moreItems": "+{{count}} more items",
+    "stockLedger": "Stock ledger",
+    "capacityLabel": "Warehouse capacity",
+    "units": "units",
+    "marketReference": "Market reference",
+    "qualityStacks": "Quality stacks",
+    "saleSpeed": "sale speed",
+    "retailDemandSpeed": "retail demand speed",
+    "emptyWarehouse": "Your warehouse is empty. Produce or buy a small first batch to begin."
+  },
+  "quality": {
+    "tier": "Quality tier",
+    "retailSpeed": "retail speed"
   },
   "financial": {
     "title": "Financial Overview",

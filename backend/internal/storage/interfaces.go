@@ -16,13 +16,14 @@ import (
 )
 
 var (
-	ErrAlreadyExists       = errors.New("already exists")
-	ErrIdempotencyConflict = errors.New("idempotency conflict")
-	ErrInsufficientFunds   = errors.New("insufficient funds")
-	ErrLimitReached        = errors.New("limit reached")
-	ErrAlreadySettled      = errors.New("already settled")
-	ErrNothingToClaim      = errors.New("nothing to claim")
-	ErrStateConflict       = errors.New("state conflict")
+	ErrAlreadyExists         = errors.New("already exists")
+	ErrIdempotencyConflict   = errors.New("idempotency conflict")
+	ErrInsufficientFunds     = errors.New("insufficient funds")
+	ErrInsufficientInventory = errors.New("insufficient inventory")
+	ErrLimitReached          = errors.New("limit reached")
+	ErrAlreadySettled        = errors.New("already settled")
+	ErrNothingToClaim        = errors.New("nothing to claim")
+	ErrStateConflict         = errors.New("state conflict")
 )
 
 // PlayerStorage handles player/auth persistence.
@@ -45,6 +46,7 @@ type CompanyStorage interface {
 	RemoveBuilding(ctx context.Context, buildingID string) error
 	GetBuildings(ctx context.Context, companyID int) ([]company.Building, error)
 	UpdateInventory(ctx context.Context, companyID int, resourceID int, delta int) error
+	UpdateInventoryQuality(ctx context.Context, companyID int, resourceID, quality, delta int) error
 }
 
 // ExecutiveStorage owns the money-and-roster mutations for the executive
@@ -89,9 +91,10 @@ type MarketStorage interface {
 // ProductionStorage handles production job persistence.
 type ProductionStorage interface {
 	CreateJob(ctx context.Context, j *production.ProductionJob) error
+	StartProductionJob(ctx context.Context, j *production.ProductionJob, inputs []production.InventoryStack) error
 	GetJob(ctx context.Context, jobID string) (*production.ProductionJob, error)
 	ClaimProductionOutput(ctx context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int, payroll production.PayrollSettlement) (*production.ProductionJob, error)
-	CancelProductionJob(ctx context.Context, companyID int, jobID string, refunds map[int]int, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error)
+	CancelProductionJob(ctx context.Context, companyID int, jobID string, refunds []production.InventoryStack, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error)
 	GetJobByClientRequestID(ctx context.Context, companyID int, requestID string) (*production.ProductionJob, error)
 	GetJobsByCompany(ctx context.Context, companyID int) ([]production.ProductionJob, error)
 	GetJobsByBuilding(ctx context.Context, buildingID string) ([]production.ProductionJob, error)

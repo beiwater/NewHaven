@@ -81,6 +81,7 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 	isPartial := job.Status != proddmn.StatusClaimed
 	metadata := map[string]any{
 		"resourceId": job.ResourceID,
+		"quality":    job.Quality,
 		"jobId":      job.ID,
 		"partial":    isPartial,
 	}
@@ -118,6 +119,7 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 		remaining = 0
 	}
 	claimRespStatus := openapi.ClaimProductionResponseStatus(job.Status)
+	quality := job.Quality
 
 	resp := &openapi.ClaimProductionResponse{
 		JobId:         &job.ID,
@@ -126,6 +128,7 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 		ClaimedAmount: &job.ClaimedAmount,
 		Remaining:     &remaining,
 		Xp:            &xpEarned,
+		Quality:       &quality,
 	}
 
 	// Look up current level for response and auto-complete arrival story if in progress.

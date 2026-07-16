@@ -175,6 +175,7 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 		shelfDTOs = make([]openapi.ShelfItem, 0, len(b.Shelves))
 		for _, sh := range b.Shelves {
 			resourceID := sh.ResourceID
+			quality := sh.Quality
 			qty := sh.Quantity
 			maxQty := sh.MaxQty
 			price := sh.Price
@@ -182,6 +183,7 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 			revenue := sh.Revenue
 			shelfDTOs = append(shelfDTOs, openapi.ShelfItem{
 				ResourceId: &resourceID,
+				Quality:    &quality,
 				Quantity:   &qty,
 				MaxQty:     &maxQty,
 				Price:      &price,

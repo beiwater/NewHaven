@@ -38,10 +38,22 @@ const zhSections: WikiSection[] = [
     summary: '一座建筑 = 一条生产线 = 同时一种商品。',
     body: [
       '一座建筑同一时间只能有一个未完成的生产订单。完成后请领取全部产出，或取消订单，才能开始下一种商品。',
-      '只有原材料商品不需要投入；加工和成品会显示配方，并在开始生产前从仓库预留所需原料。因此不要把同一批原料同时许诺给市场和工厂。',
+      'Q0 原材料不需要投入；Q0 加工品和成品会显示基础配方，并在开始生产前从仓库预留所需原料。因此不要把同一批原料同时许诺给市场和工厂。',
       '建筑等级会提高产出速度。生产期间也按这栋建筑固定员工数 × $345/小时累积工资；在领取或取消订单时，系统会按实际运行秒数一次结算。每个订单最多 48 小时，建议用较短批次观察需求再加量。',
     ],
     formula: '当前生产时长 = max(30 秒, ceil(数量 ÷ (基础每小时产量 × 建筑等级 × 生产加成) × 3600))',
+  },
+  {
+    id: 'quality',
+    title: '品质链：Q0 到 Q12',
+    summary: '更高品质来自上一品质，不是凭空选择出来的标签。',
+    body: [
+      '同一种商品的 Q0–Q12 是 13 个互相独立的库存栈。生产、领取、取消退款与零售都会保留品质；高品质库存不能冒充低品质原料，低品质也不能自动顶替高品质。',
+      '生产 Q0 加工品时使用普通配方和 Q0 原料。生产 Q1–Q12 加工品时，使用前一品质的配方原料，且每项投入是普通配方的 2 倍。例如普通配方需要 2 面粉，生产 Q4 时就需要 4 个 Q3 面粉。',
+      '原材料没有普通配方，因此升级品质采用精炼：每生产 1 个 Qn 原材料，需要 2 个同商品的 Q(n-1) 原材料。所有投入在开始生产时原子预留，库存不足不会启动半个订单。',
+      '每级品质只在零售端提供 +2% 需求速度，Q12 共 +24%。品质不会抬高成交单价，也不会取消高价销售惩罚；离谱定价依旧可能让工资超过收入。当前交易所仍是 Q0 现货市场。',
+    ],
+    formula: 'Qn（n>0）投入 = 2 × 基础配方的 Q(n-1) 原料；零售速度倍率 = 1 + 0.02 × n',
   },
   {
     id: 'upgrades',
@@ -83,7 +95,7 @@ const zhSections: WikiSection[] = [
     summary: '升级提升能力，仓库限制周转，现金决定扩张速度。',
     body: [
       '建筑采购价优先按市场材料价计算；缺少有效市场价时使用成本单位 × 3450 的兜底价。',
-      '单建筑每 tick 的基础工资为 345 × 工资系数 × 建筑规模。工资、品质、研究和行政能力会影响后续经济系统的效率。',
+      '单建筑每 tick 的基础工资为 345 × 工资系数 × 建筑规模。工资、研究和行政能力影响经营效率；商品品质目前只提高零售需求速度。',
       '仓库满时，领取、采购和补货会受阻。保留余量比把库存堆满更安全。',
     ],
     formula: '市场采购价 = Σ(材料市价 × 成本单位 × qp)；兜底价 = 成本单位 × 3450',
@@ -114,8 +126,13 @@ const enSections: WikiSection[] = [
   },
   {
     id: 'production', title: 'Production line rules', summary: 'One building = one line = one product at a time.',
-    body: ['A building can have only one unfinished run. Collect all output or cancel the run before starting another product.', 'Only raw goods need no inputs. Processed and finished goods show their recipe and reserve those ingredients from warehouse inventory when a run starts.', 'Production also accrues the building’s fixed worker payroll (workers × $345/hour) for its actual running time. It settles exactly once when you claim output or cancel the run.', 'Building levels improve output speed. Runs are capped at 48 hours; shorter batches are safer while learning demand.'],
+    body: ['A building can have only one unfinished run. Collect all output or cancel the run before starting another product.', 'Q0 raw goods need no inputs. Q0 processed and finished goods show their base recipe and reserve those ingredients from warehouse inventory when a run starts.', 'Production also accrues the building’s fixed worker payroll (workers × $345/hour) for its actual running time. It settles exactly once when you claim output or cancel the run.', 'Building levels improve output speed. Runs are capped at 48 hours; shorter batches are safer while learning demand.'],
     formula: 'Current duration = max(30s, ceil(quantity ÷ (base hourly output × building level × production modifier) × 3600))',
+  },
+  {
+    id: 'quality', title: 'Quality chain: Q0 to Q12', summary: 'Higher quality is made from the previous tier; it is not a free label.',
+    body: ['Q0 through Q12 of the same resource are 13 separate warehouse stacks. Production, collection, cancellation refunds, and retail preserve quality. Tiers never substitute for one another.', 'A Q0 processed good uses its normal recipe at Q0. A Q1–Q12 processed good consumes the previous quality of every recipe ingredient at twice the normal quantity. If a base recipe needs 2 Flour, a Q4 run needs 4 Q3 Flour per output.', 'Raw resources have no base recipe, so they are refined: each Qn raw unit consumes 2 units of the same resource at Q(n-1). All inputs are atomically reserved when production starts; a shortage cannot create a partially funded run.', 'Each quality tier adds 2% retail demand speed, up to +24% at Q12. Quality does not raise the sale price or bypass the high-price penalty, so a wildly overpriced batch can still lose money to payroll. The exchange currently remains a Q0 spot market.'],
+    formula: 'Qn (n>0) inputs = 2 × base recipe at Q(n-1); retail speed multiplier = 1 + 0.02 × n',
   },
   {
     id: 'upgrades', title: 'Building upgrades: construction time and downtime', summary: 'Construction reserves its cost now; the level increases only at completion.',
@@ -133,7 +150,7 @@ const enSections: WikiSection[] = [
   },
   {
     id: 'economy', title: 'Economy and building rules', summary: 'Upgrades add capacity, warehouses constrain flow, and cash controls expansion.',
-    body: ['Building purchase cost uses market-priced materials when available; otherwise it falls back to cost units × 3450.', 'Base wages per building tick are 345 × salary modifier × building size. Wages, quality, research, and administration feed later efficiency systems.', 'A full warehouse blocks collection, buying, and restocking. Keep headroom instead of filling it completely.'],
+    body: ['Building purchase cost uses market-priced materials when available; otherwise it falls back to cost units × 3450.', 'Base wages per building tick are 345 × salary modifier × building size. Wages, research, and administration feed operating efficiency; product quality currently affects retail demand speed only.', 'A full warehouse blocks collection, buying, and restocking. Keep headroom instead of filling it completely.'],
     formula: 'market purchase cost = Σ(material price × cost units × qp); fallback = cost units × 3450',
   },
   {

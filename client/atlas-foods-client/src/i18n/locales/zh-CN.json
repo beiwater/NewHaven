@@ -242,6 +242,8 @@
     "estimatedTime": "预计耗时",
     "requirements": "所需原料",
     "noRequirements": "无需投入原料",
+    "inWarehouse": "仓库可用",
+    "missingQualityInputs": "缺少对应品质原料",
     "quantity": "数量",
     "startThisRun": "开始本次生产",
     "saleProgress": "批次剩余",
@@ -307,7 +309,19 @@
     "warehouse": "仓库",
     "supplyChain": "供应链",
     "capacity": "{{used}} / {{capacity}}",
-    "moreItems": "+{{count}} 更多物品"
+    "moreItems": "+{{count}} 更多物品",
+    "stockLedger": "库存总账",
+    "capacityLabel": "仓库容量",
+    "units": "单位",
+    "marketReference": "市场参考价",
+    "qualityStacks": "品质库存栈",
+    "saleSpeed": "销售速度",
+    "retailDemandSpeed": "零售需求速度",
+    "emptyWarehouse": "仓库还是空的。先生产或采购一小批商品，完成第一次周转。"
+  },
+  "quality": {
+    "tier": "商品品质",
+    "retailSpeed": "零售速度"
   },
   "financial": {
     "title": "财务总览",

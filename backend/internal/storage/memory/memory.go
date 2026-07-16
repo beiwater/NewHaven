@@ -378,12 +378,23 @@ func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 	c.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	s.companies[c.ID] = c
 	s.byPlayer[c.PlayerID] = c
-	// Auto-create default warehouse for new company
+	// Auto-create the default warehouse and migrate any Q0 seed inventory into
+	// real stacks. Tests, bots and legacy snapshots commonly create a company
+	// with Inventory already populated; warehouse reads must see the same stock.
+	items := make([]warehouse.Item, 0, len(c.Inventory))
+	usedCapacity := 0
+	for resourceID, amount := range c.Inventory {
+		if amount <= 0 {
+			continue
+		}
+		items = append(items, warehouse.Item{ResourceID: resourceID, Quality: 0, Amount: amount})
+		usedCapacity += amount
+	}
 	s.warehouses[c.ID] = &warehouse.Warehouse{
 		CompanyID:    c.ID,
 		Capacity:     1000,
-		UsedCapacity: 0,
-		Items:        []warehouse.Item{},
+		UsedCapacity: usedCapacity,
+		Items:        items,
 	}
 	// Initialize empty buildings slice for new company (only if not already set)
 	if c.Buildings == nil {
@@ -626,10 +637,33 @@ func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { ret
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.updateInventoryLocked(companyID, resourceID, delta)
+	return s.updateInventoryQualityLocked(companyID, resourceID, 0, delta)
 }
 
 func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) error {
+	return s.updateInventoryQualityLocked(companyID, resourceID, 0, delta)
+}
+
+func (s *Store) UpdateInventoryQuality(_ context.Context, companyID int, resourceID, quality, delta int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.updateInventoryQualityLocked(companyID, resourceID, quality, delta)
+}
+
+func (s *Store) inventoryAmountLocked(companyID int, resourceID, quality int) (int, error) {
+	w, ok := s.warehouses[companyID]
+	if !ok {
+		return 0, fmt.Errorf("warehouse for company %d not found", companyID)
+	}
+	for i := range w.Items {
+		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == quality {
+			return w.Items[i].Amount, nil
+		}
+	}
+	return 0, nil
+}
+
+func (s *Store) updateInventoryQualityLocked(companyID int, resourceID, quality, delta int) error {
 	c, ok := s.companies[companyID]
 	if !ok {
 		return fmt.Errorf("company %d not found", companyID)
@@ -638,23 +672,25 @@ func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) 
 	if !ok {
 		return fmt.Errorf("warehouse for company %d not found", companyID)
 	}
-	cur := 0
-	if c.Inventory != nil {
-		cur = c.Inventory[resourceID]
+	cur, err := s.inventoryAmountLocked(companyID, resourceID, quality)
+	if err != nil {
+		return err
 	}
 	newVal := cur + delta
 	if newVal < 0 {
-		return fmt.Errorf("insufficient inventory: resource %d has %d, need %d more", resourceID, cur, -delta)
+		return fmt.Errorf("%w: resource %d Q%d has %d, need %d", storage.ErrInsufficientInventory, resourceID, quality, cur, -delta)
 	}
-	if c.Inventory == nil {
-		c.Inventory = make(map[int]int)
+	if quality == 0 {
+		if c.Inventory == nil {
+			c.Inventory = make(map[int]int)
+		}
+		c.Inventory[resourceID] = newVal
 	}
-	c.Inventory[resourceID] = newVal
 
-	// Keep warehouse items consistent for quality 0.
+	// Warehouse stacks are keyed by resource and quality.
 	found := false
 	for i := range w.Items {
-		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == 0 {
+		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == quality {
 			if newVal > 0 {
 				// Preserve existing ResourceName if present.
 				w.Items[i].Amount = newVal
@@ -670,7 +706,7 @@ func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) 
 		w.Items = append(w.Items, warehouse.Item{
 			ResourceID:   resourceID,
 			ResourceName: "",
-			Quality:      0,
+			Quality:      quality,
 			Amount:       newVal,
 		})
 	}
@@ -938,6 +974,65 @@ func (s *Store) CreateJob(_ context.Context, j *production.ProductionJob) error 
 	return nil
 }
 
+// StartProductionJob atomically reserves every quality-specific input and
+// creates the job. Two server instances can race this method, but only one can
+// consume stock and claim a building line or request ID.
+func (s *Store) StartProductionJob(_ context.Context, j *production.ProductionJob, inputs []production.InventoryStack) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, existing := range s.jobs {
+		if existing.CompanyID == j.CompanyID && existing.BuildingID == j.BuildingID && existing.Status != production.StatusClaimed && existing.Status != production.StatusCancelled {
+			return fmt.Errorf("%w: production line", storage.ErrAlreadyExists)
+		}
+	}
+	if j.ClientRequestID != "" {
+		key := productionRequestKey(j.CompanyID, j.ClientRequestID)
+		if _, exists := s.jobsByRequest[key]; exists {
+			return fmt.Errorf("%w: production request", storage.ErrAlreadyExists)
+		}
+	}
+	if _, ok := s.companies[j.CompanyID]; !ok {
+		return fmt.Errorf("company %d not found", j.CompanyID)
+	}
+	if _, ok := s.warehouses[j.CompanyID]; !ok {
+		return fmt.Errorf("warehouse for company %d not found", j.CompanyID)
+	}
+
+	required := make(map[string]production.InventoryStack, len(inputs))
+	for _, input := range inputs {
+		if input.Quantity <= 0 {
+			continue
+		}
+		key := fmt.Sprintf("%d:%d", input.ResourceID, input.Quality)
+		stack := required[key]
+		stack.ResourceID = input.ResourceID
+		stack.Quality = input.Quality
+		stack.Quantity += input.Quantity
+		required[key] = stack
+	}
+	for _, input := range required {
+		available, err := s.inventoryAmountLocked(j.CompanyID, input.ResourceID, input.Quality)
+		if err != nil {
+			return err
+		}
+		if available < input.Quantity {
+			return fmt.Errorf("%w: resource %d Q%d has %d, need %d", storage.ErrInsufficientInventory, input.ResourceID, input.Quality, available, input.Quantity)
+		}
+	}
+	for _, input := range required {
+		if err := s.updateInventoryQualityLocked(j.CompanyID, input.ResourceID, input.Quality, -input.Quantity); err != nil {
+			return err
+		}
+	}
+
+	j.ConsumedInputs = append([]production.InventoryStack(nil), inputs...)
+	if j.ClientRequestID != "" {
+		s.jobsByRequest[productionRequestKey(j.CompanyID, j.ClientRequestID)] = j
+	}
+	s.jobs[j.ID] = j
+	return nil
+}
+
 func (s *Store) GetJob(_ context.Context, jobID string) (*production.ProductionJob, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -972,7 +1067,7 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 	if !validProductionPayroll(job, payroll) {
 		return nil, storage.ErrStateConflict
 	}
-	if err := s.updateInventoryLocked(companyID, job.ResourceID, expectedClaimAmount); err != nil {
+	if err := s.updateInventoryQualityLocked(companyID, job.ResourceID, job.Quality, expectedClaimAmount); err != nil {
 		return nil, err
 	}
 	company := s.companies[companyID]
@@ -996,7 +1091,7 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 // CancelProductionJob atomically applies every input refund and records a
 // cancellation tombstone. The tombstone keeps the original request ID alive,
 // preventing delayed start retries from resurrecting a cancelled run.
-func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds map[int]int, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error) {
+func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds []production.InventoryStack, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.jobs[jobID]
@@ -1019,11 +1114,11 @@ func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID stri
 	if _, ok := s.warehouses[companyID]; !ok {
 		return nil, false, fmt.Errorf("warehouse for company %d not found", companyID)
 	}
-	for resourceID, amount := range refunds {
-		if amount <= 0 {
+	for _, refund := range refunds {
+		if refund.Quantity <= 0 {
 			continue
 		}
-		if err := s.updateInventoryLocked(companyID, resourceID, amount); err != nil {
+		if err := s.updateInventoryQualityLocked(companyID, refund.ResourceID, refund.Quality, refund.Quantity); err != nil {
 			return nil, false, err
 		}
 	}

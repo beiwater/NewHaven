@@ -7,13 +7,14 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
+	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 )
 
 // StockShelf moves items from the company warehouse into a retail building's shelf.
 // A stock action starts an immutable sale batch. Its price and quantity remain
 // committed until demand sells the batch out; players then start a fresh batch.
-func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID string, resourceID int, quantity int, price float64) (*openapi.ShelfActionResponse, error) {
+func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID string, resourceID, quality, quantity int, price float64) (*openapi.ShelfActionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if quantity <= 0 {
@@ -21,6 +22,9 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 	}
 	if price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
 		return nil, apperr.BadRequest("sale price must be positive")
+	}
+	if !formula.ValidProductQuality(quality) {
+		return nil, apperr.BadRequestf("quality must be between Q%d and Q%d", formula.MinProductQuality, formula.MaxProductQuality)
 	}
 
 	company, err := s.companies.GetCompany(ctx, companyID)
@@ -63,12 +67,13 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 	}
 
 	// Deduct from warehouse inventory
-	if err := s.companies.UpdateInventory(ctx, companyID, resourceID, -quantity); err != nil {
+	if err := s.companies.UpdateInventoryQuality(ctx, companyID, resourceID, quality, -quantity); err != nil {
 		return nil, apperr.WrapMsg(apperr.KindBadRequest, "insufficient warehouse inventory", err)
 	}
 
 	building.Shelves = append(building.Shelves, domain.ShelfItem{
 		ResourceID: resourceID,
+		Quality:    quality,
 		Quantity:   quantity,
 		MaxQty:     maxQty,
 		Price:      price,
@@ -78,7 +83,7 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 
 	if err := s.companies.UpdateCompany(ctx, company); err != nil {
 		// Rollback inventory
-		_ = s.companies.UpdateInventory(ctx, companyID, resourceID, quantity)
+		_ = s.companies.UpdateInventoryQuality(ctx, companyID, resourceID, quality, quantity)
 		return nil, apperr.Internal("failed to save company after stock")
 	}
 
@@ -170,6 +175,7 @@ func (s *Service) shelfCapacity(entry *catalog.BuildingEntry, level int) int {
 
 func (s *Service) shelfToDTO(sh *domain.ShelfItem) *openapi.ShelfItem {
 	rid := sh.ResourceID
+	quality := sh.Quality
 	qty := sh.Quantity
 	maxQty := sh.MaxQty
 	price := sh.Price
@@ -177,6 +183,7 @@ func (s *Service) shelfToDTO(sh *domain.ShelfItem) *openapi.ShelfItem {
 	revenue := sh.Revenue
 	return &openapi.ShelfItem{
 		ResourceId: &rid,
+		Quality:    &quality,
 		Quantity:   &qty,
 		MaxQty:     &maxQty,
 		Price:      &price,

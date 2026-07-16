@@ -27,6 +27,7 @@ export function normalizeBuilding(value: unknown): Building {
   const shelvesRaw = raw.shelves
   const shelves = Array.isArray(shelvesRaw) ? shelvesRaw.map(sh => ({
     resourceId: number(sh.resourceId ?? sh.resource_id),
+    quality: number(sh.quality),
     quantity: number(sh.quantity),
     maxQty: number(sh.maxQty ?? sh.max_qty),
     price: number(sh.price),
@@ -87,6 +88,7 @@ export function normalizeProductionJob(value: unknown): ProductionJob {
     id: string(raw.id ?? raw.jobId ?? raw.job_id),
     buildingId: string(raw.buildingId ?? raw.building_id),
     resourceId: number(raw.resourceId ?? raw.resource_id),
+    quality: number(raw.quality),
     amount: number(raw.amount ?? raw.targetQuantity ?? raw.target_quantity ?? raw.quantity),
     claimedAmount: number(raw.claimedAmount ?? raw.claimed_amount),
     claimableAmount: number(raw.claimableAmount ?? raw.claimable_amount),

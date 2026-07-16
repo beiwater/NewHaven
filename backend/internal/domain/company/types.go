@@ -70,6 +70,7 @@ type Building struct {
 // ShelfItem represents items stocked in a retail building's shelf.
 type ShelfItem struct {
 	ResourceID int     `json:"resource_id"`
+	Quality    int     `json:"quality"`
 	Quantity   int     `json:"quantity"`
 	MaxQty     int     `json:"max_qty"`
 	Price      float64 `json:"price"`

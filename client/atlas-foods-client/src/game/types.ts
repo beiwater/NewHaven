@@ -29,6 +29,7 @@ export interface Building {
 
 export interface ShelfItem {
   resourceId: number
+  quality: number
   quantity: number
   maxQty: number
   price: number
@@ -41,6 +42,7 @@ export interface ProductionJob {
   id: string
   buildingId: string
   resourceId: number
+  quality: number
   amount: number
   claimedAmount?: number
   claimableAmount?: number

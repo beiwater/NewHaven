@@ -46,7 +46,7 @@ func TestRetailSaleBatchLocksGoodsAndPriceUntilSoldOut(t *testing.T) {
 	ctx := context.Background()
 	service, store, companyID := newRetailBuildingService(t)
 
-	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 10, 78); err != nil {
+	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 0, 10, 78); err != nil {
 		t.Fatalf("StockShelf: %v", err)
 	}
 	company, _ := store.GetCompany(ctx, companyID)
@@ -58,7 +58,7 @@ func TestRetailSaleBatchLocksGoodsAndPriceUntilSoldOut(t *testing.T) {
 		t.Fatalf("unexpected committed shelf: %+v", shelf)
 	}
 
-	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 5, 80); !apperr.HasKind(err, apperr.KindConflict) {
+	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 0, 5, 80); !apperr.HasKind(err, apperr.KindConflict) {
 		t.Fatalf("restock active batch error=%v, want conflict", err)
 	}
 	if _, err := service.UnstockShelf(ctx, companyID, "retail-1", 11, 10); !apperr.HasKind(err, apperr.KindConflict) {
@@ -78,7 +78,7 @@ func TestRetailSaleBatchLocksGoodsAndPriceUntilSoldOut(t *testing.T) {
 	if err := store.UpdateCompany(ctx, company); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 5, 80); err != nil {
+	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 0, 5, 80); err != nil {
 		t.Fatalf("new batch after sell-out: %v", err)
 	}
 }
@@ -86,10 +86,42 @@ func TestRetailSaleBatchLocksGoodsAndPriceUntilSoldOut(t *testing.T) {
 func TestRetailSaleRequiresPositiveQuantityAndPrice(t *testing.T) {
 	ctx := context.Background()
 	service, _, companyID := newRetailBuildingService(t)
-	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 0, 78); !apperr.HasKind(err, apperr.KindBadRequest) {
+	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 0, 0, 78); !apperr.HasKind(err, apperr.KindBadRequest) {
 		t.Fatalf("zero quantity error=%v, want bad request", err)
 	}
-	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 10, 0); !apperr.HasKind(err, apperr.KindBadRequest) {
+	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 0, 10, 0); !apperr.HasKind(err, apperr.KindBadRequest) {
 		t.Fatalf("zero price error=%v, want bad request", err)
+	}
+}
+
+func TestRetailSaleReservesOnlyTheSelectedQuality(t *testing.T) {
+	ctx := context.Background()
+	service, store, companyID := newRetailBuildingService(t)
+	if err := store.UpdateInventoryQuality(ctx, companyID, 11, 4, 12); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := service.StockShelf(ctx, companyID, "retail-1", 11, 4, 10, 78)
+	if err != nil {
+		t.Fatalf("StockShelf Q4: %v", err)
+	}
+	if resp.Shelf == nil || resp.Shelf.Quality == nil || *resp.Shelf.Quality != 4 {
+		t.Fatalf("shelf quality = %+v, want Q4", resp.Shelf)
+	}
+	warehouse, _ := store.GetWarehouse(ctx, companyID)
+	qualityAmount := 0
+	for _, item := range warehouse.Items {
+		if item.ResourceID == 11 && item.Quality == 4 {
+			qualityAmount = item.Amount
+		}
+	}
+	if qualityAmount != 2 {
+		t.Fatalf("remaining Q4 stock = %d, want 2", qualityAmount)
+	}
+	company, _ := store.GetCompany(ctx, companyID)
+	if company.Inventory[11] != 40 {
+		t.Fatalf("stocking Q4 changed legacy Q0 inventory: %d", company.Inventory[11])
+	}
+	if _, err := service.StockShelf(ctx, companyID, "retail-1", 11, 13, 1, 78); !apperr.HasKind(err, apperr.KindBadRequest) {
+		t.Fatalf("Q13 stock error = %v, want bad request", err)
 	}
 }

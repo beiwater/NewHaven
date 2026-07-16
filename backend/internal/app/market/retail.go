@@ -19,6 +19,7 @@ type retailShelf struct {
 	buildingKind  int
 	buildingLevel int
 	resourceID    int
+	quality       int
 	quantity      int
 	price         float64
 	priceLocked   bool
@@ -76,7 +77,7 @@ func (s *Service) processNPCRetail(ctx context.Context, company *domain.Company,
 		if price <= 0 {
 			continue
 		}
-		unitsPerHour := s.retailUnitsPerHour(ctx, resourceID, price, price, 1, 0)
+		unitsPerHour := s.retailUnitsPerHour(ctx, resourceID, price, price, 1, 0, 0)
 		sold, earned, _ := computeSaleWithCarryAtRate(unitsPerHour, price, qty, 60, 0)
 		if sold <= 0 {
 			continue
@@ -144,7 +145,7 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 			continue
 		}
 		recommendedPrice, _ := s.retailRecommendedPrice(ctx, sh.resourceID, sh.buildingKind, sh.buildingLevel, sh.salesModPct)
-		unitsPerHour := s.retailUnitsPerHour(ctx, sh.resourceID, recommendedPrice, price, sh.buildingLevel, sh.salesModPct)
+		unitsPerHour := s.retailUnitsPerHour(ctx, sh.resourceID, recommendedPrice, price, sh.buildingLevel, sh.salesModPct, sh.quality)
 		activeSeconds = retailActiveSeconds(unitsPerHour, qty, elapsedSeconds, company.RetailCarry[sh.carryKey()])
 		activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
 		key := sh.carryKey()
@@ -155,7 +156,7 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 		if sold <= 0 {
 			continue
 		}
-		s.applyPlayerShelfSale(ctx, company, sh.buildingID, sh.resourceID, sold, earned, price, now)
+		s.applyPlayerShelfSale(ctx, company, sh.buildingID, sh.resourceID, sh.quality, sold, earned, price, now)
 	}
 
 	for buildingID, activeSeconds := range activeSecondsByBuilding {
@@ -227,6 +228,7 @@ func (s *Service) collectPlayerShelves(company *domain.Company) []retailShelf {
 				buildingKind:  b.Kind,
 				buildingLevel: b.Level,
 				resourceID:    shelf.ResourceID,
+				quality:       shelf.Quality,
 				quantity:      shelf.Quantity,
 				price:         shelf.Price,
 				priceLocked:   shelf.PriceLock,
@@ -238,7 +240,7 @@ func (s *Service) collectPlayerShelves(company *domain.Company) []retailShelf {
 }
 
 func (sh retailShelf) carryKey() string {
-	return sh.buildingID + ":" + strconv.Itoa(sh.resourceID)
+	return sh.buildingID + ":" + strconv.Itoa(sh.resourceID) + ":" + strconv.Itoa(sh.quality)
 }
 
 // salePriceForResource returns the current exchange reference. It is a source
@@ -271,12 +273,12 @@ func computeSaleWithCarryAtRate(unitsPerHour, price float64, availableQty int, e
 // price rose, which rewarded arbitrary price inflation. Demand now moves from
 // the shared market pulse and public player orders; price only controls the
 // speed multiplier around the current building-specific recommendation.
-func (s *Service) retailUnitsPerHour(ctx context.Context, resourceID int, recommendedPrice, price float64, level int, salesModPct float64) float64 {
+func (s *Service) retailUnitsPerHour(ctx context.Context, resourceID int, recommendedPrice, price float64, level int, salesModPct float64, quality int) float64 {
 	if price <= 0 || recommendedPrice <= 0 {
 		return 0
 	}
 	baseUnits, _ := s.retailBaseUnitsPerHour(ctx, resourceID, level, salesModPct)
-	return baseUnits * formula.RetailPriceSpeedMultiplier(price, recommendedPrice)
+	return baseUnits * formula.RetailPriceSpeedMultiplier(price, recommendedPrice) * formula.RetailQualitySpeedMultiplier(quality)
 }
 
 // retailActiveSeconds charges workers only for the time this shelf actually
@@ -310,29 +312,29 @@ func (s *Service) applyNPCSale(ctx context.Context, company *domain.Company, res
 		company.Money -= earned
 		return
 	}
-	logSale(ctx, s.finance, company.ID, "retail_sale", earned, resourceID, sold, price, now)
+	logSale(ctx, s.finance, company.ID, "retail_sale", earned, resourceID, 0, sold, price, now)
 }
 
 // applyPlayerShelfSale deducts from shelf, credits money, logs.
-func (s *Service) applyPlayerShelfSale(ctx context.Context, company *domain.Company, buildingID string, resourceID, sold int, earned, price float64, now time.Time) {
-	if !deductFromShelf(company, buildingID, resourceID, sold, earned) {
+func (s *Service) applyPlayerShelfSale(ctx context.Context, company *domain.Company, buildingID string, resourceID, quality, sold int, earned, price float64, now time.Time) {
+	if !deductFromShelf(company, buildingID, resourceID, quality, sold, earned) {
 		slog.Warn("[retail] player shelf disappeared before settlement", "company", company.ID, "building", buildingID, "resource", resourceID)
 		return
 	}
 
 	company.Money += earned
-	logSale(ctx, s.finance, company.ID, "retail_sale", earned, resourceID, sold, price, now)
+	logSale(ctx, s.finance, company.ID, "retail_sale", earned, resourceID, quality, sold, price, now)
 }
 
 // deductFromShelf decrements the matching shelf quantity (or removes if empty).
-func deductFromShelf(company *domain.Company, buildingID string, resourceID, sold int, earned float64) bool {
+func deductFromShelf(company *domain.Company, buildingID string, resourceID, quality, sold int, earned float64) bool {
 	for i := range company.Buildings {
 		b := &company.Buildings[i]
 		if b.ID != buildingID {
 			continue
 		}
 		for j := range b.Shelves {
-			if b.Shelves[j].ResourceID == resourceID {
+			if b.Shelves[j].ResourceID == resourceID && b.Shelves[j].Quality == quality {
 				b.Shelves[j].Revenue += earned
 				if b.Shelves[j].Quantity > sold {
 					b.Shelves[j].Quantity -= sold
@@ -362,7 +364,7 @@ func aggregateSalesBonus(execs []domain.Executive) float64 {
 }
 
 // logSale appends a finance ledger entry.
-func logSale(ctx context.Context, financeSvc financeWriter, companyID int, kind string, earned float64, resourceID, sold int, price float64, now time.Time) {
+func logSale(ctx context.Context, financeSvc financeWriter, companyID int, kind string, earned float64, resourceID, quality, sold int, price float64, now time.Time) {
 	_ = financeSvc.AppendLedgerEntry(ctx, &finance.LedgerEntry{
 		CompanyID: companyID,
 		Kind:      kind,
@@ -370,6 +372,7 @@ func logSale(ctx context.Context, financeSvc financeWriter, companyID int, kind 
 		Direction: "in",
 		Metadata: map[string]any{
 			"resourceId": resourceID,
+			"quality":    quality,
 			"quantity":   sold,
 			"price":      price,
 		},
