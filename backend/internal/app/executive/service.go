@@ -48,7 +48,7 @@ func (s *Service) Recruit(ctx context.Context, companyID int, candidateID string
 		return nil, 0, apperr.NotFound("executive candidate expired; refresh the market")
 	}
 	cost := candidate.RecruitCost
-	executive, err := s.executives.RecruitExecutive(ctx, companyID, candidate.Executive, cost)
+	executive, err := s.executives.RecruitExecutive(ctx, companyID, candidate.Executive, float64(cost))
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrAlreadyExists):
@@ -69,7 +69,7 @@ func (s *Service) Train(ctx context.Context, companyID int, executiveID string) 
 	}
 	cost := TrainingCost(executive.Level)
 	nextSkills := developSkills(executive.Skills, executive.Specialty)
-	updated, err := s.executives.TrainExecutive(ctx, companyID, executiveID, executive.Level, cost, nextSkills)
+	updated, err := s.executives.TrainExecutive(ctx, companyID, executiveID, executive.Level, float64(cost), nextSkills)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInsufficientFunds):
