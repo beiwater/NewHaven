@@ -77,11 +77,82 @@ type ShelfItem struct {
 	Revenue    float64 `json:"revenue,omitempty"`
 }
 
+// ExecutivePosition is one of the four company leadership assignments. An
+// executive may be hired without an assignment, but only an assigned executive
+// contributes their specialised skill to the live game loop.
+type ExecutivePosition string
+
+const (
+	ExecutivePositionUnassigned ExecutivePosition = ""
+	ExecutivePositionCOO        ExecutivePosition = "coo"
+	ExecutivePositionCFO        ExecutivePosition = "cfo"
+	ExecutivePositionCMO        ExecutivePosition = "cmo"
+	ExecutivePositionCTO        ExecutivePosition = "cto"
+)
+
+// ExecutiveSkills deliberately uses legible, broad skills instead of a hidden
+// per-level bonus table. A candidate's specialty is weighted toward the skill
+// used by its main position.
+type ExecutiveSkills struct {
+	Management    float64 `json:"management"`
+	Accounting    float64 `json:"accounting"`
+	Communication float64 `json:"communication"`
+	Science       float64 `json:"science"`
+}
+
+// SkillForPosition returns the skill a leadership position evaluates.
+func (s ExecutiveSkills) SkillForPosition(position ExecutivePosition) float64 {
+	switch position {
+	case ExecutivePositionCOO:
+		return s.Management
+	case ExecutivePositionCFO:
+		return s.Accounting
+	case ExecutivePositionCMO:
+		return s.Communication
+	case ExecutivePositionCTO:
+		return s.Science
+	default:
+		return 0
+	}
+}
+
+// EffectiveExecutiveSkill applies the published diminishing-return curve to
+// an assigned position's raw skill. It keeps a very strong executive useful
+// without letting a single number scale linearly forever.
+func EffectiveExecutiveSkill(raw float64) float64 {
+	if raw <= 0 {
+		return 0
+	}
+	switch {
+	case raw <= 60:
+		return raw
+	case raw <= 80:
+		return 60 + (raw-60)/2
+	default:
+		return 70 + (raw-80)/2
+	}
+}
+
+// ActiveExecutiveSkill returns the effective skill of the executive assigned
+// to a position. Legacy executives without position data deliberately retain
+// no new hidden effects; players can inspect and assign them explicitly.
+func ActiveExecutiveSkill(executives []Executive, position ExecutivePosition) float64 {
+	for _, executive := range executives {
+		if executive.Position == position {
+			return EffectiveExecutiveSkill(executive.Skills.SkillForPosition(position))
+		}
+	}
+	return 0
+}
+
 // Executive represents a hired executive for a company.
 type Executive struct {
 	ID              string  `json:"id"`
 	Name            string  `json:"name"`
 	Title           string  `json:"title"`
+	Specialty       ExecutivePosition `json:"specialty,omitempty"`
+	Position        ExecutivePosition `json:"position,omitempty"`
+	Skills          ExecutiveSkills   `json:"skills"`
 	Level           int     `json:"level"`
 	Rarity          string  `json:"rarity"`
 	Stage           string  `json:"stage"`

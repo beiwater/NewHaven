@@ -164,6 +164,11 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		researchLevel = rr.Level
 	}
 	effectiveMod := prodMod * formula.ResearchSpeedBonus(researchLevel)
+	// A CTO is the only executive effect that changes a production run. The
+	// assigned executive's Science skill is resolved server-side so a client
+	// cannot invent a speed bonus or borrow another company's executive.
+	ctoSkill := domain.ActiveExecutiveSkill(company.Executives, domain.ExecutivePositionCTO)
+	effectiveMod *= formula.CTOProductionMultiplier(ctoSkill)
 
 	duration := formula.DurationSeconds(req.Quantity, resEntry.ProducedPerHourRaw, level, effectiveMod)
 	durationSeconds := int(duration)

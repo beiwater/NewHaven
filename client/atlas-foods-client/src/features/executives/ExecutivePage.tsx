@@ -1,20 +1,20 @@
 import { useState, useCallback } from 'react'
-import { useMyExecutives, useTrainExecutive } from '@/api/executives.api'
+import { useAssignExecutivePosition, useMyExecutives, useTrainExecutive } from '@/api/executives.api'
+import type { ExecutivePosition } from '@/game/executives'
 import { ExecutiveMarket } from './ExecutiveMarket'
 import { MyExecutives } from './MyExecutives'
-import { TrainingQueue } from './TrainingQueue'
 import { ExecutiveDetail } from './ExecutiveDetail'
 import { audio } from '@/audio/AudioManager'
 
 export function ExecutivePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [completeNowId, setCompleteNowId] = useState<string | null>(null)
+  const [assigningId, setAssigningId] = useState<string | null>(null)
 
   const { data: myExecs, isLoading: myLoading, refetch: refetchMy } = useMyExecutives()
   const trainExec = useTrainExecutive()
+  const assignPosition = useAssignExecutivePosition()
 
   const ownedExecs = myExecs ?? []
-  const trainees = ownedExecs.filter((e) => e.status === 'training')
 
   const handleTrain = useCallback(async (id: string) => {
     try {
@@ -26,16 +26,15 @@ export function ExecutivePage() {
     }
   }, [trainExec, refetchMy])
 
-  const handleCompleteNow = useCallback(async (id: string) => {
-    setCompleteNowId(id)
+  const handleAssign = useCallback(async (id: string, position: ExecutivePosition) => {
+    setAssigningId(id)
     try {
-      audio.playSfx('executive_level_up')
-      await trainExec.mutateAsync(id)
+      await assignPosition.mutateAsync({ executiveId: id, position })
       refetchMy()
     } finally {
-      setCompleteNowId(null)
+      setAssigningId(null)
     }
-  }, [trainExec, refetchMy])
+  }, [assignPosition, refetchMy])
 
   const handleTrainingComplete = useCallback(() => {
     refetchMy()
@@ -63,13 +62,9 @@ export function ExecutivePage() {
               isLoading={myLoading}
               onSelect={setSelectedId}
               onTrain={handleTrain}
+              onAssign={handleAssign}
               selectedId={selectedId}
-            />
-
-            <TrainingQueue
-              trainees={trainees}
-              onCompleteNow={handleCompleteNow}
-              completeNowPending={completeNowId}
+              assigningId={assigningId}
             />
           </div>
 
@@ -82,11 +77,10 @@ export function ExecutivePage() {
           </div>
         </div>
 
-        {/* Additive bonus hint (mobile) */}
+        {/* System hint (mobile) */}
         <div className="mt-6 rounded-lg border border-amber-200/30 bg-amber-100/30 px-4 py-2 text-center lg:hidden">
           <p className="text-[10px] text-amber-600">
-            <span className="font-bold">Bonuses are additive:</span> Global reputation + executive bonus.
-            Bonuses do not multiply.
+            <span className="font-bold">Leadership is explicit:</span> only an assigned CMO or CTO changes the current retail or production loop.
           </p>
         </div>
       </div>

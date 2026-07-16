@@ -348,9 +348,15 @@ func deductFromShelf(company *domain.Company, buildingID string, resourceID, sol
 
 // aggregateSalesBonus sums executive sales bonuses.
 func aggregateSalesBonus(execs []domain.Executive) float64 {
-	var total float64
+	// New executives contribute only when deliberately assigned as CMO. Keep
+	// legacy bonus fields for migration-safe snapshots created before the
+	// position system existed; they disappear naturally once the player assigns
+	// those executives to a role.
+	total := formula.CMOSalesBonusPct(domain.ActiveExecutiveSkill(execs, domain.ExecutivePositionCMO))
 	for _, ex := range execs {
-		total += ex.SalesBonus
+		if ex.Position == domain.ExecutivePositionUnassigned && ex.Specialty == domain.ExecutivePositionUnassigned {
+			total += ex.SalesBonus
+		}
 	}
 	return total
 }

@@ -464,6 +464,104 @@ func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	return nil
 }
 
+// RecruitExecutive commits the recruitment cost and roster addition together.
+// Candidate identity is scoped to the company so a replay cannot charge cash a
+// second time or duplicate an executive in that player's roster.
+func (s *Store) RecruitExecutive(_ context.Context, companyID int, candidate company.Executive, cost float64) (*company.Executive, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	for i := range c.Executives {
+		if c.Executives[i].ID == candidate.ID {
+			return nil, storage.ErrAlreadyExists
+		}
+	}
+	if cost < 0 || c.Money < cost {
+		return nil, storage.ErrInsufficientFunds
+	}
+	// Assign a recruit to their own specialty when that leadership chair is
+	// available. Otherwise the player retains them as an unassigned advisor and
+	// can make a deliberate replacement later.
+	if candidate.Specialty != company.ExecutivePositionUnassigned {
+		candidate.Position = candidate.Specialty
+		for _, executive := range c.Executives {
+			if executive.Position == candidate.Specialty {
+				candidate.Position = company.ExecutivePositionUnassigned
+				break
+			}
+		}
+	}
+	c.Money -= cost
+	c.Executives = append(c.Executives, candidate)
+	copy := c.Executives[len(c.Executives)-1]
+	return &copy, nil
+}
+
+// TrainExecutive applies a single, compare-and-set development step and its
+// cash cost. The expected level stops concurrent requests from applying the
+// same skill increase twice.
+func (s *Store) TrainExecutive(_ context.Context, companyID int, executiveID string, expectedLevel int, cost float64, nextSkills company.ExecutiveSkills) (*company.Executive, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	if cost < 0 || c.Money < cost {
+		return nil, storage.ErrInsufficientFunds
+	}
+	for i := range c.Executives {
+		executive := &c.Executives[i]
+		if executive.ID != executiveID {
+			continue
+		}
+		if executive.Level != expectedLevel {
+			return nil, storage.ErrStateConflict
+		}
+		c.Money -= cost
+		executive.Level++
+		executive.Skills = nextSkills
+		copy := *executive
+		return &copy, nil
+	}
+	return nil, fmt.Errorf("executive %s not found", executiveID)
+}
+
+// AssignExecutivePosition makes an assignment exclusive within a company. If
+// another executive held the selected chair, they become unassigned in the
+// same mutation; accounts cannot affect each other's rosters.
+func (s *Store) AssignExecutivePosition(_ context.Context, companyID int, executiveID string, position company.ExecutivePosition) (*company.Executive, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	var target *company.Executive
+	for i := range c.Executives {
+		if c.Executives[i].ID == executiveID {
+			target = &c.Executives[i]
+			break
+		}
+	}
+	if target == nil {
+		return nil, fmt.Errorf("executive %s not found", executiveID)
+	}
+	if position != company.ExecutivePositionUnassigned {
+		for i := range c.Executives {
+			if c.Executives[i].ID != executiveID && c.Executives[i].Position == position {
+				c.Executives[i].Position = company.ExecutivePositionUnassigned
+			}
+		}
+	}
+	target.Position = position
+	copy := *target
+	return &copy, nil
+}
+
 // StartBuildingUpgrade reserves the upgrade cost and records construction in
 // one critical section. A second tab or server instance therefore cannot
 // charge the same player twice or begin two upgrades for one building.

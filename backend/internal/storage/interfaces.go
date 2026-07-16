@@ -47,6 +47,16 @@ type CompanyStorage interface {
 	UpdateInventory(ctx context.Context, companyID int, resourceID int, delta int) error
 }
 
+// ExecutiveStorage owns the money-and-roster mutations for the executive
+// domain. These operations must be atomic: two tabs must not hire the same
+// candidate twice, spend the same cash twice, or leave two executives assigned
+// to one leadership position.
+type ExecutiveStorage interface {
+	RecruitExecutive(ctx context.Context, companyID int, candidate company.Executive, cost float64) (*company.Executive, error)
+	TrainExecutive(ctx context.Context, companyID int, executiveID string, expectedLevel int, cost float64, nextSkills company.ExecutiveSkills) (*company.Executive, error)
+	AssignExecutivePosition(ctx context.Context, companyID int, executiveID string, position company.ExecutivePosition) (*company.Executive, error)
+}
+
 // BuildingUpgradeStorage provides the compare-and-set operations used by
 // construction. It is intentionally separate from CompanyStorage so older
 // adapters can still serve read-only building endpoints, while production
@@ -146,6 +156,7 @@ type SnapshotStorage interface {
 type Storage interface {
 	PlayerStorage
 	CompanyStorage
+	ExecutiveStorage
 	MarketStorage
 	ProductionStorage
 	FinanceStorage

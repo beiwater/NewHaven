@@ -88,6 +88,19 @@ const zhSections: WikiSection[] = [
     ],
     formula: '市场采购价 = Σ(材料市价 × 成本单位 × qp)；兜底价 = 成本单位 × 3450',
   },
+  {
+    id: 'executives',
+    title: '高管：四个岗位、四项技能',
+    summary: '高管不是隐藏的等级光环；你要看技能，再把人放到正确的岗位。',
+    body: [
+      '高管市场每小时刷新。候选人有专长岗位（COO、CFO、CMO、CTO）和管理、会计、沟通、科学四项技能；专长会让对应技能更高。招聘扣除页面标明的一次性费用，同一候选人不能被同一公司重复招聘。',
+      '每个领导岗位同一时间只能有一位负责人。改派某个岗位会自动让原负责人变为未分配；未分配的高管不会给当前生产或零售提供隐藏加成。',
+      'CTO 的科学技能已接入生产：有效科学每点提供 +2% 生产速度，最高为 3 倍速度。CMO 的有效沟通每 2 点提供 +1% 零售需求速度，最高 +50%。高价格仍会减慢销售，CMO 不会让离谱价格正常成交。',
+      'COO 的管理与 CFO 的会计会保留到公司档案中，供后续行政开销和财务工具使用。当前版本没有行政费用或手续费折扣，因此它们不会悄悄改变工资或固定 4% 市场手续费。',
+      '培养会立即扣除明确显示的现金费用：所有技能 +1，专长技能再 +3。系统不会显示一个后端已经完成的假培训计时。',
+    ],
+    formula: '有效技能：x≤60→x；60<x≤80→60+(x-60)/2；x>80→70+(x-80)/2。CTO 速度倍率 = (100 + 2×有效科学)/100',
+  },
 ]
 
 const enSections: WikiSection[] = [
@@ -122,6 +135,11 @@ const enSections: WikiSection[] = [
     id: 'economy', title: 'Economy and building rules', summary: 'Upgrades add capacity, warehouses constrain flow, and cash controls expansion.',
     body: ['Building purchase cost uses market-priced materials when available; otherwise it falls back to cost units × 3450.', 'Base wages per building tick are 345 × salary modifier × building size. Wages, quality, research, and administration feed later efficiency systems.', 'A full warehouse blocks collection, buying, and restocking. Keep headroom instead of filling it completely.'],
     formula: 'market purchase cost = Σ(material price × cost units × qp); fallback = cost units × 3450',
+  },
+  {
+    id: 'executives', title: 'Executives: four positions, four skills', summary: 'Executives are not a hidden level aura: inspect skills, then put the right person in the right chair.',
+    body: ['The executive market refreshes hourly. Every candidate has a specialty (COO, CFO, CMO, or CTO) plus Management, Accounting, Communication, and Science skills. Their specialty is weighted toward its matching skill. Recruitment deducts the shown one-time cost and the same company cannot hire the same candidate twice.', 'Each leadership chair has one holder. Moving a new executive into a chair unassigns the previous holder. Unassigned executives do not provide hidden production or retail buffs.', 'An assigned CTO turns effective Science into +2% production speed per point, capped at a 3× speed multiplier. An assigned CMO turns every 2 effective Communication points into +1% retail demand speed, capped at +50%. A CMO cannot make an extreme price sell normally: the price penalty still applies.', 'COO Management and CFO Accounting are retained in the company record for upcoming administration and finance tools. The minimal economy does not yet charge administration overhead or discount the published 4% exchange fee, so these roles do not secretly change wages or completed trades.', 'Development is immediate and server-charged: every skill gains +1 and the specialty gains another +3. The interface never shows a training timer for a change the server has already completed.'],
+    formula: 'effective skill: x≤60→x; 60<x≤80→60+(x-60)/2; x>80→70+(x-80)/2. CTO multiplier = (100 + 2 × effective Science) / 100',
   },
 ]
 

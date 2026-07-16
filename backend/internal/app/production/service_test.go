@@ -750,6 +750,44 @@ func TestStartProduction_DurationMatchesFormula(t *testing.T) {
 	}
 }
 
+func TestStartProduction_AssignedCTOUsesScienceSkill(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		1: {ID: 1, Name: "Grain", ProducedPerHourRaw: 100, ProducedFrom: map[int]int{}},
+	}
+	buildings := map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Name: "Farm", Produces: []int{1}},
+	}
+	svc, store := newTestService(t, resources, buildings)
+	if err := store.CreateCompany(ctx, &domain.Company{
+		PlayerID: 91,
+		Name:     "CTO Corp",
+		Money:    100000,
+		Inventory: map[int]int{},
+		Buildings: []domain.Building{{ID: "farm-cto", BuildingID: 1, Level: 1, Name: "Farm"}},
+		Executives: []domain.Executive{{
+			ID:       "cto-1",
+			Position: domain.ExecutivePositionCTO,
+			Skills:   domain.ExecutiveSkills{Science: 50},
+		}},
+	}); err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, _ := store.GetCompanyByPlayerID(ctx, 91)
+	resp, err := svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: "farm-cto", ResourceId: 1, Quantity: 100})
+	if err != nil {
+		t.Fatalf("StartProduction: %v", err)
+	}
+	if resp.Job == nil || resp.Job.DurationSeconds == nil {
+		t.Fatal("expected production job")
+	}
+	// 50 Science gives the documented 2x CTO speed multiplier, so 100
+	// units at a 100/hour base takes 30 minutes rather than one hour.
+	if got, want := *resp.Job.DurationSeconds, float32(1800); got != want {
+		t.Fatalf("CTO duration = %v, want %v", got, want)
+	}
+}
+
 // --- ClaimProduction tests ---
 
 func TestClaimProduction_JobCompleted_CreditsInventory(t *testing.T) {

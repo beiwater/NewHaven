@@ -8,6 +8,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/app/auth"
 	"github.com/beiwater/NewHaven/backend/internal/app/building"
 	"github.com/beiwater/NewHaven/backend/internal/app/company"
+	"github.com/beiwater/NewHaven/backend/internal/app/executive"
 	"github.com/beiwater/NewHaven/backend/internal/app/finance"
 	"github.com/beiwater/NewHaven/backend/internal/app/market"
 	"github.com/beiwater/NewHaven/backend/internal/app/production"
@@ -43,6 +44,7 @@ type App struct {
 	ProductionService *production.Service
 	MarketService     *market.Service
 	ResearchService   *research.Service
+	ExecutiveService  *executive.Service
 	FinanceService    *finance.Service
 	TerminalService   *terminal.Service
 
@@ -132,7 +134,8 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	bondHandler := httpapi.NewBondHandler(financeSvc)
 	playerHandler := httpapi.NewPlayerHandler(st)
 	contractHandler := httpapi.NewContractHandler()
-	executiveHandler := httpapi.NewExecutiveHandler(st)
+	executiveSvc := executive.NewService(st, st, clock)
+	executiveHandler := httpapi.NewExecutiveHandler(executiveSvc)
 	leaderboardHandler := httpapi.NewLeaderboardHandler(st)
 	adminHandler := httpapi.NewAdminHandler(st)
 	terminalSvc := terminal.NewService(st, logger)
@@ -184,6 +187,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 		MarketService:     marketSvc,
 		FinanceService:    financeSvc,
 		ResearchService:   researchSvc,
+		ExecutiveService:  executiveSvc,
 		TerminalService:   terminalSvc,
 
 		PostgresStore: pgStore,

@@ -230,6 +230,45 @@ func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
 	}
 }
 
+func TestCatchUpPlayerRetail_AssignedCMOIncreasesDemandSpeed(t *testing.T) {
+	t.Parallel()
+	svc, store, clock := newRetailTestSvc(nil)
+	setupRetailTicker(t, store, 1, 24.0)
+	withoutCMO := newTestCompany(t, store, 1081, "without-cmo", 5000)
+	withCMO := newTestCompany(t, store, 1082, "with-cmo", 5000)
+	for _, companyID := range []int{withoutCMO, withCMO} {
+		c, _ := store.GetCompany(nil, companyID)
+		c.Buildings = []company.Building{{
+			ID: "retail", Kind: 6, Name: "Market Stall", Level: 1,
+			Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 1000, MaxQty: 1000, Price: 100, PriceLock: true}},
+		}}
+		c.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
+		if companyID == withCMO {
+			c.Executives = []company.Executive{{
+				ID:       "cmo",
+				Position: company.ExecutivePositionCMO,
+				Skills:   company.ExecutiveSkills{Communication: 50},
+			}}
+		}
+		if err := store.UpdateCompany(nil, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := svc.CatchUpPlayerRetail(context.Background(), withoutCMO); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.CatchUpPlayerRetail(context.Background(), withCMO); err != nil {
+		t.Fatal(err)
+	}
+	without, _ := store.GetCompany(nil, withoutCMO)
+	with, _ := store.GetCompany(nil, withCMO)
+	withoutSold := 1000 - without.Buildings[0].Shelves[0].Quantity
+	withSold := 1000 - with.Buildings[0].Shelves[0].Quantity
+	if withSold <= withoutSold {
+		t.Fatalf("assigned CMO sold %d, want more than no-CMO %d", withSold, withoutSold)
+	}
+}
+
 func TestCatchUpPlayerRetail_OverpricedBatchStallsAndStillPaysPayroll(t *testing.T) {
 	t.Parallel()
 	economy := map[int]*catalog.EconomyModelEntry{
