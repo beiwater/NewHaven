@@ -3,6 +3,7 @@ package formula_test
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 )
@@ -330,6 +331,30 @@ func TestUpgradeCost(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("UpgradeCost(%.0f, %d) = %.2f; want %.2f", tc.base, tc.level, got, tc.want)
 		}
+	}
+}
+
+func TestUpgradeDurationSchedule(t *testing.T) {
+	base := 2 * time.Minute // farm base construction time
+	tests := []struct {
+		level int
+		want  time.Duration
+	}{
+		{1, base},
+		{2, 2 * base},
+		{3, 3 * base},
+		{4, 6 * base},
+		{5, 10 * base},
+		{6, 15 * base},
+		{7, 21 * base},
+	}
+	for _, tc := range tests {
+		if got := formula.UpgradeDuration(1, tc.level); got != tc.want {
+			t.Errorf("UpgradeDuration(farm, level %d) = %s; want %s", tc.level, got, tc.want)
+		}
+	}
+	if got := formula.UpgradeDuration(999, 1); got != 4*time.Minute {
+		t.Errorf("unknown building base = %s; want 4m", got)
 	}
 }
 

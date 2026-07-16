@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/app/building"
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
@@ -373,9 +374,10 @@ func TestUpgradeBuildingUsesCurrentSizeCost(t *testing.T) {
 		t.Fatal(err)
 	}
 	company, _ := store.GetCompanyByPlayerID(ctx, 31)
+	clock := platform.NewFakeClock(time.Date(2026, 7, 16, 0, 0, 0, 0, time.UTC))
 	svc := building.NewService(store, map[int]*catalog.BuildingEntry{
 		1: {ID: 1, Kind: 1, Name: "Farm", BaseCost: 10000},
-	}, nil, nil, platform.NewIDGen())
+	}, nil, clock, platform.NewIDGen())
 
 	resp, err := svc.UpgradeBuilding(ctx, company.ID, "upgrade-me")
 	if err != nil {
@@ -383,6 +385,65 @@ func TestUpgradeBuildingUsesCurrentSizeCost(t *testing.T) {
 	}
 	if resp.Cost == nil || *resp.Cost != 30000 {
 		t.Fatalf("level-3 upgrade should cost currentSize*baseCost = 30000, got %v", resp.Cost)
+	}
+	started, _ := store.GetCompany(ctx, company.ID)
+	if started.Money != 70000 || started.Buildings[0].Level != 3 || started.Buildings[0].UpgradeTargetLevel != 4 {
+		t.Fatalf("upgrade should reserve money and wait: company=%+v building=%+v", started.Money, started.Buildings[0])
+	}
+	clock.Advance(6 * time.Minute)
+	if _, err := svc.ListMyBuildings(ctx, company.ID); err != nil {
+		t.Fatalf("complete upgrade on listing: %v", err)
+	}
+	completed, _ := store.GetCompany(ctx, company.ID)
+	if completed.Buildings[0].Level != 4 || completed.Buildings[0].UpgradeTargetLevel != 0 {
+		t.Fatalf("expected completed level 4 upgrade, got %+v", completed.Buildings[0])
+	}
+}
+
+func TestUpgradeBuildingIsAtomicAcrossServices(t *testing.T) {
+	ctx := context.Background()
+	store := memory.New()
+	if err := store.CreatePlayer(ctx, &auth.Player{ID: 32, Username: "upgradeatomic"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CreateCompany(ctx, &domain.Company{PlayerID: 32, Name: "Atomic Upgrade Corp", Money: 50000, Level: 10, Inventory: map[int]int{}, Buildings: []domain.Building{{ID: "farm-atomic", BuildingID: 1, Kind: 1, Name: "Farm", Level: 1}}}); err != nil {
+		t.Fatal(err)
+	}
+	company, _ := store.GetCompanyByPlayerID(ctx, 32)
+	clock := platform.NewFakeClock(time.Date(2026, 7, 16, 0, 0, 0, 0, time.UTC))
+	buildings := map[int]*catalog.BuildingEntry{1: {ID: 1, Kind: 1, Name: "Farm", BaseCost: 10000}}
+	services := []*building.Service{
+		building.NewService(store, buildings, nil, clock, platform.NewIDGen()),
+		building.NewService(store, buildings, nil, clock, platform.NewIDGen()),
+	}
+	var wg sync.WaitGroup
+	results := make(chan error, len(services))
+	for _, service := range services {
+		wg.Add(1)
+		go func(service *building.Service) {
+			defer wg.Done()
+			_, err := service.UpgradeBuilding(ctx, company.ID, "farm-atomic")
+			results <- err
+		}(service)
+	}
+	wg.Wait()
+	close(results)
+	successes := 0
+	for err := range results {
+		if err == nil {
+			successes++
+			continue
+		}
+		if !apperr.HasKind(err, apperr.KindConflict) {
+			t.Fatalf("unexpected concurrent upgrade error: %v", err)
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("expected exactly one upgrade start, got %d", successes)
+	}
+	updated, _ := store.GetCompany(ctx, company.ID)
+	if updated.Money != 40000 || updated.Buildings[0].UpgradeTargetLevel != 2 || updated.Buildings[0].Level != 1 {
+		t.Fatalf("duplicate upgrade changed state: money=%.0f building=%+v", updated.Money, updated.Buildings[0])
 	}
 }
 

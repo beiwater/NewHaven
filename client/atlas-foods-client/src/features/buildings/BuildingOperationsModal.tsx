@@ -62,7 +62,7 @@ export function BuildingOperationsModal() {
 
   return createPortal(
     <div
-      className="building-modal-backdrop fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-0 backdrop-blur-[2px] sm:p-4 lg:p-8"
+      className="building-modal-backdrop fixed inset-0 z-[90] flex items-center justify-center bg-amber-950/25 p-0 backdrop-blur-[2px] sm:p-4 lg:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) selectBuilding(null)
       }}

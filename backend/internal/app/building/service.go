@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	"github.com/beiwater/NewHaven/backend/internal/config"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
+	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 	"github.com/beiwater/NewHaven/backend/internal/platform"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
@@ -56,6 +58,9 @@ func NewService(companies storage.CompanyStorage, buildings map[int]*catalog.Bui
 
 // ListMyBuildings returns all buildings for the given company.
 func (s *Service) ListMyBuildings(ctx context.Context, companyID int) (*openapi.BuildingListResponse, error) {
+	if err := s.settleCompletedUpgrades(ctx, companyID); err != nil {
+		return nil, apperr.Internalf("complete building upgrades: %v", err)
+	}
 	company, err := s.companies.GetCompany(ctx, companyID)
 	if err != nil {
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "no company found for player", err)
@@ -143,6 +148,16 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 	y := b.Y
 	robotCount := b.RobotCount
 	placed := b.MapID != ""
+	currentLevel := b.Level
+	if currentLevel < 1 {
+		currentLevel = 1
+	}
+	baseCost := float64(b.BuildingID) * 5000
+	if entry, ok := s.buildings[b.BuildingID]; ok && entry.BaseCost > 0 {
+		baseCost = float64(entry.BaseCost)
+	}
+	nextUpgradeCost := formula.UpgradeCost(baseCost, currentLevel)
+	nextUpgradeDurationSeconds := int(formula.UpgradeDuration(b.BuildingID, currentLevel).Seconds())
 	isRetail := false
 	var produces []int
 	if entry, ok := s.buildings[b.Kind]; ok {
@@ -169,21 +184,66 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 			})
 		}
 	}
-	return openapi.BuildingDTO{
-		Id:         &id,
-		BuildingId: &buildingID,
-		Name:       &name,
-		Level:      &level,
-		MapId:      &mapID,
-		SlotId:     &slotID,
-		X:          &x,
-		Y:          &y,
-		RobotCount: &robotCount,
-		Placed:     &placed,
-		IsRetail:   &isRetail,
-		Produces:   &produces,
-		Shelves:    &shelfDTOs,
+	upgradeTargetLevel := b.UpgradeTargetLevel
+	var upgradeStartedAt *time.Time
+	if parsed, err := time.Parse(time.RFC3339, b.UpgradeStartedAt); err == nil {
+		upgradeStartedAt = &parsed
 	}
+	var upgradeCompletesAt *time.Time
+	if parsed, err := time.Parse(time.RFC3339, b.UpgradeCompletesAt); err == nil {
+		upgradeCompletesAt = &parsed
+	}
+	return openapi.BuildingDTO{
+		Id:                         &id,
+		BuildingId:                 &buildingID,
+		Name:                       &name,
+		NextUpgradeCost:            &nextUpgradeCost,
+		NextUpgradeDurationSeconds: &nextUpgradeDurationSeconds,
+		Level:                      &level,
+		MapId:                      &mapID,
+		SlotId:                     &slotID,
+		UpgradeTargetLevel:         &upgradeTargetLevel,
+		UpgradeStartedAt:           upgradeStartedAt,
+		UpgradeCompletesAt:         upgradeCompletesAt,
+		X:                          &x,
+		Y:                          &y,
+		RobotCount:                 &robotCount,
+		Placed:                     &placed,
+		IsRetail:                   &isRetail,
+		Produces:                   &produces,
+		Shelves:                    &shelfDTOs,
+	}
+}
+
+// settleCompletedUpgrades finalizes construction while listing the player's
+// buildings. The storage compare-and-set keeps completion safe if two tabs or
+// application instances observe the same timer at once.
+func (s *Service) settleCompletedUpgrades(ctx context.Context, companyID int) error {
+	if s.clock == nil {
+		return nil
+	}
+	upgrades, ok := s.companies.(storage.BuildingUpgradeStorage)
+	if !ok {
+		return nil
+	}
+	company, err := s.companies.GetCompany(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	now := s.clock.Now()
+	for _, b := range company.Buildings {
+		if b.UpgradeTargetLevel <= 0 || b.UpgradeCompletesAt == "" {
+			continue
+		}
+		completesAt, err := time.Parse(time.RFC3339, b.UpgradeCompletesAt)
+		if err != nil || now.Before(completesAt) {
+			continue
+		}
+		if _, _, err := upgrades.CompleteBuildingUpgrade(ctx, companyID, b.ID, b.UpgradeTargetLevel, b.UpgradeCompletesAt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func buildingUnlockLevel(kind int) int {

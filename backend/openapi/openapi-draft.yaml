@@ -1377,6 +1377,11 @@ components:
           type: string
         level:
           type: integer
+        next_upgrade_cost:
+          type: number
+          format: double
+        next_upgrade_duration_seconds:
+          type: integer
         map_id:
           type: string
         slot_id:
@@ -1399,6 +1404,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ShelfItem'
+        upgrade_target_level:
+          type: integer
+        upgrade_started_at:
+          type: string
+          format: date-time
+        upgrade_completes_at:
+          type: string
+          format: date-time
     BuildingListResponse:
       type: object
       properties:
@@ -1532,6 +1545,11 @@ components:
           format: double
         output_multiplier:
           type: integer
+        status:
+          type: string
+        upgrade_completes_at:
+          type: string
+          format: date-time
 
     ShelfItem:
       type: object

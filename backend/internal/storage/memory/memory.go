@@ -463,6 +463,65 @@ func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	return nil
 }
 
+// StartBuildingUpgrade reserves the upgrade cost and records construction in
+// one critical section. A second tab or server instance therefore cannot
+// charge the same player twice or begin two upgrades for one building.
+func (s *Store) StartBuildingUpgrade(_ context.Context, companyID int, buildingID string, expectedLevel, targetLevel int, cost float64, startedAt, completesAt string) (*company.Building, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	for i := range c.Buildings {
+		b := &c.Buildings[i]
+		if b.ID != buildingID {
+			continue
+		}
+		if b.Level != expectedLevel || b.UpgradeTargetLevel != 0 || b.UpgradeCompletesAt != "" {
+			return nil, storage.ErrStateConflict
+		}
+		if c.Money < cost {
+			return nil, storage.ErrInsufficientFunds
+		}
+		c.Money -= cost
+		b.UpgradeTargetLevel = targetLevel
+		b.UpgradeStartedAt = startedAt
+		b.UpgradeCompletesAt = completesAt
+		copy := *b
+		return &copy, nil
+	}
+	return nil, fmt.Errorf("building %s not found", buildingID)
+}
+
+// CompleteBuildingUpgrade only applies the requested construction once. The
+// expected completion timestamp prevents a stale poll from completing a newer
+// upgrade after a snapshot restore or later construction cycle.
+func (s *Store) CompleteBuildingUpgrade(_ context.Context, companyID int, buildingID string, expectedTargetLevel int, expectedCompletesAt string) (*company.Building, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, false, fmt.Errorf("company %d not found", companyID)
+	}
+	for i := range c.Buildings {
+		b := &c.Buildings[i]
+		if b.ID != buildingID {
+			continue
+		}
+		if b.UpgradeTargetLevel != expectedTargetLevel || b.UpgradeCompletesAt != expectedCompletesAt {
+			return nil, false, nil
+		}
+		b.Level = expectedTargetLevel
+		b.UpgradeTargetLevel = 0
+		b.UpgradeStartedAt = ""
+		b.UpgradeCompletesAt = ""
+		copy := *b
+		return &copy, true, nil
+	}
+	return nil, false, fmt.Errorf("building %s not found", buildingID)
+}
+
 func (s *Store) SaveBuilding(_ context.Context, b *company.Building) error { return nil }
 func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { return nil }
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {

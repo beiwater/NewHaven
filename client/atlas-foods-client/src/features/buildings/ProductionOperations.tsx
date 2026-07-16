@@ -25,6 +25,13 @@ function durationLabel(amount: number, rate: number): string {
   return `${Math.max(1, minutes)}m`
 }
 
+function ingredientsFor(option: ResourceDefinition): Array<{ resourceId: number; quantity: number }> {
+  if (option.recipe?.length) return option.recipe
+  return Object.entries(option.producedFrom ?? {})
+    .map(([resourceId, quantity]) => ({ resourceId: Number(resourceId), quantity }))
+    .filter((ingredient) => Number.isInteger(ingredient.resourceId) && ingredient.resourceId > 0 && ingredient.quantity > 0)
+}
+
 function countdownDisplay(completesAt: string | undefined, now: number): string {
   if (!completesAt) return ''
   const remaining = new Date(completesAt).getTime() - now
@@ -80,7 +87,7 @@ function ProductionOptionRow({
   const maxAmount = maxAmountFor48Hours(rate)
   const numericAmount = Math.max(1, Math.min(maxAmount, parseInt(amount, 10) || 1))
   const hours24 = Math.max(1, Math.min(maxAmount, Math.floor(rate * 24)))
-  const ingredients = option.recipe ?? []
+  const ingredients = ingredientsFor(option)
 
   return (
     <article className="rounded-2xl border border-amber-200/80 bg-white/70 p-4 shadow-sm transition-colors hover:border-amber-400/80">

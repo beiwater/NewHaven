@@ -38,10 +38,21 @@ const zhSections: WikiSection[] = [
     summary: '一座建筑 = 一条生产线 = 同时一种商品。',
     body: [
       '一座建筑同一时间只能有一个未完成的生产订单。完成后请领取全部产出，或取消订单，才能开始下一种商品。',
-      '开始加工前，配方原料会先从仓库预留；因此不要把同一批原料同时许诺给市场和工厂。',
+      '只有原材料商品不需要投入；加工和成品会显示配方，并在开始生产前从仓库预留所需原料。因此不要把同一批原料同时许诺给市场和工厂。',
       '建筑等级会提高产出速度。每个订单最多 48 小时，建议用较短批次观察需求再加量。',
     ],
     formula: '当前生产时长 = max(30 秒, ceil(数量 ÷ (基础每小时产量 × 建筑等级 × 生产加成) × 3600))',
+  },
+  {
+    id: 'upgrades',
+    title: '建筑升级：施工时间与停工',
+    summary: '确认施工后先扣费用，计时完成才提升等级。',
+    body: [
+      '升级前需要先领取或取消当前生产订单；零售建筑也要等正在销售的批次售罄。升级会立即预留现金，但建筑等级和产能会在施工完成后才提升。施工期间不能生产、开始新的销售、移动、收纳或拆除该建筑。',
+      '每种建筑有自己的基础施工分钟数。当前等级为 1、2、3、4、5 时，施工时间分别为基础时间的 1×、2×、3×、6×、10×。',
+      '从 6 级开始继续使用三角数倍率：15×、21×、28×……。离线不会暂停计时；再次打开建筑时会完成已到期的施工。',
+    ],
+    formula: '施工时间 = 建筑基础分钟 × [1, 2, 3, 6, 10, 15, 21, …]（升级完成后才提高一级）',
   },
   {
     id: 'retail',
@@ -90,8 +101,13 @@ const enSections: WikiSection[] = [
   },
   {
     id: 'production', title: 'Production line rules', summary: 'One building = one line = one product at a time.',
-    body: ['A building can have only one unfinished run. Collect all output or cancel the run before starting another product.', 'Recipe inputs are reserved from warehouse inventory when a processed run starts.', 'Building levels improve output speed. Runs are capped at 48 hours; shorter batches are safer while learning demand.'],
+    body: ['A building can have only one unfinished run. Collect all output or cancel the run before starting another product.', 'Only raw goods need no inputs. Processed and finished goods show their recipe and reserve those ingredients from warehouse inventory when a run starts.', 'Building levels improve output speed. Runs are capped at 48 hours; shorter batches are safer while learning demand.'],
     formula: 'Current duration = max(30s, ceil(quantity ÷ (base hourly output × building level × production modifier) × 3600))',
+  },
+  {
+    id: 'upgrades', title: 'Building upgrades: construction time and downtime', summary: 'Construction reserves its cost now; the level increases only at completion.',
+    body: ['Collect or cancel an active production run before upgrading; retail buildings must also wait for active sale batches to sell out. Starting an upgrade reserves cash immediately, but the level and output increase only when construction completes. The building cannot produce, start a new sale, move, stash, or be demolished while it is under construction.', 'Every building family has its own base construction minutes. At current levels 1, 2, 3, 4, and 5, upgrades take 1×, 2×, 3×, 6×, and 10× that base time.', 'From level 6 the triangular sequence continues: 15×, 21×, 28×, and so on. The timer continues while you are offline and completes the next time the building is checked.'],
+    formula: 'construction time = building base minutes × [1, 2, 3, 6, 10, 15, 21, …]; the level increases on completion',
   },
   {
     id: 'retail', title: 'Retail: turn shelves into cash', summary: 'Choose quantity and price, then commit an irreversible sale batch.',
