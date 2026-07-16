@@ -252,6 +252,7 @@
     "workers": "Fixed workers",
     "hourlyPayroll": "Payroll / hour",
     "demandSpeed": "Demand speed",
+    "liveDemand": "Live demand",
     "pricePayrollWarning": "This price is above the recommendation. Sales slow down while payroll keeps running.",
     "pricePayrollStable": "This price is at or below the recommendation. Payroll runs only while the batch is active.",
     "noStockToSell": "Produce or buy stock before starting this sale.",

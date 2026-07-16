@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -851,10 +852,10 @@ func (s *Store) GetJob(_ context.Context, jobID string) (*production.ProductionJ
 }
 
 // ClaimProductionOutput atomically moves a claimable amount into the owning
-// company's inventory, awards XP, and advances the job state. Keeping these
-// mutations under one lock prevents two service instances from claiming the
-// same output after both observed it as ready.
-func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int) (*production.ProductionJob, error) {
+// company's inventory, settles accrued payroll, awards XP, and advances the
+// job state. Keeping these mutations under one lock prevents two service
+// instances from duplicating output or charging the same active seconds.
+func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int, payroll production.PayrollSettlement) (*production.ProductionJob, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.jobs[jobID]
@@ -870,11 +871,19 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 	if expectedClaimAmount <= 0 || job.ClaimableAmount != expectedClaimAmount {
 		return nil, storage.ErrStateConflict
 	}
+	if !validProductionPayroll(job, payroll) {
+		return nil, storage.ErrStateConflict
+	}
 	if err := s.updateInventoryLocked(companyID, job.ResourceID, expectedClaimAmount); err != nil {
 		return nil, err
 	}
 	company := s.companies[companyID]
+	if company == nil {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	company.Money -= payroll.Amount
 	company.XP += int64(xpEarned)
+	job.PayrollSettledSeconds = payroll.SettledSeconds
 	job.ClaimedAmount += expectedClaimAmount
 	if job.ClaimedAmount >= job.TargetQuantity {
 		job.ClaimedAmount = job.TargetQuantity
@@ -889,7 +898,7 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 // CancelProductionJob atomically applies every input refund and records a
 // cancellation tombstone. The tombstone keeps the original request ID alive,
 // preventing delayed start retries from resurrecting a cancelled run.
-func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds map[int]int) (*production.ProductionJob, bool, error) {
+func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds map[int]int, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.jobs[jobID]
@@ -906,6 +915,9 @@ func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID stri
 	if _, ok := s.companies[companyID]; !ok {
 		return nil, false, fmt.Errorf("company %d not found", companyID)
 	}
+	if !validProductionPayroll(job, payroll) {
+		return nil, false, storage.ErrStateConflict
+	}
 	if _, ok := s.warehouses[companyID]; !ok {
 		return nil, false, fmt.Errorf("warehouse for company %d not found", companyID)
 	}
@@ -917,10 +929,19 @@ func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID stri
 			return nil, false, err
 		}
 	}
+	s.companies[companyID].Money -= payroll.Amount
+	job.PayrollSettledSeconds = payroll.SettledSeconds
 	job.Status = production.StatusCancelled
 	job.ClaimableAmount = 0
 	copy := *job
 	return &copy, false, nil
+}
+
+func validProductionPayroll(job *production.ProductionJob, payroll production.PayrollSettlement) bool {
+	if payroll.Amount < 0 || payroll.SettledSeconds < payroll.ExpectedSeconds {
+		return false
+	}
+	return math.Abs(job.PayrollSettledSeconds-payroll.ExpectedSeconds) < 0.000001
 }
 
 func (s *Store) GetJobByClientRequestID(_ context.Context, companyID int, requestID string) (*production.ProductionJob, error) {

@@ -49,7 +49,7 @@ func newRetailTestSvcWithCompanies(economy map[int]*catalog.EconomyModelEntry, s
 	idgen := platform.NewIDGen()
 	cfg := &config.GameConfig{ExchangeFeePct: 0.04}
 	resources := make(map[int]*catalog.ResourceEntry)
-	resources[1] = &catalog.ResourceEntry{ID: 1, BasePrice: 10.0}
+	resources[1] = &catalog.ResourceEntry{ID: 1, BasePrice: 10.0, RetailDemandPerHour: 120, PrimaryBuildingKind: 6}
 	buildings := map[int]*catalog.BuildingEntry{
 		6: {ID: 6, Kind: 6, Name: "Market Stall", Type: "retail", Produces: []int{1}, RetailSlots: 2, SlotPerLevel: 1},
 	}
@@ -90,7 +90,7 @@ func TestProcessRetailSales_SellsGoodsAndCreditsMoney(t *testing.T) {
 	}
 }
 
-func TestProcessRetailSales_NoEconomyModel_SkipsResource(t *testing.T) {
+func TestProcessRetailSales_NoEconomyModel_UsesDemandParameter(t *testing.T) {
 	t.Parallel()
 	economy := map[int]*catalog.EconomyModelEntry{
 		2: {BuildingKindModifier: 0.8, BuildingLevelsNeededPerUnitPerHour: 0.01, ModeledProductionCostPerUnit: 8.0, ModeledStoreWages: 200.0, ModeledUnitsSoldAnHour: 15.0},
@@ -103,28 +103,33 @@ func TestProcessRetailSales_NoEconomyModel_SkipsResource(t *testing.T) {
 	c.Inventory[1] = 50
 	store.UpdateCompany(nil, c)
 
-	svc.ProcessRetailSales(context.Background())
-	updated, _ := store.GetCompany(nil, companyID)
-	if updated.Inventory[1] != 50 {
-		t.Errorf("inventory should be unchanged (no economy model), got %d", updated.Inventory[1])
+	if err := svc.ProcessRetailSales(context.Background()); err != nil {
+		t.Fatalf("ProcessRetailSales: %v", err)
 	}
-	if updated.Money != 500.0 {
-		t.Errorf("money should be unchanged, got %g", updated.Money)
+	updated, _ := store.GetCompany(nil, companyID)
+	if updated.Inventory[1] >= 50 {
+		t.Errorf("inventory should be deducted from the data-driven demand model, got %d", updated.Inventory[1])
+	}
+	if updated.Money <= 500.0 {
+		t.Errorf("money should be credited, got %g", updated.Money)
 	}
 }
 
-func TestProcessRetailSales_EmptyEconomy_NoOp(t *testing.T) {
+func TestProcessRetailSales_EmptyEconomy_StillSellsConfiguredResource(t *testing.T) {
 	t.Parallel()
 	svc, store, _ := newRetailTestSvc(nil)
+	setupRetailTicker(t, store, 1, 24.0)
 	companyID := newTestCompany(t, store, -1003, "empty_eco_test", 500.0)
 	c, _ := store.GetCompany(nil, companyID)
 	c.Inventory[1] = 50
 	store.UpdateCompany(nil, c)
 
-	svc.ProcessRetailSales(context.Background())
+	if err := svc.ProcessRetailSales(context.Background()); err != nil {
+		t.Fatalf("ProcessRetailSales: %v", err)
+	}
 	updated, _ := store.GetCompany(nil, companyID)
-	if updated.Money != 500.0 {
-		t.Errorf("money should be unchanged with empty economy, got %g", updated.Money)
+	if updated.Inventory[1] >= 50 || updated.Money <= 500.0 {
+		t.Errorf("configured retail demand should not depend on a legacy economy model: %+v", updated)
 	}
 }
 
@@ -179,7 +184,7 @@ func TestCatchUpPlayerRetail_LocksLegacySaleBatchAtCurrentPrice(t *testing.T) {
 	}
 	updated, _ := store.GetCompany(nil, companyID)
 	shelf := updated.Buildings[0].Shelves[0]
-	if !shelf.PriceLock || shelf.Price != 24 {
+	if !shelf.PriceLock || shelf.Price <= 24 {
 		t.Fatalf("legacy batch was not locked at current price: %+v", shelf)
 	}
 }
@@ -198,7 +203,7 @@ func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
 		{
 			ID: "bld-retail-1", Kind: 6, Name: "Market Stall", Level: 1,
 			Shelves: []company.ShelfItem{
-				{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 24.0, PriceLock: true},
+				{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 100.0, PriceLock: true},
 			},
 		},
 	}
@@ -220,8 +225,8 @@ func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
 	if !soldOut && shelfQty >= 100 {
 		t.Errorf("expected shelf quantity to be deducted, got %d", shelfQty)
 	}
-	if updated.Money <= 500.0 {
-		t.Errorf("expected money to increase, got %g", updated.Money)
+	if updated.Money == 500.0 {
+		t.Errorf("expected retail settlement to change cash, got %g", updated.Money)
 	}
 }
 
@@ -276,7 +281,7 @@ func TestCatchUpPlayerRetail_StopsPayrollWhenBatchSellsOut(t *testing.T) {
 	c, _ := store.GetCompany(nil, companyID)
 	c.Buildings = []company.Building{{
 		ID: "bld-retail-1", Kind: 6, Name: "Market Stall", Level: 1,
-		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 1, MaxQty: 100, Price: 24, PriceLock: true}},
+		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 1, MaxQty: 100, Price: 100, PriceLock: true}},
 	}}
 	c.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
 	if err := store.UpdateCompany(nil, c); err != nil {
@@ -336,7 +341,7 @@ func TestCatchUpPlayerRetail_CarriesFractionalDemandAcrossProfilePolls(t *testin
 	c, _ := store.GetCompany(nil, companyID)
 	c.Buildings = []company.Building{{
 		ID: "bld-retail-1", Kind: 6, Name: "Market Stall", Level: 1,
-		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 24.0, PriceLock: true}},
+		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 100.0, PriceLock: true}},
 	}}
 	c.LastRetailAt = clock.Now().Add(-15 * time.Second).Format(time.RFC3339)
 	store.UpdateCompany(nil, c)
@@ -352,7 +357,7 @@ func TestCatchUpPlayerRetail_CarriesFractionalDemandAcrossProfilePolls(t *testin
 		t.Fatalf("expected fractional demand to be retained, got %#v", updated.RetailCarry)
 	}
 
-	clock.Advance(15 * time.Second)
+	clock.Advance(5 * time.Minute)
 	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
 		t.Fatalf("second short catch-up: %v", err)
 	}
@@ -360,8 +365,8 @@ func TestCatchUpPlayerRetail_CarriesFractionalDemandAcrossProfilePolls(t *testin
 	if got := updated.Buildings[0].Shelves[0].Quantity; got >= 100 {
 		t.Errorf("repeated short polls should eventually sell stock, got %d", got)
 	}
-	if updated.Money <= 500.0 {
-		t.Errorf("expected a retained-demand sale to credit money, got %g", updated.Money)
+	if updated.Money == 500.0 {
+		t.Errorf("expected retained demand to settle cash, got %g", updated.Money)
 	}
 }
 
@@ -376,8 +381,8 @@ func TestCatchUpPlayerRetail_DeductsTheShelfThatMadeTheSale(t *testing.T) {
 	companyID := newTestCompany(t, store, 1008, "shelf_identity", 500.0)
 	c, _ := store.GetCompany(nil, companyID)
 	c.Buildings = []company.Building{
-		{ID: "bld-no-sale", Kind: 6, Name: "No Sale", Level: 1, Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 8.0, PriceLock: true}}},
-		{ID: "bld-sale", Kind: 6, Name: "Sale", Level: 1, Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 24.0, PriceLock: true}}},
+		{ID: "bld-no-sale", Kind: 6, Name: "No Sale", Level: 1, Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 1_000_000, PriceLock: true}}},
+		{ID: "bld-sale", Kind: 6, Name: "Sale", Level: 1, Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 100.0, PriceLock: true}}},
 	}
 	c.LastRetailAt = clock.Now().Add(-1 * time.Hour).Format(time.RFC3339)
 	store.UpdateCompany(nil, c)
@@ -408,7 +413,7 @@ func TestCatchUpPlayerRetail_SerializesConcurrentSettlements(t *testing.T) {
 	c, _ := store.GetCompany(nil, companyID)
 	c.Buildings = []company.Building{{
 		ID: "bld-retail-1", Kind: 6, Name: "Market Stall", Level: 1,
-		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 24.0, PriceLock: true}},
+		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 100.0, PriceLock: true}},
 	}}
 	c.LastRetailAt = clock.Now().Add(-1 * time.Hour).Format(time.RFC3339)
 	store.UpdateCompany(nil, c)

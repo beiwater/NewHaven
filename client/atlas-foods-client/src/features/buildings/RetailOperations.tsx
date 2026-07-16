@@ -12,6 +12,31 @@ function priceSpeedMultiplier(price: number, recommendedPrice: number) {
   return ratio <= 1 ? Math.min(1.25, 1 + (1 - ratio) * 0.25) : 1 / (ratio * ratio)
 }
 
+function snapToMarketTick(price: number) {
+  if (!Number.isFinite(price) || price <= 0) return 0
+  const step = price >= 20_000 ? 500
+    : price >= 10_000 ? 100
+      : price >= 5_000 ? 25
+        : price >= 1_000 ? 10
+          : price >= 500 ? 5
+            : price >= 200 ? 2
+              : price >= 100 ? 1
+                : price >= 50 ? 0.5
+                  : price >= 20 ? 0.25
+                    : price >= 5 ? 0.1
+                      : price >= 2 ? 0.05
+                        : price >= 1 ? 0.01
+                          : 0.001
+  return Math.round(price / step) * step
+}
+
+function retailRecommendation(resource: ResourceDefinition, hourlyWage: number, level: number) {
+  const sourcePrice = resource.recommendedPrice ?? 0
+  const demand = (resource.retailDemandPerHour ?? 30) * (resource.demandMultiplier ?? 1) * Math.max(1, level)
+  if (sourcePrice <= 0 || demand <= 0) return 0
+  return snapToMarketTick(sourcePrice + (hourlyWage + 300 * Math.max(1, level)) / demand)
+}
+
 function ActiveSaleRow({ shelf, workerCount, hourlyWage }: { shelf: ShelfItem; workerCount: number; hourlyWage: number }) {
   const { t } = useTranslation()
   const soldPercent = shelf.maxQty > 0 ? Math.max(0, Math.min(100, (shelf.quantity / shelf.maxQty) * 100)) : 0
@@ -65,6 +90,7 @@ function NewSaleRow({
   pending,
   workerCount,
   hourlyWage,
+  level,
   onStart,
 }: {
   resource: ResourceDefinition
@@ -76,10 +102,12 @@ function NewSaleRow({
   pending: boolean
   workerCount: number
   hourlyWage: number
+  level: number
   onStart: (quantity: number, price: number) => void
 }) {
   const { t } = useTranslation()
-  const recommendedPrice = resource.recommendedSellPrice ?? resource.recommendedPrice ?? 0
+  const recommendedPrice = retailRecommendation(resource, hourlyWage, level)
+  const liveDemand = (resource.retailDemandPerHour ?? 30) * (resource.demandMultiplier ?? 1) * Math.max(1, level)
   const numericQuantity = parseInt(quantity, 10)
   const numericPrice = parseFloat(price)
   const validQuantity = Number.isInteger(numericQuantity) && numericQuantity > 0 && numericQuantity <= warehouseStock
@@ -101,6 +129,7 @@ function NewSaleRow({
             <dl className="mt-2 space-y-1 text-[11px] text-amber-700">
               <div className="flex justify-between gap-3"><dt>{t('building.currentStock')}</dt><dd className="font-bold text-amber-950">{warehouseStock.toLocaleString()}</dd></div>
               <div className="flex justify-between gap-3"><dt>{t('building.recommendedSalePrice')}</dt><dd className="font-bold text-cyan-800">${recommendedPrice.toFixed(2)}</dd></div>
+              <div className="flex justify-between gap-3"><dt>{t('building.liveDemand')}</dt><dd className="font-bold text-cyan-800">{liveDemand.toFixed(1)} /h</dd></div>
               <div className="flex justify-between gap-3"><dt>{t('building.workers')}</dt><dd className="font-bold text-amber-950">{workerCount.toLocaleString()}</dd></div>
               <div className="flex justify-between gap-3"><dt>{t('building.hourlyPayroll')}</dt><dd className="font-bold text-red-700">${hourlyWage.toFixed(2)}</dd></div>
             </dl>
@@ -202,7 +231,7 @@ export function RetailOperations({ building }: { building: Building }) {
             if (activeShelf) return <ActiveSaleRow key={resource.resourceId} shelf={activeShelf} workerCount={workerCount} hourlyWage={hourlyWage} />
 
             const stock = warehouseStock(resource.resourceId)
-            const recommendation = resource.recommendedSellPrice ?? resource.recommendedPrice ?? 0
+            const recommendation = retailRecommendation(resource, hourlyWage, building.level)
             const defaultQuantity = String(Math.min(10, Math.max(1, stock)))
             const price = prices[resource.resourceId] ?? (recommendation > 0 ? recommendation.toFixed(2) : '')
             return (
@@ -217,6 +246,7 @@ export function RetailOperations({ building }: { building: Building }) {
                 pending={stockShelf.isPending}
                 workerCount={workerCount}
                 hourlyWage={hourlyWage}
+                level={building.level}
                 onStart={(quantity, salePrice) => stockShelf.mutate({
                   buildingId: building.id,
                   resourceId: resource.resourceId,

@@ -886,6 +886,7 @@ func TestClaimProduction_IsAtomicAcrossServiceInstances(t *testing.T) {
 		Money:     100000,
 		Level:     1,
 		Inventory: map[int]int{},
+		Buildings: []domain.Building{{ID: "parallel-building", BuildingID: 1, Kind: 1, Level: 1}},
 	}); err != nil {
 		t.Fatalf("CreateCompany: %v", err)
 	}
@@ -937,9 +938,24 @@ func TestClaimProduction_IsAtomicAcrossServiceInstances(t *testing.T) {
 	if job.Status != proddmn.StatusClaimed || job.ClaimedAmount != 10 || job.XPAwarded != 10 {
 		t.Fatalf("unexpected settled job: %+v", job)
 	}
+	if got, want := updatedCompany.Money, 100000.0-formula.BuildingHourlyWage(1, 1)/60; got != want {
+		t.Fatalf("production payroll was not settled exactly once: money=%g want=%g", got, want)
+	}
 	entries, _ := store.GetLedgerEntries(ctx, company.ID, 10)
-	if len(entries) != 1 {
-		t.Fatalf("production ledger entries = %d, want 1", len(entries))
+	if len(entries) != 2 {
+		t.Fatalf("production ledger entries = %d, want output plus one payroll", len(entries))
+	}
+	wages := 0
+	for _, entry := range entries {
+		if entry.Kind == "production_wages" {
+			wages++
+			if entry.Amount != formula.BuildingHourlyWage(1, 1)/60 {
+				t.Fatalf("production payroll=%g, want=%g", entry.Amount, formula.BuildingHourlyWage(1, 1)/60)
+			}
+		}
+	}
+	if wages != 1 {
+		t.Fatalf("production payroll ledger entries=%d, want 1", wages)
 	}
 }
 

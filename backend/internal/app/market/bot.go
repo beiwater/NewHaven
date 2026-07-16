@@ -162,7 +162,7 @@ func (s *Service) processResourceCycle(ctx context.Context, rng *rand.Rand, now 
 		return
 	}
 
-	fairPrice, spread := s.calculateFairPrice(ctx, rng, resourceID, allOrders)
+	fairPrice, spread := s.calculateFairPrice(ctx, resourceID, allOrders)
 	netPos := s.calculateBotNetPosition(allOrders, s.botCompanyID)
 	wantedBuy, wantedSell := s.cancelStaleBotOrders(ctx, allOrders, fairPrice, spread)
 	if wantedBuy == 0 && wantedSell == 0 {
@@ -175,46 +175,19 @@ func (s *Service) processResourceCycle(ctx context.Context, rng *rand.Rand, now 
 // calculateFairPrice computes the fair price and dynamic spread from ticker/order book data.
 func (s *Service) calculateFairPrice(
 	ctx context.Context,
-	rng *rand.Rand,
 	resourceID int,
 	allOrders []domainmarket.MarketOrder,
 ) (fairPrice float64, spread float64) {
 	ticker, _ := s.market.GetTicker(ctx, resourceID)
+	anchor := s.marketReferencePrice(ctx, resourceID, allOrders)
 
-	// Calculate fairPrice
+	// Every bot cycle gently mean-reverts to the chain's moving economic
+	// centre. A recent traded price still matters, but cannot freeze an old
+	// quote after upstream costs or customer demand have moved.
 	if ticker != nil && ticker.LastPrice > 0 {
-		fairPrice = ticker.LastPrice
+		fairPrice = ticker.LastPrice*0.7 + anchor*0.3
 	} else {
-		var highestBuy, lowestSell float64
-		lowestSell = math.MaxFloat64
-		for _, o := range allOrders {
-			if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
-				continue
-			}
-			if o.Remaining() <= 0 {
-				continue
-			}
-			if o.IsBuy && o.Price > highestBuy {
-				highestBuy = o.Price
-			}
-			if !o.IsBuy && o.Price < lowestSell {
-				lowestSell = o.Price
-			}
-		}
-		if highestBuy > 0 && lowestSell < math.MaxFloat64 {
-			fairPrice = (highestBuy + lowestSell) / 2
-		} else if highestBuy > 0 {
-			fairPrice = highestBuy * 1.05
-		} else if lowestSell < math.MaxFloat64 {
-			fairPrice = lowestSell * 0.95
-		} else {
-			fairPrice = s.basePriceForResource(resourceID)
-			if fairPrice <= 0 {
-				fairPrice = 20.0 + float64(resourceID%11)*3.0
-			}
-			jitter := 1.0 + (rng.Float64()-0.5)*0.1
-			fairPrice *= jitter
-		}
+		fairPrice = anchor
 	}
 
 	// Dynamic spread
@@ -462,7 +435,7 @@ func (s *Service) estimateMidPrice(ctx context.Context, resourceID int, rng *ran
 	if err == nil && ticker != nil {
 		return float64(ticker.LastPrice)
 	}
-	basePrice := s.basePriceForResource(resourceID)
+	basePrice := s.marketReferencePrice(ctx, resourceID, orders)
 	if basePrice <= 0 {
 		basePrice = 20.0 + float64(resourceID%11)*3.0
 	}

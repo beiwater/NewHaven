@@ -8,17 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
-)
-
-// NPC retail constants.
-const (
-	defaultStoreSize = 1
-	defaultWeather   = 1.06
-	defaultAccel     = 1.0
 )
 
 // retailShelf represents a single shelf sale to process.
@@ -45,11 +37,6 @@ type retailBuilding struct {
 func (s *Service) ProcessRetailSales(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if len(s.economy) == 0 {
-		slog.Debug("[retail] no economy model loaded, skipping")
-		return nil
-	}
 
 	companies, err := s.companies.GetAllCompanies(ctx)
 	if err != nil {
@@ -85,15 +72,12 @@ func (s *Service) processNPCRetail(ctx context.Context, company *domain.Company,
 		if qty <= 0 {
 			continue
 		}
-		eco, ok := s.economy[resourceID]
-		if !ok {
-			continue
-		}
-		price := s.salePriceForResource(ctx, resourceID)
+		price, _ := s.retailRecommendedPrice(ctx, resourceID, 6, 1, 0)
 		if price <= 0 {
 			continue
 		}
-		sold, earned := computeSale(eco, price, price, qty, defaultStoreSize, 0, 60)
+		unitsPerHour := s.retailUnitsPerHour(ctx, resourceID, price, 1, 0)
+		sold, earned, _ := computeSaleWithCarryAtRate(unitsPerHour, price, qty, 60, 0)
 		if sold <= 0 {
 			continue
 		}
@@ -138,13 +122,6 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 		return nil
 	}
 
-	if len(s.economy) == 0 {
-		slog.Debug("[retail] no economy model loaded for catch-up")
-		company.LastRetailAt = now.Format(time.RFC3339)
-		company.RetailCarry = nil
-		return s.companies.UpdateCompany(ctx, company)
-	}
-
 	shelves := s.collectPlayerShelves(company)
 	nextCarry := make(map[string]float64, len(shelves))
 	activeSecondsByBuilding := make(map[string]float64, len(shelves))
@@ -156,14 +133,9 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 		activeBuildings[sh.buildingID] = retailBuilding{kind: sh.buildingKind, level: sh.buildingLevel}
 		activeSeconds := elapsedSeconds
 		qty := sh.quantity
-		eco, ok := s.economy[sh.resourceID]
-		if !ok {
-			activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
-			continue
-		}
 		price := sh.price
 		if !sh.priceLocked {
-			if mp := s.salePriceForResource(ctx, sh.resourceID); mp > 0 {
+			if mp, _ := s.retailRecommendedPrice(ctx, sh.resourceID, sh.buildingKind, sh.buildingLevel, sh.salesModPct); mp > 0 {
 				price = mp
 			}
 		}
@@ -171,8 +143,8 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 			activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
 			continue
 		}
-		recommendedPrice := s.salePriceForResource(ctx, sh.resourceID)
-		unitsPerHour := retailUnitsPerHour(eco, recommendedPrice, price, sh.buildingLevel, sh.salesModPct)
+		recommendedPrice, _ := s.retailRecommendedPrice(ctx, sh.resourceID, sh.buildingKind, sh.buildingLevel, sh.salesModPct)
+		unitsPerHour := s.retailUnitsPerHour(ctx, sh.resourceID, recommendedPrice, price, sh.buildingLevel, sh.salesModPct)
 		activeSeconds = retailActiveSeconds(unitsPerHour, qty, elapsedSeconds, company.RetailCarry[sh.carryKey()])
 		activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
 		key := sh.carryKey()
@@ -211,6 +183,7 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 // the committed batch price, so a deployment cannot leave old sales floating.
 func (s *Service) lockLegacySaleBatches(ctx context.Context, company *domain.Company) bool {
 	changed := false
+	salesModPct := aggregateSalesBonus(company.Executives)
 	for i := range company.Buildings {
 		building := &company.Buildings[i]
 		entry, ok := s.buildings[building.Kind]
@@ -223,7 +196,7 @@ func (s *Service) lockLegacySaleBatches(ctx context.Context, company *domain.Com
 				continue
 			}
 			if shelf.Price <= 0 {
-				shelf.Price = s.salePriceForResource(ctx, shelf.ResourceID)
+				shelf.Price, _ = s.retailRecommendedPrice(ctx, shelf.ResourceID, building.Kind, building.Level, salesModPct)
 			}
 			if shelf.Price > 0 {
 				shelf.PriceLock = true
@@ -268,30 +241,10 @@ func (sh retailShelf) carryKey() string {
 	return sh.buildingID + ":" + strconv.Itoa(sh.resourceID)
 }
 
-// salePriceForResource returns the current market price or base price.
+// salePriceForResource returns the current exchange reference. It is a source
+// cost for retailers, not the recommended consumer-facing shelf price.
 func (s *Service) salePriceForResource(ctx context.Context, resourceID int) float64 {
-	price := s.basePriceForResource(resourceID)
-	ticker, err := s.market.GetTicker(ctx, resourceID)
-	if err == nil && ticker.LastPrice > 0 {
-		price = ticker.LastPrice
-	}
-	return price
-}
-
-// computeSale calculates units sold and revenue for one item.
-func computeSale(eco *catalog.EconomyModelEntry, recommendedPrice, price float64, availableQty int, storeSize int, salesModPct float64, elapsedSeconds float64) (sold int, earned float64) {
-	unitsSold := retailUnitsSold(eco, recommendedPrice, price, storeSize, salesModPct, elapsedSeconds)
-	if unitsSold <= 0 {
-		return 0, 0
-	}
-	sold = int(math.Floor(unitsSold))
-	if sold > availableQty {
-		sold = availableQty
-	}
-	if sold <= 0 {
-		return 0, 0
-	}
-	return sold, float64(sold) * price
+	return s.recommendedPrices(ctx, resourceID).Fair
 }
 
 // computeSaleWithCarry carries fractional demand forward across short catch-ups.
@@ -313,43 +266,17 @@ func computeSaleWithCarryAtRate(unitsPerHour, price float64, availableQty int, e
 	return sold, float64(sold) * price, remainingCarry
 }
 
-func retailUnitsSold(eco *catalog.EconomyModelEntry, recommendedPrice, price float64, storeSize int, salesModPct float64, elapsedSeconds float64) float64 {
-	return retailUnitsPerHour(eco, recommendedPrice, price, storeSize, salesModPct) * elapsedSeconds / 3600
-}
-
-func retailUnitsPerHour(eco *catalog.EconomyModelEntry, recommendedPrice, price float64, storeSize int, salesModPct float64) float64 {
-	if eco == nil || price <= eco.ModeledProductionCostPerUnit {
+// retailUnitsPerHour derives sales from an explicit product-demand parameter.
+// The old legacy formula made some products sell faster when their reference
+// price rose, which rewarded arbitrary price inflation. Demand now moves from
+// the shared market pulse and public player orders; price only controls the
+// speed multiplier around the current building-specific recommendation.
+func (s *Service) retailUnitsPerHour(ctx context.Context, resourceID int, recommendedPrice, price float64, level int, salesModPct float64) float64 {
+	if price <= 0 || recommendedPrice <= 0 {
 		return 0
 	}
-	quality := 4.0
-	saturation := 1.0
-	accel := 1.0
-	weather := 1.06
-	if storeSize <= 0 {
-		storeSize = 1
-	}
-	if recommendedPrice <= eco.ModeledProductionCostPerUnit {
-		recommendedPrice = eco.ModeledProductionCostPerUnit * 1.25
-	}
-
-	unitsPerHour := formula.UnitsSoldPerHour(
-		eco.BuildingKindModifier,
-		eco.BuildingLevelsNeededPerUnitPerHour,
-		eco.ModeledProductionCostPerUnit,
-		eco.ModeledStoreWages,
-		eco.ModeledUnitsSoldAnHour,
-		recommendedPrice,
-		quality,
-		saturation,
-		-salesModPct,
-		1,
-		accel,
-		weather,
-	)
-	if unitsPerHour <= 0 {
-		return 0
-	}
-	return unitsPerHour * float64(storeSize) * formula.RetailPriceSpeedMultiplier(price, recommendedPrice)
+	baseUnits, _ := s.retailBaseUnitsPerHour(ctx, resourceID, level, salesModPct)
+	return baseUnits * formula.RetailPriceSpeedMultiplier(price, recommendedPrice)
 }
 
 // retailActiveSeconds charges workers only for the time this shelf actually

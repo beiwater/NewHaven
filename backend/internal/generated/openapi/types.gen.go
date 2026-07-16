@@ -550,10 +550,12 @@ type RegisterRequest struct {
 
 // ResourceDefinition defines model for ResourceDefinition.
 type ResourceDefinition struct {
+	DemandMultiplier     *float64        `json:"demandMultiplier,omitempty"`
 	HasEconomyModel      *bool           `json:"hasEconomyModel,omitempty"`
 	Name                 *string         `json:"name,omitempty"`
 	ProducedFrom         *map[string]int `json:"producedFrom,omitempty"`
 	ProducedPerHourRaw   *int            `json:"producedPerHourRaw,omitempty"`
+	RetailDemandPerHour  *float64        `json:"retailDemandPerHour,omitempty"`
 	RecommendedBuyPrice  *float64        `json:"recommendedBuyPrice,omitempty"`
 	RecommendedPrice     *float64        `json:"recommendedPrice,omitempty"`
 	RecommendedSellPrice *float64        `json:"recommendedSellPrice,omitempty"`

@@ -6,7 +6,15 @@ import "math"
 // never choose their headcount: their type and level determine it. Keeping the
 // hourly rate shared makes staffing legible while still making larger buildings
 // materially more expensive to run.
-const WorkerHourlyWage = 345.0
+const (
+	// WorkerHourlyWage is shared across the economy so headcount, not an
+	// arbitrary per-building salary slider, determines operating cost.
+	WorkerHourlyWage = 345.0
+	// TargetBuildingProfitPerHour is the level-one balance target used by the
+	// market anchor and retail recommendation. Higher levels scale this target
+	// linearly with their production line and fixed workforce.
+	TargetBuildingProfitPerHour = 300.0
+)
 
 // BuildingWorkerCount returns the fixed headcount required by a building. A
 // level adds one full base team, so a level-two Cafe employs twice the workers
@@ -37,8 +45,8 @@ func BuildingWorkerCount(buildingKind, level int) int {
 	return base * level
 }
 
-// BuildingHourlyWage is the payroll rate while a building is actively selling.
-// Idle and upgrading buildings have no active payroll.
+// BuildingHourlyWage is the payroll rate while a building is operating. Idle
+// and upgrading buildings have no active payroll.
 func BuildingHourlyWage(buildingKind, level int) float64 {
 	return float64(BuildingWorkerCount(buildingKind, level)) * WorkerHourlyWage
 }

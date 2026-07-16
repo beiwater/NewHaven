@@ -252,6 +252,7 @@
     "workers": "固定员工",
     "hourlyPayroll": "每小时工资",
     "demandSpeed": "需求速度",
+    "liveDemand": "当前需求",
     "pricePayrollWarning": "价格高于推荐价，销量会放慢，但员工工资仍会持续产生。",
     "pricePayrollStable": "价格不高于推荐价，销售活跃期间才会产生员工工资。",
     "noStockToSell": "请先生产或购买库存，再开始销售。",

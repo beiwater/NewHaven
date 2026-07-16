@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
+	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
@@ -151,6 +152,7 @@ func (s *Service) CancelProductionJob(ctx context.Context, companyID int, jobID 
 	if job.Status == proddmn.StatusClaimed {
 		return nil, apperr.Conflict("job already claimed")
 	}
+	payroll, workers, hourlyWage := s.productionPayrollSettlement(ctx, companyID, job)
 
 	// Calculate the 50% refund, then apply all refunds and the cancellation
 	// tombstone in one storage critical section.
@@ -164,11 +166,27 @@ func (s *Service) CancelProductionJob(ctx context.Context, companyID int, jobID 
 			}
 		}
 	}
-	if _, _, err := s.production.CancelProductionJob(ctx, companyID, job.ID, refunds); err != nil {
+	cancelled, replayed, err := s.production.CancelProductionJob(ctx, companyID, job.ID, refunds, payroll)
+	if err != nil {
 		if errors.Is(err, storage.ErrAlreadySettled) {
 			return nil, apperr.Conflict("job already claimed")
 		}
 		return nil, apperr.Internalf("cancel production job: %v", err)
+	}
+	if !replayed && payroll.Amount > 0 && s.finance != nil {
+		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
+			CompanyID: companyID,
+			Kind:      "production_wages",
+			Amount:    payroll.Amount,
+			Direction: "out",
+			Metadata: map[string]any{
+				"jobId":         cancelled.ID,
+				"workers":       workers,
+				"hourlyWage":    hourlyWage,
+				"activeSeconds": payroll.SettledSeconds - payroll.ExpectedSeconds,
+			},
+			CreatedAt: s.clock.Now().UTC().Format(time.RFC3339),
+		})
 	}
 
 	status := "cancelled"

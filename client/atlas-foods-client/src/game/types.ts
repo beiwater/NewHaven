@@ -130,6 +130,8 @@ export interface ResourceDefinition {
   producedFrom?: Record<string, number>
   producedPerHourRaw?: number
   unitsSoldAnHour?: number
+  retailDemandPerHour?: number
+  demandMultiplier?: number
   hasEconomyModel?: boolean
   recommendedPrice?: number
   recommendedBuyPrice?: number

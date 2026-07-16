@@ -26,7 +26,20 @@ type ProductionJob struct {
 	ClaimedAmount   int       `json:"claimed_amount"`
 	ClaimableAmount int       `json:"claimable_amount"`
 	XPAwarded       int       `json:"xp_awarded"`
-	Status          JobStatus `json:"status"`
+	// PayrollSettledSeconds is the portion of the active run that has already
+	// had its fixed building payroll charged. It makes return-from-offline and
+	// partial claims settle wages exactly once.
+	PayrollSettledSeconds float64   `json:"payroll_settled_seconds,omitempty"`
+	Status                JobStatus `json:"status"`
+}
+
+// PayrollSettlement carries the compare-and-set payroll update that must move
+// with a production claim or cancellation. Storage applies the amount only if
+// the caller observed the same already-settled duration.
+type PayrollSettlement struct {
+	ExpectedSeconds float64
+	SettledSeconds  float64
+	Amount          float64
 }
 
 // Slot represents a building's production slot.

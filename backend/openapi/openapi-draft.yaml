@@ -1738,6 +1738,14 @@ components:
           type: integer
         unitsSoldAnHour:
           type: integer
+        retailDemandPerHour:
+          type: number
+          format: double
+          description: Baseline level-one retail demand before live market conditions.
+        demandMultiplier:
+          type: number
+          format: double
+          description: Current market demand pressure applied to retail demand.
         hasEconomyModel:
           type: boolean
         recommendedPrice:
