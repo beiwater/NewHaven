@@ -664,6 +664,33 @@ func TestUnitsSoldPerHour_LowPrice(t *testing.T) {
 	}
 }
 
+func TestRetailPriceSpeedMultiplier(t *testing.T) {
+	if got := formula.RetailPriceSpeedMultiplier(24, 24); got != 1 {
+		t.Fatalf("recommended price multiplier = %g, want 1", got)
+	}
+	if got := formula.RetailPriceSpeedMultiplier(48, 24); got != 0.25 {
+		t.Fatalf("double-price multiplier = %g, want 0.25", got)
+	}
+	if got := formula.RetailPriceSpeedMultiplier(24, 1_000_000); got <= 1 {
+		t.Fatalf("discount multiplier = %g, want a modest speed boost", got)
+	}
+	if got := formula.RetailPriceSpeedMultiplier(1_000_000, 24); got >= 0.000001 {
+		t.Fatalf("extreme-price multiplier = %g, want effectively no demand", got)
+	}
+}
+
+func TestBuildingStaffingScalesWithTypeAndLevel(t *testing.T) {
+	if got := formula.BuildingWorkerCount(6, 1); got != 3 {
+		t.Fatalf("market stall level 1 workers = %d, want 3", got)
+	}
+	if got := formula.BuildingWorkerCount(6, 3); got != 9 {
+		t.Fatalf("market stall level 3 workers = %d, want 9", got)
+	}
+	if got := formula.BuildingHourlyWage(6, 3); got != 3105 {
+		t.Fatalf("market stall level 3 hourly wage = %g, want 3105", got)
+	}
+}
+
 // --- Research Formulas ---
 
 func TestResearchFormulas(t *testing.T) {

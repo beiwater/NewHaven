@@ -33,6 +33,11 @@ type retailShelf struct {
 	salesModPct   float64
 }
 
+type retailBuilding struct {
+	kind  int
+	level int
+}
+
 // ProcessRetailSales iterates all bot/NPC companies and sells their goods.
 // NPC companies still sell from inventory (they don't use shelves).
 // Real player companies are identified by their positive PlayerID and skipped;
@@ -88,7 +93,7 @@ func (s *Service) processNPCRetail(ctx context.Context, company *domain.Company,
 		if price <= 0 {
 			continue
 		}
-		sold, earned := computeSale(eco, price, qty, defaultStoreSize, 0, 60)
+		sold, earned := computeSale(eco, price, price, qty, defaultStoreSize, 0, 60)
 		if sold <= 0 {
 			continue
 		}
@@ -142,13 +147,18 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 
 	shelves := s.collectPlayerShelves(company)
 	nextCarry := make(map[string]float64, len(shelves))
+	activeSecondsByBuilding := make(map[string]float64, len(shelves))
+	activeBuildings := make(map[string]retailBuilding, len(shelves))
 	for _, sh := range shelves {
 		if sh.quantity <= 0 {
 			continue
 		}
+		activeBuildings[sh.buildingID] = retailBuilding{kind: sh.buildingKind, level: sh.buildingLevel}
+		activeSeconds := elapsedSeconds
 		qty := sh.quantity
 		eco, ok := s.economy[sh.resourceID]
 		if !ok {
+			activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
 			continue
 		}
 		price := sh.price
@@ -158,10 +168,15 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 			}
 		}
 		if price <= 0 {
+			activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
 			continue
 		}
+		recommendedPrice := s.salePriceForResource(ctx, sh.resourceID)
+		unitsPerHour := retailUnitsPerHour(eco, recommendedPrice, price, sh.buildingLevel, sh.salesModPct)
+		activeSeconds = retailActiveSeconds(unitsPerHour, qty, elapsedSeconds, company.RetailCarry[sh.carryKey()])
+		activeSecondsByBuilding[sh.buildingID] = math.Max(activeSecondsByBuilding[sh.buildingID], activeSeconds)
 		key := sh.carryKey()
-		sold, earned, carry := computeSaleWithCarry(eco, price, qty, sh.buildingLevel, sh.salesModPct, elapsedSeconds, company.RetailCarry[key])
+		sold, earned, carry := computeSaleWithCarryAtRate(unitsPerHour, price, qty, elapsedSeconds, company.RetailCarry[key])
 		if sold < qty && carry > 0 {
 			nextCarry[key] = carry
 		}
@@ -169,6 +184,21 @@ func (s *Service) CatchUpPlayerRetail(ctx context.Context, companyID int) error 
 			continue
 		}
 		s.applyPlayerShelfSale(ctx, company, sh.buildingID, sh.resourceID, sold, earned, price, now)
+	}
+
+	for buildingID, activeSeconds := range activeSecondsByBuilding {
+		if activeSeconds <= 0 {
+			continue
+		}
+		building := activeBuildings[buildingID]
+		workers := formula.BuildingWorkerCount(building.kind, building.level)
+		hourlyWage := formula.BuildingHourlyWage(building.kind, building.level)
+		payroll := hourlyWage * activeSeconds / 3600
+		if payroll <= 0 {
+			continue
+		}
+		company.Money -= payroll
+		logRetailPayroll(ctx, s.finance, company.ID, buildingID, workers, hourlyWage, activeSeconds, payroll, now)
 	}
 
 	company.RetailCarry = nextCarry
@@ -249,8 +279,8 @@ func (s *Service) salePriceForResource(ctx context.Context, resourceID int) floa
 }
 
 // computeSale calculates units sold and revenue for one item.
-func computeSale(eco *catalog.EconomyModelEntry, price float64, availableQty int, storeSize int, salesModPct float64, elapsedSeconds float64) (sold int, earned float64) {
-	unitsSold := retailUnitsSold(eco, price, storeSize, salesModPct, elapsedSeconds)
+func computeSale(eco *catalog.EconomyModelEntry, recommendedPrice, price float64, availableQty int, storeSize int, salesModPct float64, elapsedSeconds float64) (sold int, earned float64) {
+	unitsSold := retailUnitsSold(eco, recommendedPrice, price, storeSize, salesModPct, elapsedSeconds)
 	if unitsSold <= 0 {
 		return 0, 0
 	}
@@ -267,8 +297,8 @@ func computeSale(eco *catalog.EconomyModelEntry, price float64, availableQty int
 // computeSaleWithCarry carries fractional demand forward across short catch-ups.
 // It is deliberately used only for player shelves; NPC scheduler ticks already
 // run at a fixed one-minute cadence.
-func computeSaleWithCarry(eco *catalog.EconomyModelEntry, price float64, availableQty int, storeSize int, salesModPct float64, elapsedSeconds, carry float64) (sold int, earned, remainingCarry float64) {
-	unitsSold := retailUnitsSold(eco, price, storeSize, salesModPct, elapsedSeconds) + carry
+func computeSaleWithCarryAtRate(unitsPerHour, price float64, availableQty int, elapsedSeconds, carry float64) (sold int, earned, remainingCarry float64) {
+	unitsSold := unitsPerHour*elapsedSeconds/3600 + carry
 	if unitsSold <= 0 {
 		return 0, 0, 0
 	}
@@ -283,13 +313,23 @@ func computeSaleWithCarry(eco *catalog.EconomyModelEntry, price float64, availab
 	return sold, float64(sold) * price, remainingCarry
 }
 
-func retailUnitsSold(eco *catalog.EconomyModelEntry, price float64, storeSize int, salesModPct float64, elapsedSeconds float64) float64 {
+func retailUnitsSold(eco *catalog.EconomyModelEntry, recommendedPrice, price float64, storeSize int, salesModPct float64, elapsedSeconds float64) float64 {
+	return retailUnitsPerHour(eco, recommendedPrice, price, storeSize, salesModPct) * elapsedSeconds / 3600
+}
+
+func retailUnitsPerHour(eco *catalog.EconomyModelEntry, recommendedPrice, price float64, storeSize int, salesModPct float64) float64 {
+	if eco == nil || price <= eco.ModeledProductionCostPerUnit {
+		return 0
+	}
 	quality := 4.0
 	saturation := 1.0
 	accel := 1.0
 	weather := 1.06
 	if storeSize <= 0 {
 		storeSize = 1
+	}
+	if recommendedPrice <= eco.ModeledProductionCostPerUnit {
+		recommendedPrice = eco.ModeledProductionCostPerUnit * 1.25
 	}
 
 	unitsPerHour := formula.UnitsSoldPerHour(
@@ -298,18 +338,36 @@ func retailUnitsSold(eco *catalog.EconomyModelEntry, price float64, storeSize in
 		eco.ModeledProductionCostPerUnit,
 		eco.ModeledStoreWages,
 		eco.ModeledUnitsSoldAnHour,
-		price,
+		recommendedPrice,
 		quality,
 		saturation,
-		salesModPct,
-		storeSize,
+		-salesModPct,
+		1,
 		accel,
 		weather,
 	)
 	if unitsPerHour <= 0 {
 		return 0
 	}
-	return unitsPerHour * elapsedSeconds / 3600.0
+	return unitsPerHour * float64(storeSize) * formula.RetailPriceSpeedMultiplier(price, recommendedPrice)
+}
+
+// retailActiveSeconds charges workers only for the time this shelf actually
+// kept its building busy. A slow or overpriced batch remains active for the
+// whole interval; a fast sell-out stops payroll at the exact sell-out point.
+func retailActiveSeconds(unitsPerHour float64, quantity int, elapsedSeconds, carry float64) float64 {
+	if elapsedSeconds <= 0 || quantity <= 0 {
+		return 0
+	}
+	if unitsPerHour <= 0 {
+		return elapsedSeconds
+	}
+	remainingDemand := float64(quantity) - math.Max(0, carry)
+	if remainingDemand <= 0 {
+		return 0
+	}
+	sellOutSeconds := remainingDemand * 3600 / unitsPerHour
+	return math.Min(elapsedSeconds, math.Max(0, sellOutSeconds))
 }
 
 // applyNPCSale credits money, deducts inventory, logs.
@@ -330,7 +388,7 @@ func (s *Service) applyNPCSale(ctx context.Context, company *domain.Company, res
 
 // applyPlayerShelfSale deducts from shelf, credits money, logs.
 func (s *Service) applyPlayerShelfSale(ctx context.Context, company *domain.Company, buildingID string, resourceID, sold int, earned, price float64, now time.Time) {
-	if !deductFromShelf(company, buildingID, resourceID, sold) {
+	if !deductFromShelf(company, buildingID, resourceID, sold, earned) {
 		slog.Warn("[retail] player shelf disappeared before settlement", "company", company.ID, "building", buildingID, "resource", resourceID)
 		return
 	}
@@ -340,7 +398,7 @@ func (s *Service) applyPlayerShelfSale(ctx context.Context, company *domain.Comp
 }
 
 // deductFromShelf decrements the matching shelf quantity (or removes if empty).
-func deductFromShelf(company *domain.Company, buildingID string, resourceID, sold int) bool {
+func deductFromShelf(company *domain.Company, buildingID string, resourceID, sold int, earned float64) bool {
 	for i := range company.Buildings {
 		b := &company.Buildings[i]
 		if b.ID != buildingID {
@@ -348,6 +406,7 @@ func deductFromShelf(company *domain.Company, buildingID string, resourceID, sol
 		}
 		for j := range b.Shelves {
 			if b.Shelves[j].ResourceID == resourceID {
+				b.Shelves[j].Revenue += earned
 				if b.Shelves[j].Quantity > sold {
 					b.Shelves[j].Quantity -= sold
 				} else {
@@ -380,6 +439,22 @@ func logSale(ctx context.Context, financeSvc financeWriter, companyID int, kind 
 			"resourceId": resourceID,
 			"quantity":   sold,
 			"price":      price,
+		},
+		CreatedAt: now.Format(time.RFC3339),
+	})
+}
+
+func logRetailPayroll(ctx context.Context, financeSvc financeWriter, companyID int, buildingID string, workers int, hourlyWage, activeSeconds, amount float64, now time.Time) {
+	_ = financeSvc.AppendLedgerEntry(ctx, &finance.LedgerEntry{
+		CompanyID: companyID,
+		Kind:      "retail_wages",
+		Amount:    amount,
+		Direction: "out",
+		Metadata: map[string]any{
+			"buildingId":    buildingID,
+			"workers":       workers,
+			"hourlyWage":    hourlyWage,
+			"activeSeconds": activeSeconds,
 		},
 		CreatedAt: now.Format(time.RFC3339),
 	})

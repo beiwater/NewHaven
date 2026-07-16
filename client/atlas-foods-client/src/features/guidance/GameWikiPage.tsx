@@ -111,7 +111,7 @@ const enSections: WikiSection[] = [
   },
   {
     id: 'retail', title: 'Retail: turn shelves into cash', summary: 'Choose quantity and price, then commit an irreversible sale batch.',
-    body: ['Retail buildings sell only allowed goods. Before starting, choose the product, quantity, and sale price; the interface recommends a price from the live book, latest trade, or catalog fallback.', 'After you press Start selling, that batch and price are locked: no unstocking, topping up, or repricing. Start a new batch after every unit sells.', 'Overpriced, empty, or demandless shelves do not sell. Fractional low-volume demand carries into the next settlement.', 'Shelves settle independently by building, even when two shops sell the same resource.'],
+    body: ['Retail buildings sell only allowed goods. Before starting, choose the product, quantity, and sale price; the interface recommends a price from the live book, latest trade, or catalog fallback.', 'After you press Start selling, that batch and price are locked: no unstocking, topping up, or repricing. Start a new batch after every unit sells.', 'Price changes sale speed: above the recommendation, demand falls with the square of the price ratio. A very high price can leave a batch effectively unsold instead of creating instant money.', 'Every building has a fixed worker count from its type and level. While a retail batch is active, its payroll is workers × $345 per hour; idle or upgrading buildings do not charge this payroll. Slow, expensive batches can therefore lose money to wages.', 'Shelves settle independently by building, even when two shops sell the same resource.'],
   },
   {
     id: 'market', title: 'Market: buy and sell', summary: 'Use limit orders to protect cash and margin.',

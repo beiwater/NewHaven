@@ -6,7 +6,13 @@ import { useResources } from '@/api/market.api'
 import { resourceIcon, resourceName } from '@/game/resources'
 import type { Building, ResourceDefinition, ShelfItem } from '@/game/types'
 
-function ActiveSaleRow({ shelf }: { shelf: ShelfItem }) {
+function priceSpeedMultiplier(price: number, recommendedPrice: number) {
+  if (!Number.isFinite(price) || !Number.isFinite(recommendedPrice) || price <= 0 || recommendedPrice <= 0) return 0
+  const ratio = price / recommendedPrice
+  return ratio <= 1 ? Math.min(1.25, 1 + (1 - ratio) * 0.25) : 1 / (ratio * ratio)
+}
+
+function ActiveSaleRow({ shelf, workerCount, hourlyWage }: { shelf: ShelfItem; workerCount: number; hourlyWage: number }) {
   const { t } = useTranslation()
   const soldPercent = shelf.maxQty > 0 ? Math.max(0, Math.min(100, (shelf.quantity / shelf.maxQty) * 100)) : 0
 
@@ -25,6 +31,8 @@ function ActiveSaleRow({ shelf }: { shelf: ShelfItem }) {
             <dl className="mt-2 space-y-1 text-[11px] text-amber-700">
               <div className="flex justify-between gap-3"><dt>{t('building.price')}</dt><dd className="font-bold text-amber-950">${shelf.price.toFixed(2)}</dd></div>
               <div className="flex justify-between gap-3"><dt>{t('building.quantity')}</dt><dd className="font-bold text-amber-950">{shelf.quantity.toLocaleString()} / {shelf.maxQty.toLocaleString()}</dd></div>
+              <div className="flex justify-between gap-3"><dt>{t('building.workers')}</dt><dd className="font-bold text-amber-950">{workerCount.toLocaleString()}</dd></div>
+              <div className="flex justify-between gap-3"><dt>{t('building.hourlyPayroll')}</dt><dd className="font-bold text-red-700">${hourlyWage.toFixed(2)}</dd></div>
               {shelf.revenue > 0 && <div className="flex justify-between gap-3"><dt>{t('building.revenue')}</dt><dd className="font-bold text-green-700">${shelf.revenue.toFixed(2)}</dd></div>}
             </dl>
           </div>
@@ -55,6 +63,8 @@ function NewSaleRow({
   setQuantity,
   setPrice,
   pending,
+  workerCount,
+  hourlyWage,
   onStart,
 }: {
   resource: ResourceDefinition
@@ -64,6 +74,8 @@ function NewSaleRow({
   setQuantity: (value: string) => void
   setPrice: (value: string) => void
   pending: boolean
+  workerCount: number
+  hourlyWage: number
   onStart: (quantity: number, price: number) => void
 }) {
   const { t } = useTranslation()
@@ -72,6 +84,10 @@ function NewSaleRow({
   const numericPrice = parseFloat(price)
   const validQuantity = Number.isInteger(numericQuantity) && numericQuantity > 0 && numericQuantity <= warehouseStock
   const validPrice = Number.isFinite(numericPrice) && numericPrice > 0
+  const demandSpeed = priceSpeedMultiplier(numericPrice, recommendedPrice)
+  const demandSpeedLabel = demandSpeed * 100 < 0.0001
+    ? '<0.0001%'
+    : `${(demandSpeed * 100).toFixed(demandSpeed < 0.01 ? 4 : 1)}%`
 
   return (
     <article className="rounded-2xl border border-amber-200/80 bg-white/70 p-4 shadow-sm transition-colors hover:border-amber-400/80">
@@ -85,6 +101,8 @@ function NewSaleRow({
             <dl className="mt-2 space-y-1 text-[11px] text-amber-700">
               <div className="flex justify-between gap-3"><dt>{t('building.currentStock')}</dt><dd className="font-bold text-amber-950">{warehouseStock.toLocaleString()}</dd></div>
               <div className="flex justify-between gap-3"><dt>{t('building.recommendedSalePrice')}</dt><dd className="font-bold text-cyan-800">${recommendedPrice.toFixed(2)}</dd></div>
+              <div className="flex justify-between gap-3"><dt>{t('building.workers')}</dt><dd className="font-bold text-amber-950">{workerCount.toLocaleString()}</dd></div>
+              <div className="flex justify-between gap-3"><dt>{t('building.hourlyPayroll')}</dt><dd className="font-bold text-red-700">${hourlyWage.toFixed(2)}</dd></div>
             </dl>
           </div>
         </div>
@@ -126,6 +144,12 @@ function NewSaleRow({
               {t('market.useRecommended')} · ${recommendedPrice.toFixed(2)}
             </button>
           )}
+          {validPrice && recommendedPrice > 0 && (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-semibold leading-4 text-amber-800">
+              <div className="flex items-center justify-between gap-3"><span>{t('building.demandSpeed')}</span><strong>{demandSpeedLabel}</strong></div>
+              <p className="mt-1">{demandSpeed < 1 ? t('building.pricePayrollWarning') : t('building.pricePayrollStable')}</p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => onStart(numericQuantity, numericPrice)}
@@ -153,6 +177,8 @@ export function RetailOperations({ building }: { building: Building }) {
     .map((resourceId) => resources.find((resource) => resource.resourceId === resourceId) ?? { resourceId, name: resourceName(resourceId) })
   const shelves = building.shelves ?? []
   const totalRevenue = shelves.reduce((sum, shelf) => sum + (shelf.revenue ?? 0), 0)
+  const workerCount = building.workerCount ?? 0
+  const hourlyWage = building.hourlyWage ?? 0
   const warehouseStock = (resourceId: number) => warehouse?.inventory
     .filter((item) => item.resourceId === resourceId && (item.quality ?? 0) === 0)
     .reduce((sum, item) => sum + item.quantity, 0) ?? 0
@@ -173,7 +199,7 @@ export function RetailOperations({ building }: { building: Building }) {
         <div className="space-y-3">
           {sellableResources.map((resource) => {
             const activeShelf = shelves.find((shelf) => shelf.resourceId === resource.resourceId)
-            if (activeShelf) return <ActiveSaleRow key={resource.resourceId} shelf={activeShelf} />
+            if (activeShelf) return <ActiveSaleRow key={resource.resourceId} shelf={activeShelf} workerCount={workerCount} hourlyWage={hourlyWage} />
 
             const stock = warehouseStock(resource.resourceId)
             const recommendation = resource.recommendedSellPrice ?? resource.recommendedPrice ?? 0
@@ -189,6 +215,8 @@ export function RetailOperations({ building }: { building: Building }) {
                 setQuantity={(value) => setQuantities((current) => ({ ...current, [resource.resourceId]: value }))}
                 setPrice={(value) => setPrices((current) => ({ ...current, [resource.resourceId]: value }))}
                 pending={stockShelf.isPending}
+                workerCount={workerCount}
+                hourlyWage={hourlyWage}
                 onStart={(quantity, salePrice) => stockShelf.mutate({
                   buildingId: building.id,
                   resourceId: resource.resourceId,

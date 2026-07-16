@@ -1377,6 +1377,13 @@ components:
           type: string
         level:
           type: integer
+        worker_count:
+          type: integer
+          description: Fixed workers required by this building's type and level.
+        hourly_wage:
+          type: number
+          format: double
+          description: Payroll charged for each active retail hour.
         next_upgrade_cost:
           type: number
           format: double

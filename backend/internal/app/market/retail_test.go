@@ -12,6 +12,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/config"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
+	"github.com/beiwater/NewHaven/backend/internal/formula"
 	"github.com/beiwater/NewHaven/backend/internal/platform"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
 	"github.com/beiwater/NewHaven/backend/internal/storage/memory"
@@ -222,6 +223,82 @@ func TestCatchUpPlayerRetail_SettlesElapsedSales(t *testing.T) {
 	if updated.Money <= 500.0 {
 		t.Errorf("expected money to increase, got %g", updated.Money)
 	}
+}
+
+func TestCatchUpPlayerRetail_OverpricedBatchStallsAndStillPaysPayroll(t *testing.T) {
+	t.Parallel()
+	economy := map[int]*catalog.EconomyModelEntry{
+		1: {BuildingKindModifier: 0.8, BuildingLevelsNeededPerUnitPerHour: 0.01, ModeledProductionCostPerUnit: 8.0, ModeledStoreWages: 200.0, ModeledUnitsSoldAnHour: 15.0},
+	}
+	svc, store, clock := newRetailTestSvc(economy)
+	setupRetailTicker(t, store, 1, 24.0)
+
+	companyID := newTestCompany(t, store, 1015, "overpriced_payroll", 5000.0)
+	c, _ := store.GetCompany(nil, companyID)
+	c.Buildings = []company.Building{{
+		ID: "bld-retail-1", Kind: 6, Name: "Market Stall", Level: 1,
+		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 100, MaxQty: 100, Price: 1_000_000, PriceLock: true}},
+	}}
+	c.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
+	if err := store.UpdateCompany(nil, c); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
+		t.Fatalf("CatchUpPlayerRetail: %v", err)
+	}
+	updated, _ := store.GetCompany(nil, companyID)
+	if got := updated.Buildings[0].Shelves[0].Quantity; got != 100 {
+		t.Fatalf("million-price batch sold %d units, want no practical sale", 100-got)
+	}
+	wantMoney := 5000.0 - formula.BuildingHourlyWage(6, 1)
+	if updated.Money != wantMoney {
+		t.Fatalf("money after stalled sale = %g, want %g after one active hour of payroll", updated.Money, wantMoney)
+	}
+	entries, err := store.GetLedgerEntries(context.Background(), companyID, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Kind != "retail_wages" || entries[0].Direction != "out" {
+		t.Fatalf("expected one retail_wages debit, got %+v", entries)
+	}
+}
+
+func TestCatchUpPlayerRetail_StopsPayrollWhenBatchSellsOut(t *testing.T) {
+	t.Parallel()
+	economy := map[int]*catalog.EconomyModelEntry{
+		1: {BuildingKindModifier: 0.8, BuildingLevelsNeededPerUnitPerHour: 0.01, ModeledProductionCostPerUnit: 8.0, ModeledStoreWages: 200.0, ModeledUnitsSoldAnHour: 15.0},
+	}
+	svc, store, clock := newRetailTestSvc(economy)
+	setupRetailTicker(t, store, 1, 24.0)
+
+	companyID := newTestCompany(t, store, 1016, "sellout_payroll", 5000.0)
+	c, _ := store.GetCompany(nil, companyID)
+	c.Buildings = []company.Building{{
+		ID: "bld-retail-1", Kind: 6, Name: "Market Stall", Level: 1,
+		Shelves: []company.ShelfItem{{ResourceID: 1, Quantity: 1, MaxQty: 100, Price: 24, PriceLock: true}},
+	}}
+	c.LastRetailAt = clock.Now().Add(-time.Hour).Format(time.RFC3339)
+	if err := store.UpdateCompany(nil, c); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
+		t.Fatalf("CatchUpPlayerRetail: %v", err)
+	}
+	entries, err := store.GetLedgerEntries(context.Background(), companyID, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Kind == "retail_wages" {
+			if entry.Amount <= 0 || entry.Amount >= formula.BuildingHourlyWage(6, 1) {
+				t.Fatalf("sell-out payroll = %g, want a partial active-hour wage", entry.Amount)
+			}
+			return
+		}
+	}
+	t.Fatalf("retail payroll entry not found: %+v", entries)
 }
 
 func TestProcessRetailSales_SkipsPlayerWithoutSettlementBaseline(t *testing.T) {

@@ -176,6 +176,7 @@ type BondListResponse struct {
 // BuildingDTO defines model for BuildingDTO.
 type BuildingDTO struct {
 	BuildingId                 *int         `json:"building_id,omitempty"`
+	HourlyWage                 *float64     `json:"hourly_wage,omitempty"`
 	Id                         *string      `json:"id,omitempty"`
 	IsRetail                   *bool        `json:"is_retail,omitempty"`
 	Level                      *int         `json:"level,omitempty"`
@@ -191,6 +192,7 @@ type BuildingDTO struct {
 	UpgradeCompletesAt         *time.Time   `json:"upgrade_completes_at,omitempty"`
 	UpgradeStartedAt           *time.Time   `json:"upgrade_started_at,omitempty"`
 	UpgradeTargetLevel         *int         `json:"upgrade_target_level,omitempty"`
+	WorkerCount                *int         `json:"worker_count,omitempty"`
 	X                          *int         `json:"x,omitempty"`
 	Y                          *int         `json:"y,omitempty"`
 }

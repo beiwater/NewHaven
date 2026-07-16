@@ -18,6 +18,8 @@ export interface Building {
   status?: 'idle' | 'running' | 'ready'
   isRetail?: boolean
   shelves?: ShelfItem[]
+  workerCount?: number
+  hourlyWage?: number
   nextUpgradeCost?: number
   nextUpgradeDurationSeconds?: number
   upgradeTargetLevel?: number

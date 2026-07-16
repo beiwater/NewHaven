@@ -51,6 +51,12 @@ export function normalizeBuilding(value: unknown): Building {
     starterRole: string(raw.starterRole ?? raw.starter_role) || undefined,
     isRetail: typeof raw.is_retail === 'boolean' ? raw.is_retail : typeof raw.isRetail === 'boolean' ? raw.isRetail : undefined,
     shelves,
+    workerCount: typeof (raw.workerCount ?? raw.worker_count) === 'number'
+      ? number(raw.workerCount ?? raw.worker_count)
+      : undefined,
+    hourlyWage: typeof (raw.hourlyWage ?? raw.hourly_wage) === 'number'
+      ? number(raw.hourlyWage ?? raw.hourly_wage)
+      : undefined,
     nextUpgradeCost: typeof (raw.nextUpgradeCost ?? raw.next_upgrade_cost) === 'number'
       ? number(raw.nextUpgradeCost ?? raw.next_upgrade_cost)
       : undefined,
