@@ -62,9 +62,9 @@ type Building struct {
 	PurchaseCost          float64     `json:"purchase_cost,omitempty"`
 	// UpgradeTargetLevel and its timestamps describe an in-progress upgrade.
 	// The effective Level changes only once the construction timer completes.
-	UpgradeTargetLevel   int         `json:"upgrade_target_level,omitempty"`
-	UpgradeStartedAt     string      `json:"upgrade_started_at,omitempty"`
-	UpgradeCompletesAt   string      `json:"upgrade_completes_at,omitempty"`
+	UpgradeTargetLevel int    `json:"upgrade_target_level,omitempty"`
+	UpgradeStartedAt   string `json:"upgrade_started_at,omitempty"`
+	UpgradeCompletesAt string `json:"upgrade_completes_at,omitempty"`
 }
 
 // ShelfItem represents items stocked in a retail building's shelf.

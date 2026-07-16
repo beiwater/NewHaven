@@ -215,12 +215,12 @@ func (s *Service) UpgradeBuilding(ctx context.Context, companyID int, buildingID
 		status := "upgrading"
 
 		return &openapi.UpgradeBuildingResponse{
-			BuildingId:          &buildingID,
-			OldLevel:            &currLevel,
-			NewLevel:            &nextLevel,
-			Cost:                &cost,
-			OutputMultiplier:    &nextLevel,
-			Status:              &status,
+			BuildingId:         &buildingID,
+			OldLevel:           &currLevel,
+			NewLevel:           &nextLevel,
+			Cost:               &cost,
+			OutputMultiplier:   &nextLevel,
+			Status:             &status,
 			UpgradeCompletesAt: &completesAt,
 		}, nil
 	}

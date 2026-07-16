@@ -39,15 +39,15 @@ func upgradeBaseMinutes(buildingKind int) int {
 	// letting each building feel distinct. Unknown future buildings get a
 	// conservative four-minute base rather than silently becoming instant.
 	if minutes, ok := map[int]int{
-		1: 2, // Farm
-		2: 3, // Mill
-		3: 3, // Bakery
-		4: 4, // Kitchen
-		5: 5,
-		6: 3,
-		7: 4,
-		8: 4,
-		9: 5,
+		1:  2, // Farm
+		2:  3, // Mill
+		3:  3, // Bakery
+		4:  4, // Kitchen
+		5:  5,
+		6:  3,
+		7:  4,
+		8:  4,
+		9:  5,
 		10: 6,
 		11: 6,
 		12: 5,
