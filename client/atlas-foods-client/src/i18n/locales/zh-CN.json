@@ -321,7 +321,8 @@
   },
   "quality": {
     "tier": "商品品质",
-    "retailSpeed": "零售速度"
+    "retailSpeed": "零售速度",
+    "researchToUnlock": "前往品质实验室研究 Q{{quality}}"
   },
   "financial": {
     "title": "财务总览",
@@ -369,7 +370,29 @@
     "effect": "效果",
     "requirements": "需求",
     "noProjects": "暂无研究项目",
-    "timeRemaining": "剩余 {{time}}"
+    "timeRemaining": "剩余 {{time}}",
+    "qualityProgramme": "商品开发计划",
+    "qualityLab": "品质实验室",
+    "qualityLabHelp": "每种商品都要逐级研究。研究只解锁生产许可，不会赠送库存，也不会代替上一品质的生产原料。",
+    "cash": "可用现金",
+    "highestQuality": "最高许可",
+    "totalUnlocks": "累计解锁",
+    "masteredProducts": "Q12 商品",
+    "ruleResearch": "支付一次研究费，解锁一种商品的下一级品质。",
+    "ruleSource": "准备上一品质、两倍基础配方数量的原料。",
+    "ruleSell": "每级品质让零售速度提高 2%。",
+    "allProducts": "全部商品",
+    "productTier": "第 {{tier}} 阶商品",
+    "qualityLicence": "生产许可",
+    "unlockedThrough": "已经解锁至 Q{{quality}}",
+    "unlockQuality": "解锁 Q{{quality}}",
+    "unlockEffect": "允许生产 Q{{quality}}，并让该品质的零售速度加成提高到 +{{bonus}}%。",
+    "researchQuality": "研究 Q{{quality}}",
+    "needMoreCash": "还差 {{amount}}",
+    "mastered": "已经精通 Q12",
+    "masteredHelp": "该商品的全部品质都可以生产。",
+    "loading": "正在加载品质研究……",
+    "failedToLoad": "品质研究加载失败。"
   },
   "executives": {
     "title": "高管",

@@ -755,4 +755,19 @@ func TestResearchFormulas(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("QualityResearchCost", func(t *testing.T) {
+		if got := formula.QualityResearchCost(1, 1, 1000, 1.2); got != 1000 {
+			t.Fatalf("tier 1 Q1 cost = %g, want 1000", got)
+		}
+		if got := formula.QualityResearchCost(2, 2, 1000, 1.2); got != 2400 {
+			t.Fatalf("tier 2 Q2 cost = %g, want 2400", got)
+		}
+		if got := formula.QualityResearchCost(4, 12, 1000, 1.2); got != 59450 {
+			t.Fatalf("tier 4 Q12 cost = %g, want 59450", got)
+		}
+		if got := formula.QualityResearchCost(1, 13, 1000, 1.2); got != 0 {
+			t.Fatalf("out-of-range quality cost = %g, want 0", got)
+		}
+	})
 }

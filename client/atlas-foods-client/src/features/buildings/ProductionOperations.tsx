@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWarehouse } from '@/api/inventory.api'
 import { useClaimProduction, useProductionJobs, useProductionOptions, useStartProduction } from '@/api/production.api'
+import { useResearch } from '@/api/research.api'
 import { audio } from '@/audio/AudioManager'
 import { QualitySelector } from '@/features/quality/QualitySelector'
 import { qualityRequirements } from '@/game/quality'
@@ -65,10 +66,12 @@ function ProductionOptionRow({
   setAmount,
   quality,
   setQuality,
+  maxQuality,
   blocked,
   isStarting,
   guided,
   onStart,
+  onOpenResearch,
 }: {
   building: Building
   option: ResourceDefinition
@@ -78,10 +81,12 @@ function ProductionOptionRow({
   setAmount: (value: string) => void
   quality: number
   setQuality: (quality: number) => void
+  maxQuality: number
   blocked: boolean
   isStarting: boolean
   guided: boolean
   onStart: (amount: number, quality: number) => void
+  onOpenResearch: () => void
 }) {
   const { t } = useTranslation()
   const rate = outputPerHour(option.producedPerHourRaw, building.level)
@@ -140,7 +145,12 @@ function ProductionOptionRow({
         </div>
 
         <div>
-          <QualitySelector value={quality} onChange={setQuality} disabled={blocked || isStarting} />
+          <QualitySelector value={quality} onChange={setQuality} disabled={blocked || isStarting} maxQuality={maxQuality} />
+          {maxQuality < 12 && (
+            <button type="button" onClick={onOpenResearch} className="mt-1.5 w-full text-right text-[9px] font-black text-violet-700 hover:text-violet-900">
+              {t('quality.researchToUnlock', { quality: maxQuality + 1 })}
+            </button>
+          )}
           <div className="mb-2 mt-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">
             <span>{t('building.quantity')}</span>
             <span>{t('building.max48h')}: {maxAmount.toLocaleString()}</span>
@@ -177,6 +187,7 @@ export function ProductionOperations({ building }: { building: Building }) {
   const { data: options = [] } = useProductionOptions(building.id)
   const { data: jobs = [] } = useProductionJobs()
   const { data: warehouse } = useWarehouse()
+  const { data: research = [] } = useResearch()
   const startProduction = useStartProduction()
   const claimProduction = useClaimProduction()
   const setActiveView = useUIStore((state) => state.setActiveView)
@@ -189,6 +200,7 @@ export function ProductionOperations({ building }: { building: Building }) {
   const runningJobId = runningJob?.id
   const collectableJob = buildingJobs.find((job) => collectableAmount(job, now) > 0)
   const blocked = buildingJobs.length > 0
+  const maxQualityByResource = useMemo(() => new Map(research.map((item) => [item.resourceId, item.maxQuality])), [research])
   const sortedOptions = useMemo(() => {
     const starters = new Set(building.starterProduces ?? [])
     return [...options].sort((left, right) => Number(!starters.has(left.resourceId)) - Number(!starters.has(right.resourceId)))
@@ -274,6 +286,7 @@ export function ProductionOperations({ building }: { building: Building }) {
                 setAmount={(value) => setAmounts((current) => ({ ...current, [option.resourceId]: value }))}
                 quality={quality}
                 setQuality={(nextQuality) => setQualities((current) => ({ ...current, [option.resourceId]: nextQuality }))}
+                maxQuality={maxQualityByResource.get(option.resourceId) ?? 0}
                 blocked={blocked}
                 isStarting={startProduction.isPending}
                 guided={index === 0 && !blocked}
@@ -281,6 +294,7 @@ export function ProductionOperations({ building }: { building: Building }) {
                   audio.playSfx('build_confirm')
                   startProduction.mutate({ buildingId: building.id, kind: option.resourceId, amount, quality: outputQuality })
                 }}
+                onOpenResearch={() => setActiveView('research')}
               />
             )
           })}

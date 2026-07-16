@@ -12,6 +12,7 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
+	domainresearch "github.com/beiwater/NewHaven/backend/internal/domain/research"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 	"github.com/beiwater/NewHaven/backend/internal/platform"
 	"github.com/beiwater/NewHaven/backend/internal/storage/memory"
@@ -55,6 +56,9 @@ func TestStartProduction_ReservesLowerQualityInputsPerCompany(t *testing.T) {
 		}
 		company, err := store.GetCompanyByPlayerID(ctx, playerID)
 		if err != nil {
+			t.Fatal(err)
+		}
+		if err := store.SaveResourceResearch(ctx, &domainresearch.ResourceResearch{CompanyID: company.ID, ResourceID: 3, Level: 1}); err != nil {
 			t.Fatal(err)
 		}
 		return company.ID
@@ -166,6 +170,9 @@ func TestStartProduction_RefinesRawGoodsFromPreviousQuality(t *testing.T) {
 		t.Fatal(err)
 	}
 	company, _ := store.GetCompanyByPlayerID(ctx, 305)
+	if err := store.SaveResourceResearch(ctx, &domainresearch.ResourceResearch{CompanyID: company.ID, ResourceID: 1, Level: 3}); err != nil {
+		t.Fatal(err)
+	}
 	if err := store.UpdateInventoryQuality(ctx, company.ID, 1, 2, 20); err != nil {
 		t.Fatal(err)
 	}
@@ -182,6 +189,50 @@ func TestStartProduction_RefinesRawGoodsFromPreviousQuality(t *testing.T) {
 	job, _ := store.GetJob(ctx, *resp.Job.Id)
 	if len(job.ConsumedInputs) != 1 || job.ConsumedInputs[0] != (proddmn.InventoryStack{ResourceID: 1, Quality: 2, Quantity: 12}) {
 		t.Fatalf("raw refinement reservation = %+v", job.ConsumedInputs)
+	}
+}
+
+func TestStartProduction_QualityResearchIsCompanyScoped(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		1: {ID: 1, Name: "Grain", ProducedPerHourRaw: 60},
+	}
+	buildings := map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Name: "Farm", Produces: []int{1}},
+	}
+	svc, store := newTestService(t, resources, buildings)
+
+	createCompany := func(playerID int, buildingID string) int {
+		if err := store.CreatePlayer(ctx, &auth.Player{ID: playerID, Username: buildingID}); err != nil {
+			t.Fatal(err)
+		}
+		if err := store.CreateCompany(ctx, &domain.Company{
+			PlayerID: playerID, Name: buildingID,
+			Buildings: []domain.Building{{ID: buildingID, BuildingID: 1, Kind: 1, Level: 1}},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		company, _ := store.GetCompanyByPlayerID(ctx, playerID)
+		if err := store.UpdateInventoryQuality(ctx, company.ID, 1, 0, 10); err != nil {
+			t.Fatal(err)
+		}
+		return company.ID
+	}
+	companyA := createCompany(306, "quality-licensed")
+	companyB := createCompany(307, "quality-locked")
+	if err := store.SaveResourceResearch(ctx, &domainresearch.ResourceResearch{CompanyID: companyA, ResourceID: 1, Level: 1}); err != nil {
+		t.Fatal(err)
+	}
+	quality := 1
+	if _, err := svc.StartProduction(ctx, companyA, &openapi.StartProductionRequest{BuildingId: "quality-licensed", ResourceId: 1, Quality: &quality, Quantity: 2}); err != nil {
+		t.Fatalf("researched company start: %v", err)
+	}
+	if _, err := svc.StartProduction(ctx, companyB, &openapi.StartProductionRequest{BuildingId: "quality-locked", ResourceId: 1, Quality: &quality, Quantity: 2}); !apperr.HasKind(err, apperr.KindConflict) {
+		t.Fatalf("unresearched company error = %v, want conflict", err)
+	}
+	if got := qualityWarehouseAmount(t, store, companyB, 1, 0); got != 10 {
+		t.Fatalf("locked attempt reserved company B stock: %d", got)
 	}
 }
 

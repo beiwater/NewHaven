@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWarehouse } from '@/api/inventory.api'
 import { useResources } from '@/api/market.api'
+import { useResearch } from '@/api/research.api'
 import { qualitySalesBonusPct } from '@/game/quality'
 import { resourceIcon, resourceName } from '@/game/resources'
 import { SupplyChainPage } from '@/features/chain/SupplyChainPage'
@@ -12,6 +13,7 @@ export function InventoryBar() {
   const { t } = useTranslation()
   const { data } = useWarehouse()
   const { data: resourcesData } = useResources()
+  const { data: research = [] } = useResearch()
   const activeView = useUIStore((s) => s.activeView)
   const setActiveView = useUIStore((s) => s.setActiveView)
   const inventory = useMemo(() => data?.inventory ?? [], [data?.inventory])
@@ -22,6 +24,7 @@ export function InventoryBar() {
   const resourceReferences = useMemo(() => new Map(
     (resourcesData?.resources ?? []).map((resource) => [resource.resourceId, resource.recommendedPrice ?? 0]),
   ), [resourcesData?.resources])
+  const maxQualityByResource = useMemo(() => new Map(research.map((item) => [item.resourceId, item.maxQuality])), [research])
   const groups = useMemo(() => {
     const grouped = new Map<number, typeof inventory>()
     for (const item of inventory) {
@@ -81,6 +84,7 @@ export function InventoryBar() {
                 <h3 className="truncate text-base font-black text-amber-950">{resourceName(group.resourceId)}</h3>
                 <div className="mt-1 text-xs font-bold text-amber-700">{group.total.toLocaleString()} {t('inventory.units')}</div>
                 {(resourceReferences.get(group.resourceId) ?? 0) > 0 && <div className="mt-0.5 text-[10px] text-cyan-700">{t('inventory.marketReference')}: ${(resourceReferences.get(group.resourceId) ?? 0).toFixed(2)}</div>}
+                <div className="mt-0.5 text-[9px] font-black text-violet-700">{t('research.unlockedThrough', { quality: maxQualityByResource.get(group.resourceId) ?? 0 })}</div>
               </div>
             </div>
             <div className="mt-3 border-t border-amber-100 pt-3">

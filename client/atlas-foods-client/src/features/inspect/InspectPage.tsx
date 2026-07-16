@@ -1,19 +1,18 @@
 import { useActivePowerup, type ActivePowerup } from '@/api/powerup.api'
-import { useResearchProgress, type ResearchProject } from '@/api/research.api'
+import { useResearch, type QualityResearch } from '@/api/research.api'
 import { useCompany, usePlayerLevel, type UnlockInfo } from '@/api/company.api'
+import { resourceName } from '@/game/resources'
 import { useTranslation } from 'react-i18next'
 
 export function InspectPage() {
   const { data: activeData } = useActivePowerup()
-  const { data: progressData } = useResearchProgress()
+  const { data: research = [] } = useResearch()
   const { data: companyData } = useCompany()
   const { data: levelData } = usePlayerLevel()
   const { t } = useTranslation()
 
   const activePowerups: ActivePowerup[] = activeData?.active ?? []
-  const completedResearch: ResearchProject[] = (progressData?.projects ?? []).filter(
-    (p) => p.status === 'completed',
-  )
+  const completedResearch: QualityResearch[] = research.filter((item) => item.maxQuality > 0)
   const unlocks: UnlockInfo | undefined = levelData?.unlocks ?? companyData?.unlocks
   const unlockedFeatures = unlocks
     ? Object.entries(unlocks.features).filter(([, v]) => v).map(([k]) => k)
@@ -75,15 +74,13 @@ export function InspectPage() {
           ) : (
             <div className="space-y-1.5">
               {completedResearch.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 p-3 bg-purple-50/80 rounded-xl border border-purple-200/40">
+                <div key={r.resourceId} className="flex items-center gap-3 p-3 bg-purple-50/80 rounded-xl border border-purple-200/40">
                   <span className="text-lg">🔬</span>
                   <div className="flex-1">
-                    <div className="text-xs font-semibold text-purple-800">{r.name}</div>
-                    {r.unlockPct != null && (
-                      <div className="text-[10px] text-purple-600">+{r.unlockPct}% {t('inspect.quality')}</div>
-                    )}
+                    <div className="text-xs font-semibold text-purple-800">{resourceName(r.resourceId)}</div>
+                    <div className="text-[10px] text-purple-600">Q0–Q{r.maxQuality} · +{r.salesSpeedBonus}% {t('quality.retailSpeed')}</div>
                   </div>
-                  <span className="text-[10px] font-bold text-purple-700 bg-purple-200/50 px-2 py-0.5 rounded-full">{t('inspect.done')}</span>
+                  <span className="text-[10px] font-bold text-purple-700 bg-purple-200/50 px-2 py-0.5 rounded-full">Q{r.maxQuality}</span>
                 </div>
               ))}
             </div>

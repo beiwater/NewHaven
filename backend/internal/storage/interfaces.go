@@ -121,6 +121,7 @@ type ResearchStorage interface {
 	GetCompanyResearch(ctx context.Context, companyID int) ([]research.ResourceResearch, error)
 	GetResourceResearch(ctx context.Context, companyID int, resourceID int) (*research.ResourceResearch, error)
 	SaveResourceResearch(ctx context.Context, rr *research.ResourceResearch) error
+	UnlockResourceQuality(ctx context.Context, companyID, resourceID, targetQuality int, cost float64) (*research.ResourceResearch, bool, error)
 }
 
 // SocialStorage handles chat and notification persistence.

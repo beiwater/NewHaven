@@ -1,96 +1,53 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 
-// ------ Types ------
-
-export interface ResearchProject {
-  id: string
+export interface QualityResearch {
+  resourceId: number
   name: string
-  building?: string
-  resourceCost?: Record<number, number>
-  cashCost?: number
-  durationHours?: number
-  unlockRecipeId?: number
-  qualityResourceId?: number
-  unlockPct?: number
-  status: string // 'available' | 'in_progress' | 'completed' | 'locked'
-  progress: number
-  startedAt?: string
-  completesAt?: string
-  // Extra fields from the simplified research endpoint
-  producedPerHour?: number
-  sourcingCost?: number
+  tier: number
+  maxQuality: number
+  nextQuality?: number
+  nextCost?: number
+  salesSpeedBonus: number
+  nextSalesSpeedPct?: number
 }
 
-export interface ResearchListResponse {
-  projects: ResearchProject[]
+interface ResearchListResponse {
+  research: QualityResearch[]
 }
 
-export interface StartResearchPayload {
-  projectId: string
+interface UnlockQualityResponse {
+  research: {
+    resourceId: number
+    maxQuality: number
+    cost: number
+    charged: boolean
+    salesSpeedBonus: number
+    nextQuality?: number
+    nextCost?: number
+  }
 }
 
-export interface StartResearchResponse {
-  project: ResearchProject
-  status: string
-}
+const researchKey = ['research', 'quality'] as const
 
-export interface ResearchProgressResponse {
-  projects: ResearchProject[]
-}
-
-export interface CompleteResearchResponse {
-  ok: boolean
-  projectId: string
-  patentsGained: number
-  qualityImproved: number
-  completedAt: string
-}
-
-// ------ Hooks ------
-
-const researchKey = ['research', 'projects'] as const
-
-/** Fetch the research project list (GET /api/v2/research/) */
 export function useResearch() {
   return useQuery({
     queryKey: researchKey,
     queryFn: async () => {
       const data = await api.get<ResearchListResponse>('/api/v2/research/')
-      return data.projects ?? []
+      return data.research ?? []
     },
   })
 }
 
-/** Fetch live research progress with auto-polling (GET /api/v2/research/progress/) */
-export function useResearchProgress() {
-  return useQuery({
-    queryKey: [...researchKey, 'progress'],
-    queryFn: () => api.get<ResearchProgressResponse>('/api/v2/research/progress/'),
-    refetchInterval: 15_000,
-  })
-}
-
-/** Start a research project (POST /api/v2/research/start/) */
-export function useStartResearch() {
-  const qc = useQueryClient()
+export function useUnlockQuality() {
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: StartResearchPayload) =>
-      api.post<StartResearchResponse>('/api/v2/research/start/', payload),
+    mutationFn: ({ resourceId, targetQuality }: { resourceId: number; targetQuality: number }) =>
+      api.post<UnlockQualityResponse>('/api/v2/research/quality/', { resourceId, targetQuality }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: researchKey })
-    },
-  })
-}
-
-/** Complete a research project (POST /api/v2/research/complete/{id}/) */
-export function useCompleteResearch() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (projectId: string) =>
-      api.post<CompleteResearchResponse>(`/api/v2/research/complete/${projectId}/`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: researchKey })
+      queryClient.invalidateQueries({ queryKey: researchKey })
+      queryClient.invalidateQueries({ queryKey: ['company'] })
     },
   })
 }

@@ -1208,6 +1208,50 @@ paths:
         "401":
           description: Unauthorized
 
+  /api/v2/research/:
+    get:
+      tags: [Research]
+      summary: List per-product quality research for the authenticated company
+      operationId: listQualityResearch
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current Q0-Q12 production licences and next costs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityResearchListResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/research/quality/:
+    post:
+      tags: [Research]
+      summary: Atomically unlock one product's next quality
+      operationId: unlockProductQuality
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockProductQualityRequest'
+      responses:
+        "200":
+          description: Quality unlocked or safely replayed without a duplicate charge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnlockProductQualityResponse'
+        "400":
+          description: Invalid quality or insufficient cash
+        "409":
+          description: Target attempts to skip a quality level
+        "404":
+          description: Product is not researchable
+
   /api/v2/executives/recruit/:
     post:
       tags: [Executives]
@@ -1288,6 +1332,92 @@ components:
     EmptyResponse:
       type: object
       properties: {}
+
+    QualityResearchItem:
+      type: object
+      required: [resourceId, name, tier, maxQuality, salesSpeedBonus]
+      properties:
+        resourceId:
+          type: integer
+        name:
+          type: string
+        tier:
+          type: integer
+          minimum: 1
+        maxQuality:
+          type: integer
+          minimum: 0
+          maximum: 12
+        nextQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+        nextCost:
+          type: number
+          minimum: 0
+        salesSpeedBonus:
+          type: integer
+          minimum: 0
+          maximum: 24
+        nextSalesSpeedPct:
+          type: integer
+          minimum: 2
+          maximum: 24
+
+    QualityResearchListResponse:
+      type: object
+      required: [research]
+      properties:
+        research:
+          type: array
+          items:
+            $ref: '#/components/schemas/QualityResearchItem'
+
+    UnlockProductQualityRequest:
+      type: object
+      required: [resourceId, targetQuality]
+      properties:
+        resourceId:
+          type: integer
+          minimum: 1
+        targetQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+
+    UnlockProductQualityResult:
+      type: object
+      required: [resourceId, maxQuality, cost, charged, salesSpeedBonus]
+      properties:
+        resourceId:
+          type: integer
+        maxQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+        cost:
+          type: number
+          minimum: 0
+        charged:
+          type: boolean
+        salesSpeedBonus:
+          type: integer
+          minimum: 2
+          maximum: 24
+        nextQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+        nextCost:
+          type: number
+          minimum: 0
+
+    UnlockProductQualityResponse:
+      type: object
+      required: [research]
+      properties:
+        research:
+          $ref: '#/components/schemas/UnlockProductQualityResult'
 
     LoginRequest:
       type: object

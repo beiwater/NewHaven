@@ -321,7 +321,8 @@
   },
   "quality": {
     "tier": "Quality tier",
-    "retailSpeed": "retail speed"
+    "retailSpeed": "retail speed",
+    "researchToUnlock": "Research Q{{quality}} in the Quality Lab"
   },
   "financial": {
     "title": "Financial Overview",
@@ -369,7 +370,29 @@
     "effect": "Effect",
     "requirements": "Requirements",
     "noProjects": "No research projects available",
-    "timeRemaining": "{{time}} remaining"
+    "timeRemaining": "{{time}} remaining",
+    "qualityProgramme": "Product development programme",
+    "qualityLab": "Quality Lab",
+    "qualityLabHelp": "Research each product one quality at a time. An unlock permits production; it does not create stock or replace the previous-quality ingredients.",
+    "cash": "Available cash",
+    "highestQuality": "Highest licence",
+    "totalUnlocks": "Quality unlocks",
+    "masteredProducts": "Q12 products",
+    "ruleResearch": "Pay once to unlock the next quality for one product.",
+    "ruleSource": "Source twice the base recipe at the previous quality.",
+    "ruleSell": "Sell quality goods up to 2% faster per Q level.",
+    "allProducts": "All products",
+    "productTier": "Tier {{tier}}",
+    "qualityLicence": "Production licence",
+    "unlockedThrough": "Production unlocked through Q{{quality}}",
+    "unlockQuality": "Unlock Q{{quality}}",
+    "unlockEffect": "Allows Q{{quality}} production and raises its retail speed bonus to +{{bonus}}%.",
+    "researchQuality": "Research Q{{quality}}",
+    "needMoreCash": "Need {{amount}} more",
+    "mastered": "Q12 mastered",
+    "masteredHelp": "Every product quality is available for production.",
+    "loading": "Loading quality research...",
+    "failedToLoad": "Failed to load quality research."
   },
   "executives": {
     "title": "Executives",

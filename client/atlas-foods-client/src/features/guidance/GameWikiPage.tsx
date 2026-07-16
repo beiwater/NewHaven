@@ -49,11 +49,12 @@ const zhSections: WikiSection[] = [
     summary: '更高品质来自上一品质，不是凭空选择出来的标签。',
     body: [
       '同一种商品的 Q0–Q12 是 13 个互相独立的库存栈。生产、领取、取消退款与零售都会保留品质；高品质库存不能冒充低品质原料，低品质也不能自动顶替高品质。',
+      '每种商品初始只能生产 Q0。请在“品质实验室”花费现金逐级解锁 Q1–Q12；不能跳级。研究只授予该公司、该商品的生产许可，不赠送库存。重复提交同一个目标品质不会重复扣钱。',
       '生产 Q0 加工品时使用普通配方和 Q0 原料。生产 Q1–Q12 加工品时，使用前一品质的配方原料，且每项投入是普通配方的 2 倍。例如普通配方需要 2 面粉，生产 Q4 时就需要 4 个 Q3 面粉。',
       '原材料没有普通配方，因此升级品质采用精炼：每生产 1 个 Qn 原材料，需要 2 个同商品的 Q(n-1) 原材料。所有投入在开始生产时原子预留，库存不足不会启动半个订单。',
       '每级品质只在零售端提供 +2% 需求速度，Q12 共 +24%。品质不会抬高成交单价，也不会取消高价销售惩罚；离谱定价依旧可能让工资超过收入。当前交易所仍是 Q0 现货市场。',
     ],
-    formula: 'Qn（n>0）投入 = 2 × 基础配方的 Q(n-1) 原料；零售速度倍率 = 1 + 0.02 × n',
+    formula: '研究 Qn = 向上取整到 $10（$1,000 × 2^(商品阶级-1) × 1.2^(n-1)）；Qn 投入 = 2 × 基础配方的 Q(n-1) 原料；零售速度倍率 = 1 + 0.02 × n',
   },
   {
     id: 'upgrades',
@@ -131,8 +132,8 @@ const enSections: WikiSection[] = [
   },
   {
     id: 'quality', title: 'Quality chain: Q0 to Q12', summary: 'Higher quality is made from the previous tier; it is not a free label.',
-    body: ['Q0 through Q12 of the same resource are 13 separate warehouse stacks. Production, collection, cancellation refunds, and retail preserve quality. Tiers never substitute for one another.', 'A Q0 processed good uses its normal recipe at Q0. A Q1–Q12 processed good consumes the previous quality of every recipe ingredient at twice the normal quantity. If a base recipe needs 2 Flour, a Q4 run needs 4 Q3 Flour per output.', 'Raw resources have no base recipe, so they are refined: each Qn raw unit consumes 2 units of the same resource at Q(n-1). All inputs are atomically reserved when production starts; a shortage cannot create a partially funded run.', 'Each quality tier adds 2% retail demand speed, up to +24% at Q12. Quality does not raise the sale price or bypass the high-price penalty, so a wildly overpriced batch can still lose money to payroll. The exchange currently remains a Q0 spot market.'],
-    formula: 'Qn (n>0) inputs = 2 × base recipe at Q(n-1); retail speed multiplier = 1 + 0.02 × n',
+    body: ['Q0 through Q12 of the same resource are 13 separate warehouse stacks. Production, collection, cancellation refunds, and retail preserve quality. Tiers never substitute for one another.', 'Each product begins with Q0 production only. Spend cash in the Quality Lab to unlock Q1 through Q12 in order; levels cannot be skipped. Research grants only this company and product a production licence, not free inventory. Replaying the same target quality never charges twice.', 'A Q0 processed good uses its normal recipe at Q0. A Q1–Q12 processed good consumes the previous quality of every recipe ingredient at twice the normal quantity. If a base recipe needs 2 Flour, a Q4 run needs 4 Q3 Flour per output.', 'Raw resources have no base recipe, so they are refined: each Qn raw unit consumes 2 units of the same resource at Q(n-1). All inputs are atomically reserved when production starts; a shortage cannot create a partially funded run.', 'Each quality tier adds 2% retail demand speed, up to +24% at Q12. Quality does not raise the sale price or bypass the high-price penalty, so a wildly overpriced batch can still lose money to payroll. The exchange currently remains a Q0 spot market.'],
+    formula: 'Research Qn = ceil to $10 ($1,000 × 2^(product tier-1) × 1.2^(n-1)); Qn inputs = 2 × base recipe at Q(n-1); retail speed = 1 + 0.02 × n',
   },
   {
     id: 'upgrades', title: 'Building upgrades: construction time and downtime', summary: 'Construction reserves its cost now; the level increases only at completion.',

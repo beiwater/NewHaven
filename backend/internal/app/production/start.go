@@ -128,6 +128,22 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 	if !ok {
 		return nil, apperr.NotFoundf("resource %d not found in catalog", req.ResourceId)
 	}
+	if quality > 0 {
+		researchState, err := s.research.GetResourceResearch(ctx, companyID, req.ResourceId)
+		if err != nil {
+			return nil, apperr.Internalf("load quality research: %v", err)
+		}
+		maxQuality := 0
+		if researchState != nil {
+			maxQuality = researchState.Level
+		}
+		if maxQuality > formula.MaxProductQuality {
+			maxQuality = formula.MaxProductQuality
+		}
+		if quality > maxQuality {
+			return nil, apperr.Conflict("Q%d is locked for this product; research it before starting production", quality)
+		}
+	}
 
 	inputs := qualityProductionInputs(resEntry, req.ResourceId, req.Quantity, quality)
 
@@ -144,12 +160,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 		return nil, apperr.Validationf("invalid production rate for resource %d", req.ResourceId)
 	}
 
-	// Apply research speed bonus (if any) to reduce production duration.
-	researchLevel := 0
-	if rr, err := s.research.GetResourceResearch(ctx, companyID, req.ResourceId); err == nil && rr != nil {
-		researchLevel = rr.Level
-	}
-	effectiveMod := prodMod * formula.ResearchSpeedBonus(researchLevel)
+	effectiveMod := prodMod
 	// A CTO is the only executive effect that changes a production run. The
 	// assigned executive's Science skill is resolved server-side so a client
 	// cannot invent a speed bonus or borrow another company's executive.

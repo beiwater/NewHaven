@@ -1345,6 +1345,45 @@ func (s *Store) SaveResourceResearch(_ context.Context, rr *research.ResourceRes
 	return nil
 }
 
+// UnlockResourceQuality atomically charges cash and advances one product's
+// quality ceiling. The requested target is also the idempotency boundary: a
+// replay of Qn returns the existing unlock without charging again, while a
+// request that skips Q levels is rejected.
+func (s *Store) UnlockResourceQuality(_ context.Context, companyID, resourceID, targetQuality int, cost float64) (*research.ResourceResearch, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	company, ok := s.companies[companyID]
+	if !ok {
+		return nil, false, fmt.Errorf("company %d not found", companyID)
+	}
+	key := fmt.Sprintf("%d:%d", companyID, resourceID)
+	currentLevel := 0
+	if current := s.companyResearch[key]; current != nil {
+		currentLevel = current.Level
+		if currentLevel >= targetQuality {
+			copy := *current
+			return &copy, true, nil
+		}
+	}
+	if targetQuality != currentLevel+1 {
+		return nil, false, storage.ErrStateConflict
+	}
+	if cost < 0 || company.Money < cost {
+		return nil, false, storage.ErrInsufficientFunds
+	}
+
+	company.Money -= cost
+	unlocked := &research.ResourceResearch{
+		CompanyID:  companyID,
+		ResourceID: resourceID,
+		Level:      targetQuality,
+	}
+	s.companyResearch[key] = unlocked
+	copy := *unlocked
+	return &copy, false, nil
+}
+
 // --- SocialStorage ---
 
 func (s *Store) SaveMessage(_ context.Context, m *social.Message) error {

@@ -125,7 +125,7 @@ func New(cfg *config.Config, st storage.Storage, resources map[int]*catalog.Reso
 	productionHandler := httpapi.NewProductionHandler(productionSvc)
 
 	// Research
-	researchSvc := research.NewService(st, st, resources, cfg.Game, logger)
+	researchSvc := research.NewService(st, st, st, resources, cfg.Game, logger)
 	researchHandler := httpapi.NewResearchHandler(researchSvc)
 
 	// Finance

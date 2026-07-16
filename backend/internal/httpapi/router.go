@@ -154,8 +154,7 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	// Research routes (authenticated)
 	r.Route("/api/v2/research", func(r chi.Router) {
 		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/", h.Research.handleListResearch)
-		r.With(AuthRequired(cfg.JWTSigningKey)).Get("/progress/", h.Research.handleListResearch)
-		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/levelup/", h.Research.handleLevelUp)
+		r.With(AuthRequired(cfg.JWTSigningKey)).Post("/quality/", h.Research.handleUnlockQuality)
 	})
 
 	// Executive routes (authenticated)
