@@ -624,16 +624,19 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 	}
 	_ = store.UpdateCompany(ctx, company)
 
-	// Check warehouse before production: should have no items
+	// Seed inventory is migrated into the quality-aware warehouse as Q0 stock.
 	warehouseBefore, err := store.GetWarehouse(ctx, company.ID)
 	if err != nil {
 		t.Fatalf("GetWarehouse before: %v", err)
 	}
-	if len(warehouseBefore.Items) != 0 {
-		t.Fatalf("expected empty warehouse before production, got %d items", len(warehouseBefore.Items))
+	if len(warehouseBefore.Items) != 1 {
+		t.Fatalf("expected 1 Q0 warehouse stack before production, got %d items", len(warehouseBefore.Items))
 	}
-	if warehouseBefore.UsedCapacity != 0 {
-		t.Fatalf("expected used_capacity 0 before production, got %d", warehouseBefore.UsedCapacity)
+	if warehouseBefore.Items[0].ResourceID != 1 || warehouseBefore.Items[0].Quality != 0 || warehouseBefore.Items[0].Amount != 50 {
+		t.Fatalf("unexpected seed warehouse stack: %+v", warehouseBefore.Items[0])
+	}
+	if warehouseBefore.UsedCapacity != 50 {
+		t.Fatalf("expected used_capacity 50 before production, got %d", warehouseBefore.UsedCapacity)
 	}
 
 	// Produce 5 Flour. Each needs 2 Grain, so 10 Grain is deducted.

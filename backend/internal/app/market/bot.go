@@ -11,6 +11,7 @@ import (
 
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // botConfig holds tuning parameters for bot market activity.
@@ -45,15 +46,22 @@ func (s *Service) EnsureBotCompanies(ctx context.Context) error {
 	// Check if already created by a previous run.
 	existing, err := s.companies.GetCompanyByPlayerID(ctx, botPlayerID)
 	if err == nil && existing != nil {
-		s.botCompanyID = existing.ID
-		// Top up inventory for any new resources.
+		// Top up through the inventory transaction so the legacy Q0 summary and
+		// the quality-aware warehouse never diverge after a restart.
 		for rid := range s.resources {
-			if existing.Inventory == nil {
-				existing.Inventory = make(map[int]int)
+			const targetStock = 999999
+			current := s.botQualityZeroInventory(ctx, existing, rid)
+			delta := 0
+			if current < targetStock {
+				delta = targetStock - current
 			}
-			existing.Inventory[rid] = 999999
+			// A zero delta is intentional: it repairs a stale legacy Inventory map
+			// from the authoritative warehouse stack without changing stock.
+			if err := s.companies.UpdateInventory(ctx, existing.ID, rid, delta); err != nil {
+				return fmt.Errorf("top up bot inventory for resource %d: %w", rid, err)
+			}
 		}
-		_ = s.companies.UpdateCompany(ctx, existing)
+		s.botCompanyID = existing.ID
 		return nil
 	}
 
@@ -74,6 +82,23 @@ func (s *Service) EnsureBotCompanies(ctx context.Context) error {
 	s.botCompanyID = bot.ID
 	slog.Info("bot company created", "company_id", s.botCompanyID)
 	return nil
+}
+
+func (s *Service) botQualityZeroInventory(ctx context.Context, existing *company.Company, resourceID int) int {
+	if warehouses, ok := s.companies.(storage.WarehouseStorage); ok {
+		if stock, err := warehouses.GetWarehouse(ctx, existing.ID); err == nil && stock != nil {
+			for _, item := range stock.Items {
+				if item.ResourceID == resourceID && item.Quality == 0 {
+					return item.Amount
+				}
+			}
+			return 0
+		}
+	}
+	if existing.Inventory == nil {
+		return 0
+	}
+	return existing.Inventory[resourceID]
 }
 
 // RunBotCycle generates NPC buy/sell orders to maintain market liquidity.

@@ -65,6 +65,13 @@ func setupRetailTicker(t *testing.T, store *memory.Store, resourceID int, price 
 	}
 }
 
+func seedRetailInventory(t *testing.T, store *memory.Store, companyID, resourceID, amount int) {
+	t.Helper()
+	if err := store.UpdateInventory(context.Background(), companyID, resourceID, amount); err != nil {
+		t.Fatalf("UpdateInventory: %v", err)
+	}
+}
+
 func TestProcessRetailSales_SellsGoodsAndCreditsMoney(t *testing.T) {
 	t.Parallel()
 	economy := map[int]*catalog.EconomyModelEntry{
@@ -74,9 +81,7 @@ func TestProcessRetailSales_SellsGoodsAndCreditsMoney(t *testing.T) {
 	setupRetailTicker(t, store, 1, 24.0)
 
 	companyID := newTestCompany(t, store, -1001, "retail_test", 1000.0)
-	c, _ := store.GetCompany(nil, companyID)
-	c.Inventory[1] = 100
-	store.UpdateCompany(nil, c)
+	seedRetailInventory(t, store, companyID, 1, 100)
 
 	if err := svc.ProcessRetailSales(context.Background()); err != nil {
 		t.Fatalf("ProcessRetailSales: %v", err)
@@ -99,9 +104,7 @@ func TestProcessRetailSales_NoEconomyModel_UsesDemandParameter(t *testing.T) {
 	setupRetailTicker(t, store, 1, 24.0)
 
 	companyID := newTestCompany(t, store, -1002, "no_eco_test", 500.0)
-	c, _ := store.GetCompany(nil, companyID)
-	c.Inventory[1] = 50
-	store.UpdateCompany(nil, c)
+	seedRetailInventory(t, store, companyID, 1, 50)
 
 	if err := svc.ProcessRetailSales(context.Background()); err != nil {
 		t.Fatalf("ProcessRetailSales: %v", err)
@@ -120,9 +123,7 @@ func TestProcessRetailSales_EmptyEconomy_StillSellsConfiguredResource(t *testing
 	svc, store, _ := newRetailTestSvc(nil)
 	setupRetailTicker(t, store, 1, 24.0)
 	companyID := newTestCompany(t, store, -1003, "empty_eco_test", 500.0)
-	c, _ := store.GetCompany(nil, companyID)
-	c.Inventory[1] = 50
-	store.UpdateCompany(nil, c)
+	seedRetailInventory(t, store, companyID, 1, 50)
 
 	if err := svc.ProcessRetailSales(context.Background()); err != nil {
 		t.Fatalf("ProcessRetailSales: %v", err)
@@ -142,9 +143,7 @@ func TestCatchUpPlayerRetail_FirstTime_SetsBaseline(t *testing.T) {
 	setupRetailTicker(t, store, 1, 24.0)
 
 	companyID := newTestCompany(t, store, 1004, "catchup_first", 500.0)
-	c, _ := store.GetCompany(nil, companyID)
-	c.Inventory[1] = 100
-	store.UpdateCompany(nil, c)
+	seedRetailInventory(t, store, companyID, 1, 100)
 
 	if err := svc.CatchUpPlayerRetail(context.Background(), companyID); err != nil {
 		t.Fatalf("CatchUpPlayerRetail (first): %v", err)
@@ -396,9 +395,7 @@ func TestProcessRetailSales_SkipsPlayerWithoutSettlementBaseline(t *testing.T) {
 	setupRetailTicker(t, store, 1, 24.0)
 
 	companyID := newTestCompany(t, store, 1006, "player_skip", 500.0)
-	c, _ := store.GetCompany(nil, companyID)
-	c.Inventory[1] = 100
-	store.UpdateCompany(nil, c)
+	seedRetailInventory(t, store, companyID, 1, 100)
 
 	svc.ProcessRetailSales(context.Background())
 	updated, _ := store.GetCompany(nil, companyID)
