@@ -147,20 +147,20 @@ func ActiveExecutiveSkill(executives []Executive, position ExecutivePosition) fl
 
 // Executive represents a hired executive for a company.
 type Executive struct {
-	ID              string  `json:"id"`
-	Name            string  `json:"name"`
-	Title           string  `json:"title"`
+	ID              string            `json:"id"`
+	Name            string            `json:"name"`
+	Title           string            `json:"title"`
 	Specialty       ExecutivePosition `json:"specialty,omitempty"`
 	Position        ExecutivePosition `json:"position,omitempty"`
 	Skills          ExecutiveSkills   `json:"skills"`
-	Level           int     `json:"level"`
-	Rarity          string  `json:"rarity"`
-	Stage           string  `json:"stage"`
-	Salary          float64 `json:"salary"`
-	ProductionBonus float64 `json:"productionBonus"`
-	SalesBonus      float64 `json:"salesBonus"`
-	MgmtDiscount    float64 `json:"mgmtDiscount"`
-	Morale          int     `json:"morale,omitempty"`
+	Level           int               `json:"level"`
+	Rarity          string            `json:"rarity"`
+	Stage           string            `json:"stage"`
+	Salary          float64           `json:"salary"`
+	ProductionBonus float64           `json:"productionBonus"`
+	SalesBonus      float64           `json:"salesBonus"`
+	MgmtDiscount    float64           `json:"mgmtDiscount"`
+	Morale          int               `json:"morale,omitempty"`
 }
 
 // CompanyResponse is the public-facing company DTO.
