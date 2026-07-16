@@ -76,7 +76,7 @@ func (s *Service) processNPCRetail(ctx context.Context, company *domain.Company,
 		if price <= 0 {
 			continue
 		}
-		unitsPerHour := s.retailUnitsPerHour(ctx, resourceID, price, 1, 0)
+		unitsPerHour := s.retailUnitsPerHour(ctx, resourceID, price, price, 1, 0)
 		sold, earned, _ := computeSaleWithCarryAtRate(unitsPerHour, price, qty, 60, 0)
 		if sold <= 0 {
 			continue
