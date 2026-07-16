@@ -141,7 +141,7 @@ func (s *Service) StartProduction(ctx context.Context, companyID int, req *opena
 			maxQuality = formula.MaxProductQuality
 		}
 		if quality > maxQuality {
-			return nil, apperr.Conflict("Q%d is locked for this product; research it before starting production", quality)
+			return nil, apperr.Conflict("requested quality is locked for this product; research it before starting production")
 		}
 	}
 
