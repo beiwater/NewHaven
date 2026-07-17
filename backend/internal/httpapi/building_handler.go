@@ -239,7 +239,7 @@ func (h *BuildingHandler) handleStockShelf(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp, err := h.svc.StockShelf(r.Context(), companyID, buildingID, req.ResourceId, req.Quantity, req.Price)
+	resp, err := h.svc.StockShelf(r.Context(), companyID, buildingID, req.ResourceId, req.Quality, req.Quantity, req.Price)
 	if err != nil {
 		writeAppErr(w, err)
 		return

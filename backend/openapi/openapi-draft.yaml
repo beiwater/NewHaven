@@ -1181,6 +1181,140 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v2/executives/search/:
+    post:
+      tags: [Executives]
+      summary: List the hourly executive market or my company's roster
+      operationId: searchExecutives
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scope:
+                  type: string
+                  enum: [market, mine]
+      responses:
+        "200":
+          description: Executive candidates or owned roster
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutivesResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/research/:
+    get:
+      tags: [Research]
+      summary: List per-product quality research for the authenticated company
+      operationId: listQualityResearch
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current Q0-Q12 production licences and next costs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QualityResearchListResponse'
+        "401":
+          description: Unauthorized
+
+  /api/v2/research/quality/:
+    post:
+      tags: [Research]
+      summary: Atomically unlock one product's next quality
+      operationId: unlockProductQuality
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockProductQualityRequest'
+      responses:
+        "200":
+          description: Quality unlocked or safely replayed without a duplicate charge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnlockProductQualityResponse'
+        "400":
+          description: Invalid quality or insufficient cash
+        "409":
+          description: Target attempts to skip a quality level
+        "404":
+          description: Product is not researchable
+
+  /api/v2/executives/recruit/:
+    post:
+      tags: [Executives]
+      summary: Recruit a displayed executive candidate
+      operationId: recruitExecutive
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [executiveId]
+              properties:
+                executiveId:
+                  type: string
+      responses:
+        "200":
+          description: Executive recruited and recruitment cost settled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutiveActionResponse'
+        "404":
+          description: Candidate expired or not found
+        "409":
+          description: Candidate already recruited by this company
+
+  /api/v2/executives/{executiveId}/position/:
+    post:
+      tags: [Executives]
+      summary: Assign an owned executive to a leadership position
+      operationId: assignExecutivePosition
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: executiveId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [position]
+              properties:
+                position:
+                  type: string
+                  enum: [coo, cfo, cmo, cto, ""]
+      responses:
+        "200":
+          description: Position updated; any previous holder is unassigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutiveActionResponse'
+        "404":
+          description: Executive not owned by this company
+
 components:
   securitySchemes:
     BearerAuth:
@@ -1198,6 +1332,92 @@ components:
     EmptyResponse:
       type: object
       properties: {}
+
+    QualityResearchItem:
+      type: object
+      required: [resourceId, name, tier, maxQuality, salesSpeedBonus]
+      properties:
+        resourceId:
+          type: integer
+        name:
+          type: string
+        tier:
+          type: integer
+          minimum: 1
+        maxQuality:
+          type: integer
+          minimum: 0
+          maximum: 12
+        nextQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+        nextCost:
+          type: number
+          minimum: 0
+        salesSpeedBonus:
+          type: integer
+          minimum: 0
+          maximum: 24
+        nextSalesSpeedPct:
+          type: integer
+          minimum: 2
+          maximum: 24
+
+    QualityResearchListResponse:
+      type: object
+      required: [research]
+      properties:
+        research:
+          type: array
+          items:
+            $ref: '#/components/schemas/QualityResearchItem'
+
+    UnlockProductQualityRequest:
+      type: object
+      required: [resourceId, targetQuality]
+      properties:
+        resourceId:
+          type: integer
+          minimum: 1
+        targetQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+
+    UnlockProductQualityResult:
+      type: object
+      required: [resourceId, maxQuality, cost, charged, salesSpeedBonus]
+      properties:
+        resourceId:
+          type: integer
+        maxQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+        cost:
+          type: number
+          minimum: 0
+        charged:
+          type: boolean
+        salesSpeedBonus:
+          type: integer
+          minimum: 2
+          maximum: 24
+        nextQuality:
+          type: integer
+          minimum: 1
+          maximum: 12
+        nextCost:
+          type: number
+          minimum: 0
+
+    UnlockProductQualityResponse:
+      type: object
+      required: [research]
+      properties:
+        research:
+          $ref: '#/components/schemas/UnlockProductQualityResult'
 
     LoginRequest:
       type: object
@@ -1255,6 +1475,71 @@ components:
               type: string
             details:
               type: object
+
+    # --- Executives ---
+
+    Executive:
+      type: object
+      required: [id, name, specialty, skills, level]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        title:
+          type: string
+        specialty:
+          type: string
+          enum: [coo, cfo, cmo, cto]
+        position:
+          type: string
+          enum: [coo, cfo, cmo, cto, ""]
+        level:
+          type: integer
+        rarity:
+          type: string
+        skills:
+          type: object
+          required: [management, accounting, communication, science]
+          properties:
+            management: { type: number }
+            accounting: { type: number }
+            communication: { type: number }
+            science: { type: number }
+        recruitCost:
+          type: integer
+
+    ExecutivesResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            executives:
+              type: array
+              items:
+                $ref: '#/components/schemas/Executive'
+            total:
+              type: integer
+            refreshCooldown:
+              type: string
+        error:
+          nullable: true
+
+    ExecutiveActionResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            ok:
+              type: boolean
+            executive:
+              $ref: '#/components/schemas/Executive'
+            cost:
+              type: integer
+        error:
+          nullable: true
 
     # --- Company ---
 
@@ -1377,6 +1662,13 @@ components:
           type: string
         level:
           type: integer
+        worker_count:
+          type: integer
+          description: Fixed workers required by this building's type and level.
+        hourly_wage:
+          type: number
+          format: double
+          description: Payroll charged for each active retail hour.
         next_upgrade_cost:
           type: number
           format: double
@@ -1556,6 +1848,10 @@ components:
       properties:
         resource_id:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         quantity:
           type: integer
         max_qty:
@@ -1571,12 +1867,16 @@ components:
 
     StockShelfRequest:
       type: object
-      required: [building_id, resource_id, quantity, price]
+      required: [building_id, resource_id, quality, quantity, price]
       properties:
         building_id:
           type: string
         resource_id:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         quantity:
           type: integer
         price:
@@ -1731,6 +2031,14 @@ components:
           type: integer
         unitsSoldAnHour:
           type: integer
+        retailDemandPerHour:
+          type: number
+          format: double
+          description: Baseline level-one retail demand before live market conditions.
+        demandMultiplier:
+          type: number
+          format: double
+          description: Current market demand pressure applied to retail demand.
         hasEconomyModel:
           type: boolean
         recommendedPrice:
@@ -1920,6 +2228,10 @@ components:
           type: string
         resource_id:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         quantity:
           type: integer
         target_quantity:
@@ -1943,6 +2255,10 @@ components:
           type: string
         resource_id:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         quantity:
           type: integer
           minimum: 1
@@ -1955,6 +2271,10 @@ components:
           type: string
         kind:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         amount:
           type: integer
           minimum: 1
@@ -1970,6 +2290,10 @@ components:
           type: string
         resource_id:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         quantity:
           type: integer
         target_quantity:
@@ -2030,6 +2354,10 @@ components:
           type: object
           additionalProperties:
             type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         claimed_amount:
           type: integer
         remaining:
@@ -2050,6 +2378,10 @@ components:
           type: string
         resource_id:
           type: integer
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 12
         total_amount:
           type: integer
         claimed_amount:

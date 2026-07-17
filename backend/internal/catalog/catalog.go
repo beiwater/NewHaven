@@ -20,10 +20,18 @@ type ResourceEntry struct {
 	ProducedPerHourRaw int         `json:"producedPerHourRaw"`
 	ProducedAnHour     int         `json:"producedAnHour"`
 	UnitsSoldAnHour    int         `json:"unitsSoldAnHour"`
-	IsExchangeTradable bool        `json:"isExchangeTradable"`
-	IsResearch         bool        `json:"isResearch"`
-	HasEconomyModel    bool        `json:"hasEconomyModel"`
-	BasePrice          float64     `json:"basePrice"`
+	// RetailDemandPerHour is the level-one customer demand at the recommended
+	// retail price before the live market demand multiplier is applied.
+	RetailDemandPerHour float64 `json:"retailDemandPerHour"`
+	// PrimaryBuildingKind identifies the intended level-one producer used to
+	// derive a sustainable market anchor from wages, target profit and recipe
+	// costs. A resource may be producible elsewhere, but it has one baseline
+	// economic route.
+	PrimaryBuildingKind int     `json:"primaryBuildingKind"`
+	IsExchangeTradable  bool    `json:"isExchangeTradable"`
+	IsResearch          bool    `json:"isResearch"`
+	HasEconomyModel     bool    `json:"hasEconomyModel"`
+	BasePrice           float64 `json:"basePrice"`
 }
 
 // BuildingEntry mirrors one entry in decompiled/data/buildings.json.

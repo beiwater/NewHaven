@@ -30,3 +30,44 @@ type GameSnapshot struct {
 	Warehouses          map[int]*warehouse.Warehouse          `json:"warehouses"`
 	NextID              int                                   `json:"nextId"`
 }
+
+// NextAvailablePlayerID derives the first unused player ID from persisted
+// accounts so loading an older snapshot cannot reuse an existing identity.
+func (s *GameSnapshot) NextAvailablePlayerID() int {
+	nextID := 1
+	for playerID := range s.Players {
+		nextID = max(nextID, playerID+1)
+	}
+	return nextID
+}
+
+// NextAvailableLedgerID derives the sequence cursor for append-only finance
+// records. Snapshots intentionally remain backward compatible and need not
+// persist a separate counter.
+func (s *GameSnapshot) NextAvailableLedgerID() int64 {
+	var nextID int64 = 1
+	for _, entry := range s.Ledger {
+		nextID = max(nextID, entry.ID+1)
+	}
+	return nextID
+}
+
+// NextAvailableMessageID prevents chat history identities from being reused
+// after a snapshot restore.
+func (s *GameSnapshot) NextAvailableMessageID() int64 {
+	var nextID int64 = 1
+	for _, message := range s.Messages {
+		nextID = max(nextID, message.ID+1)
+	}
+	return nextID
+}
+
+// NextAvailableNotificationID prevents a newly created notification from
+// colliding with a persisted notification after restart.
+func (s *GameSnapshot) NextAvailableNotificationID() int {
+	nextID := 1
+	for _, notification := range s.Notifs {
+		nextID = max(nextID, notification.ID+1)
+	}
+	return nextID
+}

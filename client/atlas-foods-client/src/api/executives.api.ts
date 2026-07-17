@@ -6,6 +6,8 @@ import type {
   RecruitResult,
   TrainResult,
   ExecutiveDetail,
+  ExecutivePosition,
+  AssignExecutivePositionResult,
 } from '@/game/executives'
 
 const EXECUTIVES_KEY = ['executives'] as const
@@ -24,18 +26,29 @@ function transformExecutive(raw: Record<string, unknown>): Executive {
   const rarity = (raw.rarity as string) ?? inferRarity(level)
   const status = (raw.status as string) ?? 'idle'
   const skills = (raw.skills as Record<string, number>) ?? {}
+  const specialty = ((raw.specialty as string) ?? 'coo') as Executive['specialty']
+  const position = ((raw.position as string) ?? '') as ExecutivePosition
+  const normalizedSkills = {
+    management: Number(skills.management ?? 0),
+    accounting: Number(skills.accounting ?? 0),
+    communication: Number(skills.communication ?? 0),
+    science: Number(skills.science ?? 0),
+  }
 
   return {
     id: (raw.id as string) ?? '',
     name: (raw.name as string) ?? 'Unknown',
     title: (raw.title as string) ?? 'Manager',
+    specialty,
+    position,
+    skills: normalizedSkills,
     level,
     rarity: rarity as Executive['rarity'],
-    stage: (raw.stage as string) ?? stageAtLevel(level),
+    stage: stageAtLevel(level),
     salary: (raw.salary as number) ?? salaryAtLevel(level),
-    productionBonus: (raw.productionBonus as number) ?? Math.round((skills.management ?? 50) / 10),
-    salesBonus: (raw.salesBonus as number) ?? Math.round((skills.finance ?? 50) / 5),
-    mgmtDiscount: (raw.mgmtDiscount as number) ?? Math.round((skills.science ?? 50) / 15),
+    productionBonus: Number(raw.productionBonus ?? (specialty === 'cto' ? normalizedSkills.science * 2 : 0)),
+    salesBonus: Number(raw.salesBonus ?? (specialty === 'cmo' ? normalizedSkills.communication / 2 : 0)),
+    mgmtDiscount: Number(raw.mgmtDiscount ?? (specialty === 'coo' ? normalizedSkills.management : 0)),
     recruitCost: (raw.recruitCost as number) ?? recruitCost(rarity, level),
     trainingCost: (raw.trainingCost as number) ?? trainingCost(level),
     trainingTime: (raw.trainingTime as number) ?? trainingTimeSeconds(level),
@@ -137,6 +150,21 @@ export function useTrainExecutive() {
   return useMutation({
     mutationFn: (executiveId: string) =>
       api.post<TrainResult>(`/api/v2/executives/train/${executiveId}/`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: MY_EXECUTIVES_KEY })
+      qc.invalidateQueries({ queryKey: ['company'] })
+    },
+  })
+}
+
+/** Assign a single owned executive to a leadership chair. The server unassigns
+ * the old holder atomically, so stale tabs cannot create duplicate active CTOs
+ * or CMOs. */
+export function useAssignExecutivePosition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ executiveId, position }: { executiveId: string; position: ExecutivePosition }) =>
+      api.post<AssignExecutivePositionResult>(`/api/v2/executives/${executiveId}/position/`, { position }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: MY_EXECUTIVES_KEY })
       qc.invalidateQueries({ queryKey: ['company'] })

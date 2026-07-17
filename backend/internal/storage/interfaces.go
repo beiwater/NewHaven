@@ -16,13 +16,14 @@ import (
 )
 
 var (
-	ErrAlreadyExists       = errors.New("already exists")
-	ErrIdempotencyConflict = errors.New("idempotency conflict")
-	ErrInsufficientFunds   = errors.New("insufficient funds")
-	ErrLimitReached        = errors.New("limit reached")
-	ErrAlreadySettled      = errors.New("already settled")
-	ErrNothingToClaim      = errors.New("nothing to claim")
-	ErrStateConflict       = errors.New("state conflict")
+	ErrAlreadyExists         = errors.New("already exists")
+	ErrIdempotencyConflict   = errors.New("idempotency conflict")
+	ErrInsufficientFunds     = errors.New("insufficient funds")
+	ErrInsufficientInventory = errors.New("insufficient inventory")
+	ErrLimitReached          = errors.New("limit reached")
+	ErrAlreadySettled        = errors.New("already settled")
+	ErrNothingToClaim        = errors.New("nothing to claim")
+	ErrStateConflict         = errors.New("state conflict")
 )
 
 // PlayerStorage handles player/auth persistence.
@@ -45,6 +46,25 @@ type CompanyStorage interface {
 	RemoveBuilding(ctx context.Context, buildingID string) error
 	GetBuildings(ctx context.Context, companyID int) ([]company.Building, error)
 	UpdateInventory(ctx context.Context, companyID int, resourceID int, delta int) error
+	UpdateInventoryQuality(ctx context.Context, companyID int, resourceID, quality, delta int) error
+}
+
+// RetailShelfStorage owns the warehouse reservation and shelf creation for a
+// sale batch. Keeping these mutations behind one storage lock prevents two
+// server instances from stocking the same goods or shelf concurrently.
+type RetailShelfStorage interface {
+	GetRetailBuilding(ctx context.Context, companyID int, buildingID string) (*company.Building, error)
+	StockRetailShelf(ctx context.Context, companyID int, buildingID string, expectedLevel int, shelf company.ShelfItem, maxSlots int) (*company.ShelfItem, error)
+}
+
+// ExecutiveStorage owns the money-and-roster mutations for the executive
+// domain. These operations must be atomic: two tabs must not hire the same
+// candidate twice, spend the same cash twice, or leave two executives assigned
+// to one leadership position.
+type ExecutiveStorage interface {
+	RecruitExecutive(ctx context.Context, companyID int, candidate company.Executive, cost float64) (*company.Executive, error)
+	TrainExecutive(ctx context.Context, companyID int, executiveID string, expectedLevel int, cost float64, nextSkills company.ExecutiveSkills) (*company.Executive, error)
+	AssignExecutivePosition(ctx context.Context, companyID int, executiveID string, position company.ExecutivePosition) (*company.Executive, error)
 }
 
 // BuildingUpgradeStorage provides the compare-and-set operations used by
@@ -79,9 +99,10 @@ type MarketStorage interface {
 // ProductionStorage handles production job persistence.
 type ProductionStorage interface {
 	CreateJob(ctx context.Context, j *production.ProductionJob) error
+	StartProductionJob(ctx context.Context, j *production.ProductionJob, inputs []production.InventoryStack) error
 	GetJob(ctx context.Context, jobID string) (*production.ProductionJob, error)
-	ClaimProductionOutput(ctx context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int) (*production.ProductionJob, error)
-	CancelProductionJob(ctx context.Context, companyID int, jobID string, refunds map[int]int) (*production.ProductionJob, bool, error)
+	ClaimProductionOutput(ctx context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int, payroll production.PayrollSettlement) (*production.ProductionJob, error)
+	CancelProductionJob(ctx context.Context, companyID int, jobID string, refunds []production.InventoryStack, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error)
 	GetJobByClientRequestID(ctx context.Context, companyID int, requestID string) (*production.ProductionJob, error)
 	GetJobsByCompany(ctx context.Context, companyID int) ([]production.ProductionJob, error)
 	GetJobsByBuilding(ctx context.Context, buildingID string) ([]production.ProductionJob, error)
@@ -108,6 +129,7 @@ type ResearchStorage interface {
 	GetCompanyResearch(ctx context.Context, companyID int) ([]research.ResourceResearch, error)
 	GetResourceResearch(ctx context.Context, companyID int, resourceID int) (*research.ResourceResearch, error)
 	SaveResourceResearch(ctx context.Context, rr *research.ResourceResearch) error
+	UnlockResourceQuality(ctx context.Context, companyID, resourceID, targetQuality int, cost float64) (*research.ResourceResearch, bool, error)
 }
 
 // SocialStorage handles chat and notification persistence.
@@ -146,6 +168,7 @@ type SnapshotStorage interface {
 type Storage interface {
 	PlayerStorage
 	CompanyStorage
+	ExecutiveStorage
 	MarketStorage
 	ProductionStorage
 	FinanceStorage

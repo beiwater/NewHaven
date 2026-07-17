@@ -2,18 +2,21 @@ package building
 
 import (
 	"context"
+	"errors"
 	"math"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
 	"github.com/beiwater/NewHaven/backend/internal/catalog"
 	domain "github.com/beiwater/NewHaven/backend/internal/domain/company"
+	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // StockShelf moves items from the company warehouse into a retail building's shelf.
 // A stock action starts an immutable sale batch. Its price and quantity remain
 // committed until demand sells the batch out; players then start a fresh batch.
-func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID string, resourceID int, quantity int, price float64) (*openapi.ShelfActionResponse, error) {
+func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID string, resourceID, quality, quantity int, price float64) (*openapi.ShelfActionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if quantity <= 0 {
@@ -22,15 +25,24 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 	if price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
 		return nil, apperr.BadRequest("sale price must be positive")
 	}
-
-	company, err := s.companies.GetCompany(ctx, companyID)
-	if err != nil {
-		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
+	if !formula.ValidProductQuality(quality) {
+		return nil, apperr.BadRequestf("quality must be between Q%d and Q%d", formula.MinProductQuality, formula.MaxProductQuality)
 	}
 
-	building, entry, err := s.findRetailBuilding(company, buildingID)
+	retailStore, ok := s.companies.(storage.RetailShelfStorage)
+	if !ok {
+		return nil, apperr.Internal("retail storage does not support atomic sale batches")
+	}
+	building, err := retailStore.GetRetailBuilding(ctx, companyID, buildingID)
 	if err != nil {
-		return nil, err
+		return nil, apperr.WrapMsg(apperr.KindNotFound, "retail building not found", err)
+	}
+	entry, ok := s.buildings[building.Kind]
+	if !ok {
+		return nil, apperr.NotFoundf("building kind %d not found in catalog", building.Kind)
+	}
+	if entry.Type != "retail" {
+		return nil, apperr.BadRequestf("building %q is not a retail building", building.Name)
 	}
 	if building.UpgradeTargetLevel > 0 || building.UpgradeCompletesAt != "" {
 		return nil, apperr.Conflict("building is under construction; start sales after the upgrade finishes")
@@ -62,24 +74,27 @@ func (s *Service) StockShelf(ctx context.Context, companyID int, buildingID stri
 		return nil, apperr.BadRequestf("shelf capacity exceeded: %d > %d", quantity, maxQty)
 	}
 
-	// Deduct from warehouse inventory
-	if err := s.companies.UpdateInventory(ctx, companyID, resourceID, -quantity); err != nil {
-		return nil, apperr.WrapMsg(apperr.KindBadRequest, "insufficient warehouse inventory", err)
-	}
-
-	building.Shelves = append(building.Shelves, domain.ShelfItem{
+	shelf, err := retailStore.StockRetailShelf(ctx, companyID, buildingID, building.Level, domain.ShelfItem{
 		ResourceID: resourceID,
+		Quality:    quality,
 		Quantity:   quantity,
 		MaxQty:     maxQty,
 		Price:      price,
 		PriceLock:  true,
-	})
-	shelf := &building.Shelves[len(building.Shelves)-1]
-
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		// Rollback inventory
-		_ = s.companies.UpdateInventory(ctx, companyID, resourceID, quantity)
-		return nil, apperr.Internal("failed to save company after stock")
+	}, maxSlots)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrAlreadyExists):
+			return nil, apperr.Conflict("sale already active; wait until this batch sells out")
+		case errors.Is(err, storage.ErrLimitReached):
+			return nil, apperr.Conflict("shelf capacity changed; refresh and try again")
+		case errors.Is(err, storage.ErrStateConflict):
+			return nil, apperr.Conflict("building state changed; refresh and try again")
+		case errors.Is(err, storage.ErrInsufficientInventory):
+			return nil, apperr.WrapMsg(apperr.KindBadRequest, "insufficient warehouse inventory", err)
+		default:
+			return nil, apperr.Internalf("stock sale batch: %v", err)
+		}
 	}
 
 	return &openapi.ShelfActionResponse{
@@ -170,6 +185,7 @@ func (s *Service) shelfCapacity(entry *catalog.BuildingEntry, level int) int {
 
 func (s *Service) shelfToDTO(sh *domain.ShelfItem) *openapi.ShelfItem {
 	rid := sh.ResourceID
+	quality := sh.Quality
 	qty := sh.Quantity
 	maxQty := sh.MaxQty
 	price := sh.Price
@@ -177,6 +193,7 @@ func (s *Service) shelfToDTO(sh *domain.ShelfItem) *openapi.ShelfItem {
 	revenue := sh.Revenue
 	return &openapi.ShelfItem{
 		ResourceId: &rid,
+		Quality:    &quality,
 		Quantity:   &qty,
 		MaxQty:     &maxQty,
 		Price:      &price,

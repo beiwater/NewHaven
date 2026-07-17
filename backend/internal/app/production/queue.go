@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/beiwater/NewHaven/backend/internal/apperr"
+	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	proddmn "github.com/beiwater/NewHaven/backend/internal/domain/production"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
 	"github.com/beiwater/NewHaven/backend/internal/storage"
@@ -42,6 +44,7 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 		jobID := j.ID
 		buildingID := j.BuildingID
 		resourceID := j.ResourceID
+		quality := j.Quality
 		quantity := j.Quantity
 		targetQty := j.TargetQuantity
 		dur := float32(j.DurationSeconds)
@@ -52,6 +55,7 @@ func (s *Service) ProductionQueue(ctx context.Context, companyID int) (*openapi.
 			Id:              &jobID,
 			BuildingId:      &buildingID,
 			ResourceId:      &resourceID,
+			Quality:         &quality,
 			Quantity:        &quantity,
 			TargetQuantity:  &targetQty,
 			StartedAt:       &j.StartedAt,
@@ -151,24 +155,56 @@ func (s *Service) CancelProductionJob(ctx context.Context, companyID int, jobID 
 	if job.Status == proddmn.StatusClaimed {
 		return nil, apperr.Conflict("job already claimed")
 	}
+	payroll, workers, hourlyWage := s.productionPayrollSettlement(ctx, companyID, job)
 
 	// Calculate the 50% refund, then apply all refunds and the cancellation
 	// tombstone in one storage critical section.
-	refunds := make(map[int]int)
-	resEntry, ok := s.resources[job.ResourceID]
-	if ok {
-		for resourceID, amountPerUnit := range resEntry.ProducedFrom {
-			refundAmount := (amountPerUnit * job.Quantity) / 2
-			if refundAmount > 0 {
-				refunds[resourceID] = refundAmount
+	consumedInputs := job.ConsumedInputs
+	if len(consumedInputs) == 0 {
+		// Migration path for Q0 jobs persisted before exact input reservations
+		// were recorded on the job.
+		if resEntry, ok := s.resources[job.ResourceID]; ok {
+			for resourceID, amountPerUnit := range resEntry.ProducedFrom {
+				consumedInputs = append(consumedInputs, proddmn.InventoryStack{
+					ResourceID: resourceID,
+					Quality:    0,
+					Quantity:   amountPerUnit * job.Quantity,
+				})
 			}
 		}
 	}
-	if _, _, err := s.production.CancelProductionJob(ctx, companyID, job.ID, refunds); err != nil {
+	refunds := make([]proddmn.InventoryStack, 0, len(consumedInputs))
+	for _, input := range consumedInputs {
+		refundAmount := input.Quantity / 2
+		if refundAmount > 0 {
+			refunds = append(refunds, proddmn.InventoryStack{
+				ResourceID: input.ResourceID,
+				Quality:    input.Quality,
+				Quantity:   refundAmount,
+			})
+		}
+	}
+	cancelled, replayed, err := s.production.CancelProductionJob(ctx, companyID, job.ID, refunds, payroll)
+	if err != nil {
 		if errors.Is(err, storage.ErrAlreadySettled) {
 			return nil, apperr.Conflict("job already claimed")
 		}
 		return nil, apperr.Internalf("cancel production job: %v", err)
+	}
+	if !replayed && payroll.Amount > 0 && s.finance != nil {
+		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
+			CompanyID: companyID,
+			Kind:      "production_wages",
+			Amount:    payroll.Amount,
+			Direction: "out",
+			Metadata: map[string]any{
+				"jobId":         cancelled.ID,
+				"workers":       workers,
+				"hourlyWage":    hourlyWage,
+				"activeSeconds": payroll.SettledSeconds - payroll.ExpectedSeconds,
+			},
+			CreatedAt: s.clock.Now().UTC().Format(time.RFC3339),
+		})
 	}
 
 	status := "cancelled"

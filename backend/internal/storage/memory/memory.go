@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -295,11 +296,12 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	if s.nextCompanyID <= 0 {
 		s.nextCompanyID = 1
 	}
-	// Legacy fallback: other counters start from a reasonable base
-	s.nextPlayerID = 1
-	s.nextLedgerID = 1
-	s.nextMessageID = 1
-	s.nextNotifID = 1
+	// Derive counters from persisted records so legacy snapshots that did not
+	// store sequence state cannot reuse an existing public identity.
+	s.nextPlayerID = snap.NextAvailablePlayerID()
+	s.nextLedgerID = snap.NextAvailableLedgerID()
+	s.nextMessageID = snap.NextAvailableMessageID()
+	s.nextNotifID = snap.NextAvailableNotificationID()
 }
 
 // GetSnapshotData returns a snapshot of the current game state for external callers (e.g. PG store).
@@ -377,12 +379,23 @@ func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 	c.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	s.companies[c.ID] = c
 	s.byPlayer[c.PlayerID] = c
-	// Auto-create default warehouse for new company
+	// Auto-create the default warehouse and migrate any Q0 seed inventory into
+	// real stacks. Tests, bots and legacy snapshots commonly create a company
+	// with Inventory already populated; warehouse reads must see the same stock.
+	items := make([]warehouse.Item, 0, len(c.Inventory))
+	usedCapacity := 0
+	for resourceID, amount := range c.Inventory {
+		if amount <= 0 {
+			continue
+		}
+		items = append(items, warehouse.Item{ResourceID: resourceID, Quality: 0, Amount: amount})
+		usedCapacity += amount
+	}
 	s.warehouses[c.ID] = &warehouse.Warehouse{
 		CompanyID:    c.ID,
 		Capacity:     1000,
-		UsedCapacity: 0,
-		Items:        []warehouse.Item{},
+		UsedCapacity: usedCapacity,
+		Items:        items,
 	}
 	// Initialize empty buildings slice for new company (only if not already set)
 	if c.Buildings == nil {
@@ -398,7 +411,7 @@ func (s *Store) GetCompany(_ context.Context, id int) (*company.Company, error) 
 	if !ok {
 		return nil, fmt.Errorf("company not found")
 	}
-	return c, nil
+	return cloneCompany(c), nil
 }
 
 func (s *Store) GetCompanyByPlayerID(_ context.Context, playerID int) (*company.Company, error) {
@@ -459,8 +472,178 @@ func (s *Store) PurchaseBuilding(_ context.Context, companyID int, building comp
 func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.companies[c.ID] = c
+	existing, ok := s.companies[c.ID]
+	if !ok {
+		return fmt.Errorf("company %d not found", c.ID)
+	}
+	indexed, indexedOK := s.byPlayer[c.PlayerID]
+	if existing.PlayerID != c.PlayerID || !indexedOK || indexed.ID != c.ID {
+		return storage.ErrStateConflict
+	}
+	stored := cloneCompany(c)
+	s.companies[stored.ID] = stored
+	s.byPlayer[stored.PlayerID] = stored
 	return nil
+}
+
+// GetRetailBuilding returns a detached snapshot for stock validation. Callers
+// cannot race with or mutate the store's live building through this pointer.
+func (s *Store) GetRetailBuilding(_ context.Context, companyID int, buildingID string) (*company.Building, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	for i := range c.Buildings {
+		if c.Buildings[i].ID == buildingID {
+			building := c.Buildings[i]
+			building.Shelves = append([]company.ShelfItem(nil), building.Shelves...)
+			return &building, nil
+		}
+	}
+	return nil, fmt.Errorf("building %s not found", buildingID)
+}
+
+// StockRetailShelf atomically reserves warehouse inventory and creates an
+// immutable retail batch. The validation is repeated under the storage lock so
+// callers running in different service instances cannot both commit stale
+// preflight state.
+func (s *Store) StockRetailShelf(_ context.Context, companyID int, buildingID string, expectedLevel int, shelf company.ShelfItem, maxSlots int) (*company.ShelfItem, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	var building *company.Building
+	for i := range c.Buildings {
+		if c.Buildings[i].ID == buildingID {
+			building = &c.Buildings[i]
+			break
+		}
+	}
+	if building == nil {
+		return nil, fmt.Errorf("building %s not found", buildingID)
+	}
+	if building.Level != expectedLevel || building.UpgradeTargetLevel > 0 || building.UpgradeCompletesAt != "" {
+		return nil, storage.ErrStateConflict
+	}
+	for i := range building.Shelves {
+		if building.Shelves[i].ResourceID == shelf.ResourceID {
+			return nil, storage.ErrAlreadyExists
+		}
+	}
+	if maxSlots <= 0 || len(building.Shelves) >= maxSlots {
+		return nil, storage.ErrLimitReached
+	}
+	if shelf.Quantity <= 0 {
+		return nil, storage.ErrStateConflict
+	}
+	if err := s.updateInventoryQualityLocked(companyID, shelf.ResourceID, shelf.Quality, -shelf.Quantity); err != nil {
+		return nil, err
+	}
+	building.Shelves = append(building.Shelves, shelf)
+	created := building.Shelves[len(building.Shelves)-1]
+	return &created, nil
+}
+
+// RecruitExecutive commits the recruitment cost and roster addition together.
+// Candidate identity is scoped to the company so a replay cannot charge cash a
+// second time or duplicate an executive in that player's roster.
+func (s *Store) RecruitExecutive(_ context.Context, companyID int, candidate company.Executive, cost float64) (*company.Executive, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	for i := range c.Executives {
+		if c.Executives[i].ID == candidate.ID {
+			return nil, storage.ErrAlreadyExists
+		}
+	}
+	if cost < 0 || c.Money < cost {
+		return nil, storage.ErrInsufficientFunds
+	}
+	// Assign a recruit to their own specialty when that leadership chair is
+	// available. Otherwise the player retains them as an unassigned advisor and
+	// can make a deliberate replacement later.
+	if candidate.Specialty != company.ExecutivePositionUnassigned {
+		candidate.Position = candidate.Specialty
+		for _, executive := range c.Executives {
+			if executive.Position == candidate.Specialty {
+				candidate.Position = company.ExecutivePositionUnassigned
+				break
+			}
+		}
+	}
+	c.Money -= cost
+	c.Executives = append(c.Executives, candidate)
+	copy := c.Executives[len(c.Executives)-1]
+	return &copy, nil
+}
+
+// TrainExecutive applies a single, compare-and-set development step and its
+// cash cost. The expected level stops concurrent requests from applying the
+// same skill increase twice.
+func (s *Store) TrainExecutive(_ context.Context, companyID int, executiveID string, expectedLevel int, cost float64, nextSkills company.ExecutiveSkills) (*company.Executive, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	if cost < 0 || c.Money < cost {
+		return nil, storage.ErrInsufficientFunds
+	}
+	for i := range c.Executives {
+		executive := &c.Executives[i]
+		if executive.ID != executiveID {
+			continue
+		}
+		if executive.Level != expectedLevel {
+			return nil, storage.ErrStateConflict
+		}
+		c.Money -= cost
+		executive.Level++
+		executive.Skills = nextSkills
+		copy := *executive
+		return &copy, nil
+	}
+	return nil, fmt.Errorf("executive %s not found", executiveID)
+}
+
+// AssignExecutivePosition makes an assignment exclusive within a company. If
+// another executive held the selected chair, they become unassigned in the
+// same mutation; accounts cannot affect each other's rosters.
+func (s *Store) AssignExecutivePosition(_ context.Context, companyID int, executiveID string, position company.ExecutivePosition) (*company.Executive, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	var target *company.Executive
+	for i := range c.Executives {
+		if c.Executives[i].ID == executiveID {
+			target = &c.Executives[i]
+			break
+		}
+	}
+	if target == nil {
+		return nil, fmt.Errorf("executive %s not found", executiveID)
+	}
+	if position != company.ExecutivePositionUnassigned {
+		for i := range c.Executives {
+			if c.Executives[i].ID != executiveID && c.Executives[i].Position == position {
+				c.Executives[i].Position = company.ExecutivePositionUnassigned
+			}
+		}
+	}
+	target.Position = position
+	copy := *target
+	return &copy, nil
 }
 
 // StartBuildingUpgrade reserves the upgrade cost and records construction in
@@ -527,10 +710,33 @@ func (s *Store) RemoveBuilding(_ context.Context, buildingID string) error { ret
 func (s *Store) UpdateInventory(_ context.Context, companyID int, resourceID int, delta int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.updateInventoryLocked(companyID, resourceID, delta)
+	return s.updateInventoryQualityLocked(companyID, resourceID, 0, delta)
 }
 
 func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) error {
+	return s.updateInventoryQualityLocked(companyID, resourceID, 0, delta)
+}
+
+func (s *Store) UpdateInventoryQuality(_ context.Context, companyID int, resourceID, quality, delta int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.updateInventoryQualityLocked(companyID, resourceID, quality, delta)
+}
+
+func (s *Store) inventoryAmountLocked(companyID int, resourceID, quality int) (int, error) {
+	w, ok := s.warehouses[companyID]
+	if !ok {
+		return 0, fmt.Errorf("warehouse for company %d not found", companyID)
+	}
+	for i := range w.Items {
+		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == quality {
+			return w.Items[i].Amount, nil
+		}
+	}
+	return 0, nil
+}
+
+func (s *Store) updateInventoryQualityLocked(companyID int, resourceID, quality, delta int) error {
 	c, ok := s.companies[companyID]
 	if !ok {
 		return fmt.Errorf("company %d not found", companyID)
@@ -539,23 +745,25 @@ func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) 
 	if !ok {
 		return fmt.Errorf("warehouse for company %d not found", companyID)
 	}
-	cur := 0
-	if c.Inventory != nil {
-		cur = c.Inventory[resourceID]
+	cur, err := s.inventoryAmountLocked(companyID, resourceID, quality)
+	if err != nil {
+		return err
 	}
 	newVal := cur + delta
 	if newVal < 0 {
-		return fmt.Errorf("insufficient inventory: resource %d has %d, need %d more", resourceID, cur, -delta)
+		return fmt.Errorf("%w: resource %d Q%d has %d, need %d", storage.ErrInsufficientInventory, resourceID, quality, cur, -delta)
 	}
-	if c.Inventory == nil {
-		c.Inventory = make(map[int]int)
+	if quality == 0 {
+		if c.Inventory == nil {
+			c.Inventory = make(map[int]int)
+		}
+		c.Inventory[resourceID] = newVal
 	}
-	c.Inventory[resourceID] = newVal
 
-	// Keep warehouse items consistent for quality 0.
+	// Warehouse stacks are keyed by resource and quality.
 	found := false
 	for i := range w.Items {
-		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == 0 {
+		if w.Items[i].ResourceID == resourceID && w.Items[i].Quality == quality {
 			if newVal > 0 {
 				// Preserve existing ResourceName if present.
 				w.Items[i].Amount = newVal
@@ -571,7 +779,7 @@ func (s *Store) updateInventoryLocked(companyID int, resourceID int, delta int) 
 		w.Items = append(w.Items, warehouse.Item{
 			ResourceID:   resourceID,
 			ResourceName: "",
-			Quality:      0,
+			Quality:      quality,
 			Amount:       newVal,
 		})
 	}
@@ -839,6 +1047,65 @@ func (s *Store) CreateJob(_ context.Context, j *production.ProductionJob) error 
 	return nil
 }
 
+// StartProductionJob atomically reserves every quality-specific input and
+// creates the job. Two server instances can race this method, but only one can
+// consume stock and claim a building line or request ID.
+func (s *Store) StartProductionJob(_ context.Context, j *production.ProductionJob, inputs []production.InventoryStack) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, existing := range s.jobs {
+		if existing.CompanyID == j.CompanyID && existing.BuildingID == j.BuildingID && existing.Status != production.StatusClaimed && existing.Status != production.StatusCancelled {
+			return fmt.Errorf("%w: production line", storage.ErrAlreadyExists)
+		}
+	}
+	if j.ClientRequestID != "" {
+		key := productionRequestKey(j.CompanyID, j.ClientRequestID)
+		if _, exists := s.jobsByRequest[key]; exists {
+			return fmt.Errorf("%w: production request", storage.ErrAlreadyExists)
+		}
+	}
+	if _, ok := s.companies[j.CompanyID]; !ok {
+		return fmt.Errorf("company %d not found", j.CompanyID)
+	}
+	if _, ok := s.warehouses[j.CompanyID]; !ok {
+		return fmt.Errorf("warehouse for company %d not found", j.CompanyID)
+	}
+
+	required := make(map[string]production.InventoryStack, len(inputs))
+	for _, input := range inputs {
+		if input.Quantity <= 0 {
+			continue
+		}
+		key := fmt.Sprintf("%d:%d", input.ResourceID, input.Quality)
+		stack := required[key]
+		stack.ResourceID = input.ResourceID
+		stack.Quality = input.Quality
+		stack.Quantity += input.Quantity
+		required[key] = stack
+	}
+	for _, input := range required {
+		available, err := s.inventoryAmountLocked(j.CompanyID, input.ResourceID, input.Quality)
+		if err != nil {
+			return err
+		}
+		if available < input.Quantity {
+			return fmt.Errorf("%w: resource %d Q%d has %d, need %d", storage.ErrInsufficientInventory, input.ResourceID, input.Quality, available, input.Quantity)
+		}
+	}
+	for _, input := range required {
+		if err := s.updateInventoryQualityLocked(j.CompanyID, input.ResourceID, input.Quality, -input.Quantity); err != nil {
+			return err
+		}
+	}
+
+	j.ConsumedInputs = append([]production.InventoryStack(nil), inputs...)
+	if j.ClientRequestID != "" {
+		s.jobsByRequest[productionRequestKey(j.CompanyID, j.ClientRequestID)] = j
+	}
+	s.jobs[j.ID] = j
+	return nil
+}
+
 func (s *Store) GetJob(_ context.Context, jobID string) (*production.ProductionJob, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -851,10 +1118,10 @@ func (s *Store) GetJob(_ context.Context, jobID string) (*production.ProductionJ
 }
 
 // ClaimProductionOutput atomically moves a claimable amount into the owning
-// company's inventory, awards XP, and advances the job state. Keeping these
-// mutations under one lock prevents two service instances from claiming the
-// same output after both observed it as ready.
-func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int) (*production.ProductionJob, error) {
+// company's inventory, settles accrued payroll, awards XP, and advances the
+// job state. Keeping these mutations under one lock prevents two service
+// instances from duplicating output or charging the same active seconds.
+func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID string, expectedClaimAmount int, xpEarned int, payroll production.PayrollSettlement) (*production.ProductionJob, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.jobs[jobID]
@@ -870,11 +1137,19 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 	if expectedClaimAmount <= 0 || job.ClaimableAmount != expectedClaimAmount {
 		return nil, storage.ErrStateConflict
 	}
-	if err := s.updateInventoryLocked(companyID, job.ResourceID, expectedClaimAmount); err != nil {
+	if !validProductionPayroll(job, payroll) {
+		return nil, storage.ErrStateConflict
+	}
+	if err := s.updateInventoryQualityLocked(companyID, job.ResourceID, job.Quality, expectedClaimAmount); err != nil {
 		return nil, err
 	}
 	company := s.companies[companyID]
+	if company == nil {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	company.Money -= payroll.Amount
 	company.XP += int64(xpEarned)
+	job.PayrollSettledSeconds = payroll.SettledSeconds
 	job.ClaimedAmount += expectedClaimAmount
 	if job.ClaimedAmount >= job.TargetQuantity {
 		job.ClaimedAmount = job.TargetQuantity
@@ -889,7 +1164,7 @@ func (s *Store) ClaimProductionOutput(_ context.Context, companyID int, jobID st
 // CancelProductionJob atomically applies every input refund and records a
 // cancellation tombstone. The tombstone keeps the original request ID alive,
 // preventing delayed start retries from resurrecting a cancelled run.
-func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds map[int]int) (*production.ProductionJob, bool, error) {
+func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID string, refunds []production.InventoryStack, payroll production.PayrollSettlement) (*production.ProductionJob, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.jobs[jobID]
@@ -906,21 +1181,33 @@ func (s *Store) CancelProductionJob(_ context.Context, companyID int, jobID stri
 	if _, ok := s.companies[companyID]; !ok {
 		return nil, false, fmt.Errorf("company %d not found", companyID)
 	}
+	if !validProductionPayroll(job, payroll) {
+		return nil, false, storage.ErrStateConflict
+	}
 	if _, ok := s.warehouses[companyID]; !ok {
 		return nil, false, fmt.Errorf("warehouse for company %d not found", companyID)
 	}
-	for resourceID, amount := range refunds {
-		if amount <= 0 {
+	for _, refund := range refunds {
+		if refund.Quantity <= 0 {
 			continue
 		}
-		if err := s.updateInventoryLocked(companyID, resourceID, amount); err != nil {
+		if err := s.updateInventoryQualityLocked(companyID, refund.ResourceID, refund.Quality, refund.Quantity); err != nil {
 			return nil, false, err
 		}
 	}
+	s.companies[companyID].Money -= payroll.Amount
+	job.PayrollSettledSeconds = payroll.SettledSeconds
 	job.Status = production.StatusCancelled
 	job.ClaimableAmount = 0
 	copy := *job
 	return &copy, false, nil
+}
+
+func validProductionPayroll(job *production.ProductionJob, payroll production.PayrollSettlement) bool {
+	if payroll.Amount < 0 || payroll.SettledSeconds < payroll.ExpectedSeconds {
+		return false
+	}
+	return math.Abs(job.PayrollSettledSeconds-payroll.ExpectedSeconds) < 0.000001
 }
 
 func (s *Store) GetJobByClientRequestID(_ context.Context, companyID int, requestID string) (*production.ProductionJob, error) {
@@ -1129,6 +1416,45 @@ func (s *Store) SaveResourceResearch(_ context.Context, rr *research.ResourceRes
 	key := fmt.Sprintf("%d:%d", rr.CompanyID, rr.ResourceID)
 	s.companyResearch[key] = rr
 	return nil
+}
+
+// UnlockResourceQuality atomically charges cash and advances one product's
+// quality ceiling. The requested target is also the idempotency boundary: a
+// replay of Qn returns the existing unlock without charging again, while a
+// request that skips Q levels is rejected.
+func (s *Store) UnlockResourceQuality(_ context.Context, companyID, resourceID, targetQuality int, cost float64) (*research.ResourceResearch, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	company, ok := s.companies[companyID]
+	if !ok {
+		return nil, false, fmt.Errorf("company %d not found", companyID)
+	}
+	key := fmt.Sprintf("%d:%d", companyID, resourceID)
+	currentLevel := 0
+	if current := s.companyResearch[key]; current != nil {
+		currentLevel = current.Level
+		if currentLevel >= targetQuality {
+			copy := *current
+			return &copy, true, nil
+		}
+	}
+	if targetQuality != currentLevel+1 {
+		return nil, false, storage.ErrStateConflict
+	}
+	if cost < 0 || company.Money < cost {
+		return nil, false, storage.ErrInsufficientFunds
+	}
+
+	company.Money -= cost
+	unlocked := &research.ResourceResearch{
+		CompanyID:  companyID,
+		ResourceID: resourceID,
+		Level:      targetQuality,
+	}
+	s.companyResearch[key] = unlocked
+	copy := *unlocked
+	return &copy, false, nil
 }
 
 // --- SocialStorage ---

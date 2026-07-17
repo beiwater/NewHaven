@@ -176,6 +176,7 @@ type BondListResponse struct {
 // BuildingDTO defines model for BuildingDTO.
 type BuildingDTO struct {
 	BuildingId                 *int         `json:"building_id,omitempty"`
+	HourlyWage                 *float64     `json:"hourly_wage,omitempty"`
 	Id                         *string      `json:"id,omitempty"`
 	IsRetail                   *bool        `json:"is_retail,omitempty"`
 	Level                      *int         `json:"level,omitempty"`
@@ -191,6 +192,7 @@ type BuildingDTO struct {
 	UpgradeCompletesAt         *time.Time   `json:"upgrade_completes_at,omitempty"`
 	UpgradeStartedAt           *time.Time   `json:"upgrade_started_at,omitempty"`
 	UpgradeTargetLevel         *int         `json:"upgrade_target_level,omitempty"`
+	WorkerCount                *int         `json:"worker_count,omitempty"`
 	X                          *int         `json:"x,omitempty"`
 	Y                          *int         `json:"y,omitempty"`
 }
@@ -278,6 +280,7 @@ type ClaimProductionResponse struct {
 	Level          *int                           `json:"level,omitempty"`
 	MarketUnlocked *bool                          `json:"market_unlocked,omitempty"`
 	Output         *map[string]int                `json:"output,omitempty"`
+	Quality        *int                           `json:"quality,omitempty"`
 	Remaining      *int                           `json:"remaining,omitempty"`
 	Status         *ClaimProductionResponseStatus `json:"status,omitempty"`
 	Xp             *int                           `json:"xp,omitempty"`
@@ -292,6 +295,7 @@ type ClaimableJobDTO struct {
 	ClaimableAmount *int    `json:"claimable_amount,omitempty"`
 	ClaimedAmount   *int    `json:"claimed_amount,omitempty"`
 	JobId           *string `json:"job_id,omitempty"`
+	Quality         *int    `json:"quality,omitempty"`
 	ResourceId      *int    `json:"resource_id,omitempty"`
 	TotalAmount     *int    `json:"total_amount,omitempty"`
 }
@@ -508,6 +512,7 @@ type ProductionJobDTO struct {
 	ClaimedAmount   *int                    `json:"claimed_amount,omitempty"`
 	DurationSeconds *float32                `json:"duration_seconds,omitempty"`
 	Id              *string                 `json:"id,omitempty"`
+	Quality         *int                    `json:"quality,omitempty"`
 	Quantity        *int                    `json:"quantity,omitempty"`
 	ResourceId      *int                    `json:"resource_id,omitempty"`
 	StartedAt       *time.Time              `json:"started_at,omitempty"`
@@ -548,10 +553,12 @@ type RegisterRequest struct {
 
 // ResourceDefinition defines model for ResourceDefinition.
 type ResourceDefinition struct {
+	DemandMultiplier     *float64        `json:"demandMultiplier,omitempty"`
 	HasEconomyModel      *bool           `json:"hasEconomyModel,omitempty"`
 	Name                 *string         `json:"name,omitempty"`
 	ProducedFrom         *map[string]int `json:"producedFrom,omitempty"`
 	ProducedPerHourRaw   *int            `json:"producedPerHourRaw,omitempty"`
+	RetailDemandPerHour  *float64        `json:"retailDemandPerHour,omitempty"`
 	RecommendedBuyPrice  *float64        `json:"recommendedBuyPrice,omitempty"`
 	RecommendedPrice     *float64        `json:"recommendedPrice,omitempty"`
 	RecommendedSellPrice *float64        `json:"recommendedSellPrice,omitempty"`
@@ -583,6 +590,7 @@ type ShelfItem struct {
 	Price      *float64 `json:"price,omitempty"`
 	PriceLock  *bool    `json:"price_lock,omitempty"`
 	Quantity   *int     `json:"quantity,omitempty"`
+	Quality    *int     `json:"quality,omitempty"`
 	ResourceId *int     `json:"resource_id,omitempty"`
 	Revenue    *float64 `json:"revenue,omitempty"`
 }
@@ -590,6 +598,7 @@ type ShelfItem struct {
 // StartProductionRequest defines model for StartProductionRequest.
 type StartProductionRequest struct {
 	BuildingId string  `json:"building_id"`
+	Quality    *int    `json:"quality,omitempty"`
 	Quantity   int     `json:"quantity"`
 	RequestId  *string `json:"requestId,omitempty"`
 	ResourceId int     `json:"resource_id"`
@@ -606,6 +615,7 @@ type StartProductionV1Request struct {
 	Amount                   int     `json:"amount"`
 	EstimatedSecondsToFinish *int    `json:"estimatedSecondsToFinish,omitempty"`
 	Kind                     int     `json:"kind"`
+	Quality                  *int    `json:"quality,omitempty"`
 	RequestId                *string `json:"requestId,omitempty"`
 }
 
@@ -613,6 +623,7 @@ type StartProductionV1Request struct {
 type StockShelfRequest struct {
 	BuildingId string  `json:"building_id"`
 	Price      float64 `json:"price"`
+	Quality    int     `json:"quality"`
 	Quantity   int     `json:"quantity"`
 	ResourceId int     `json:"resource_id"`
 }
