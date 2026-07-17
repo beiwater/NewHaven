@@ -297,7 +297,7 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 		s.nextCompanyID = 1
 	}
 	// Legacy fallback: other counters start from a reasonable base
-	s.nextPlayerID = 1
+	s.nextPlayerID = snap.NextAvailablePlayerID()
 	s.nextLedgerID = 1
 	s.nextMessageID = 1
 	s.nextNotifID = 1

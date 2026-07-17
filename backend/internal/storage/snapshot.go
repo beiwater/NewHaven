@@ -30,3 +30,13 @@ type GameSnapshot struct {
 	Warehouses          map[int]*warehouse.Warehouse          `json:"warehouses"`
 	NextID              int                                   `json:"nextId"`
 }
+
+// NextAvailablePlayerID derives the first unused player ID from persisted
+// accounts so loading an older snapshot cannot reuse an existing identity.
+func (s *GameSnapshot) NextAvailablePlayerID() int {
+	nextID := 1
+	for playerID := range s.Players {
+		nextID = max(nextID, playerID+1)
+	}
+	return nextID
+}
