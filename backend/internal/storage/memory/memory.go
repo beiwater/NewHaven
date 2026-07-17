@@ -411,7 +411,7 @@ func (s *Store) GetCompany(_ context.Context, id int) (*company.Company, error) 
 	if !ok {
 		return nil, fmt.Errorf("company not found")
 	}
-	return c, nil
+	return cloneCompany(c), nil
 }
 
 func (s *Store) GetCompanyByPlayerID(_ context.Context, playerID int) (*company.Company, error) {
@@ -472,7 +472,17 @@ func (s *Store) PurchaseBuilding(_ context.Context, companyID int, building comp
 func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.companies[c.ID] = c
+	existing, ok := s.companies[c.ID]
+	if !ok {
+		return fmt.Errorf("company %d not found", c.ID)
+	}
+	indexed, indexedOK := s.byPlayer[c.PlayerID]
+	if existing.PlayerID != c.PlayerID || !indexedOK || indexed.ID != c.ID {
+		return storage.ErrStateConflict
+	}
+	stored := cloneCompany(c)
+	s.companies[stored.ID] = stored
+	s.byPlayer[stored.PlayerID] = stored
 	return nil
 }
 
