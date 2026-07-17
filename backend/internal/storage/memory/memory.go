@@ -296,11 +296,12 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	if s.nextCompanyID <= 0 {
 		s.nextCompanyID = 1
 	}
-	// Legacy fallback: other counters start from a reasonable base
+	// Derive counters from persisted records so legacy snapshots that did not
+	// store sequence state cannot reuse an existing public identity.
 	s.nextPlayerID = snap.NextAvailablePlayerID()
-	s.nextLedgerID = 1
-	s.nextMessageID = 1
-	s.nextNotifID = 1
+	s.nextLedgerID = snap.NextAvailableLedgerID()
+	s.nextMessageID = snap.NextAvailableMessageID()
+	s.nextNotifID = snap.NextAvailableNotificationID()
 }
 
 // GetSnapshotData returns a snapshot of the current game state for external callers (e.g. PG store).
