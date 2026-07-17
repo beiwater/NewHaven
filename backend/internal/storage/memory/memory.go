@@ -475,6 +475,68 @@ func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	return nil
 }
 
+// GetRetailBuilding returns a detached snapshot for stock validation. Callers
+// cannot race with or mutate the store's live building through this pointer.
+func (s *Store) GetRetailBuilding(_ context.Context, companyID int, buildingID string) (*company.Building, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	for i := range c.Buildings {
+		if c.Buildings[i].ID == buildingID {
+			building := c.Buildings[i]
+			building.Shelves = append([]company.ShelfItem(nil), building.Shelves...)
+			return &building, nil
+		}
+	}
+	return nil, fmt.Errorf("building %s not found", buildingID)
+}
+
+// StockRetailShelf atomically reserves warehouse inventory and creates an
+// immutable retail batch. The validation is repeated under the storage lock so
+// callers running in different service instances cannot both commit stale
+// preflight state.
+func (s *Store) StockRetailShelf(_ context.Context, companyID int, buildingID string, expectedLevel int, shelf company.ShelfItem, maxSlots int) (*company.ShelfItem, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return nil, fmt.Errorf("company %d not found", companyID)
+	}
+	var building *company.Building
+	for i := range c.Buildings {
+		if c.Buildings[i].ID == buildingID {
+			building = &c.Buildings[i]
+			break
+		}
+	}
+	if building == nil {
+		return nil, fmt.Errorf("building %s not found", buildingID)
+	}
+	if building.Level != expectedLevel || building.UpgradeTargetLevel > 0 || building.UpgradeCompletesAt != "" {
+		return nil, storage.ErrStateConflict
+	}
+	for i := range building.Shelves {
+		if building.Shelves[i].ResourceID == shelf.ResourceID {
+			return nil, storage.ErrAlreadyExists
+		}
+	}
+	if maxSlots <= 0 || len(building.Shelves) >= maxSlots {
+		return nil, storage.ErrLimitReached
+	}
+	if shelf.Quantity <= 0 {
+		return nil, storage.ErrStateConflict
+	}
+	if err := s.updateInventoryQualityLocked(companyID, shelf.ResourceID, shelf.Quality, -shelf.Quantity); err != nil {
+		return nil, err
+	}
+	building.Shelves = append(building.Shelves, shelf)
+	created := building.Shelves[len(building.Shelves)-1]
+	return &created, nil
+}
+
 // RecruitExecutive commits the recruitment cost and roster addition together.
 // Candidate identity is scoped to the company so a replay cannot charge cash a
 // second time or duplicate an executive in that player's roster.

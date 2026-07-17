@@ -49,6 +49,14 @@ type CompanyStorage interface {
 	UpdateInventoryQuality(ctx context.Context, companyID int, resourceID, quality, delta int) error
 }
 
+// RetailShelfStorage owns the warehouse reservation and shelf creation for a
+// sale batch. Keeping these mutations behind one storage lock prevents two
+// server instances from stocking the same goods or shelf concurrently.
+type RetailShelfStorage interface {
+	GetRetailBuilding(ctx context.Context, companyID int, buildingID string) (*company.Building, error)
+	StockRetailShelf(ctx context.Context, companyID int, buildingID string, expectedLevel int, shelf company.ShelfItem, maxSlots int) (*company.ShelfItem, error)
+}
+
 // ExecutiveStorage owns the money-and-roster mutations for the executive
 // domain. These operations must be atomic: two tabs must not hire the same
 // candidate twice, spend the same cash twice, or leave two executives assigned
