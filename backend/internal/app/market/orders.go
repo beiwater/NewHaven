@@ -70,24 +70,22 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	}
 
 	var reservedCompanyID int
-	var originalMoney float64
+	var reservedTotal float64
 
 	// Pre-check and reserve funds/inventory.
 	if isBuy {
 		total := float64(req.Price) * float64(req.Quantity)
-		company, err := s.companies.GetCompany(ctx, companyID)
-		if err != nil {
+		// Reserve funds atomically: the funds check and debit happen under the
+		// store lock, so two concurrent orders cannot both pass the balance check
+		// and overdraw the account.
+		if _, err := s.companies.AdjustMoney(ctx, companyID, -total, true); err != nil {
+			if err == storage.ErrInsufficientFunds {
+				return nil, apperr.InsufficientFunds("insufficient funds")
+			}
 			return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
 		}
-		if company.Money < total {
-			return nil, apperr.InsufficientFunds("insufficient funds")
-		}
-		reservedCompanyID = company.ID
-		originalMoney = company.Money
-		company.Money -= total
-		if err := s.companies.UpdateCompany(ctx, company); err != nil {
-			return nil, apperr.Internalf("update company: %v", err)
-		}
+		reservedCompanyID = companyID
+		reservedTotal = total
 	} else {
 		if err := s.companies.UpdateInventory(ctx, companyID, req.ResourceId, -req.Quantity); err != nil {
 			return nil, apperr.Internalf("reserve inventory: %v", err)
@@ -111,13 +109,9 @@ func (s *Service) CreateOrder(ctx context.Context, companyID int, req *openapi.C
 	}
 
 	if err := s.market.CreateOrder(ctx, order); err != nil {
-		// Best-effort rollback.
+		// Best-effort rollback of the reservation.
 		if isBuy {
-			comp, rbErr := s.companies.GetCompany(ctx, reservedCompanyID)
-			if rbErr == nil {
-				comp.Money = originalMoney
-				_ = s.companies.UpdateCompany(ctx, comp)
-			}
+			_, _ = s.companies.AdjustMoney(ctx, reservedCompanyID, reservedTotal, false)
 		} else {
 			_ = s.companies.UpdateInventory(ctx, companyID, req.ResourceId, req.Quantity)
 		}

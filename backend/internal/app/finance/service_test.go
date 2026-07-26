@@ -309,7 +309,9 @@ func TestCreateBond_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetCompany: %v", err)
 	}
-	expectedMoney := 50000.0 + 10*5000.0
+	// Issuing a bond raises no capital until buyers subscribe, so the issuer's
+	// balance is unchanged at creation time.
+	expectedMoney := 50000.0
 	if company.Money != expectedMoney {
 		t.Errorf("expected money %.0f, got %.0f", expectedMoney, company.Money)
 	}
@@ -326,23 +328,15 @@ func TestCreateBond_Success(t *testing.T) {
 		t.Errorf("expected status active, got %s", bonds[0].Status)
 	}
 
-	// Verify bond_issue ledger entry
+	// No money moved on create, so there must be no bond_issue ledger entry yet.
 	entries, err := store.GetLedgerEntries(ctx, cid, 10)
 	if err != nil {
 		t.Fatalf("GetLedgerEntries: %v", err)
 	}
-	found := false
 	for _, e := range entries {
-		if e.Kind == "bond_issue" && e.Direction == "in" {
-			found = true
-			if e.Amount != 50000 {
-				t.Errorf("expected ledger amount 50000, got %f", e.Amount)
-			}
-			break
+		if e.Kind == "bond_issue" {
+			t.Errorf("unexpected bond_issue ledger entry at creation (amount %f)", e.Amount)
 		}
-	}
-	if !found {
-		t.Error("expected bond_issue ledger entry not found")
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	domainfinance "github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/formula"
 	openapi "github.com/beiwater/NewHaven/backend/internal/generated/openapi"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // --- Bond helpers ---
@@ -164,8 +165,7 @@ func (s *Service) CreateBond(ctx context.Context, companyID int, amount int, int
 		return nil, apperr.Validationf("interest must be between %.1f and %.1f", s.bondMinInterest(), s.bondMaxInterest())
 	}
 
-	company, err := s.companies.GetCompany(ctx, companyID)
-	if err != nil {
+	if _, err := s.companies.GetCompany(ctx, companyID); err != nil {
 		return nil, apperr.WrapMsg(apperr.KindNotFound, "company not found", err)
 	}
 
@@ -183,30 +183,14 @@ func (s *Service) CreateBond(ctx context.Context, companyID int, amount int, int
 		CreatedAt:       now,
 	}
 
-	// Credit company money.
-	credit := float64(amount) * fv
-	company.Money += credit
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		company.Money -= credit // rollback
-		return nil, apperr.Internalf("update company: %v", err)
-	}
-
-	// Store bond.
+	// Issuing a bond does NOT credit the issuer up front. Capital is raised only
+	// as buyers purchase units (see BuyBond, which transfers buyer -> issuer).
+	// Crediting the full face value here minted money: an issuer could float a
+	// huge bond, pocket amount*faceValue instantly, never sell a unit (so owe no
+	// interest and never call), and keep the cash — an unbounded money exploit.
 	if err := s.finance.CreateBond(ctx, b); err != nil {
-		company.Money -= credit                     // rollback
-		_ = s.companies.UpdateCompany(ctx, company) // best-effort
 		return nil, apperr.Internalf("create bond: %v", err)
 	}
-
-	// Append ledger entry.
-	_ = s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
-		CompanyID: companyID,
-		Kind:      "bond_issue",
-		Direction: "in",
-		Amount:    credit,
-		Metadata:  map[string]any{"bondId": b.ID, "amount": amount, "interest": interestPct},
-		CreatedAt: now,
-	})
 
 	dto := s.bondToDTO(b, 0, "", amount)
 	return &openapi.CreateBondResponse{Bond: &dto}, nil
@@ -279,20 +263,27 @@ func (s *Service) BuyBond(ctx context.Context, companyID int, bondID string, amo
 	if b.Status != "active" {
 		return nil, apperr.BadRequest("bond is not active")
 	}
-
-	company, err := s.companies.GetCompany(ctx, companyID)
-	if err != nil {
-		return nil, apperr.NotFoundf("company %d not found", companyID)
+	if b.IssuerCompanyID == companyID {
+		return nil, apperr.BadRequest("cannot buy your own bond")
+	}
+	// Cannot subscribe to more than the remaining unissued supply. Without this
+	// cap a buyer could purchase unlimited units of a small issue, forcing the
+	// issuer to pay interest (and, on call, principal) far beyond what they
+	// floated.
+	remaining := b.TotalQuantity - b.IssuedQuantity
+	if amount > remaining {
+		return nil, apperr.BadRequestf("only %d units remaining", remaining)
 	}
 
 	cost := b.FaceValue * float64(amount)
-	if company.Money < cost {
-		return nil, apperr.BadRequest("insufficient funds")
-	}
-
-	company.Money -= cost
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		return nil, apperr.Internalf("update company: %v", err)
+	// Atomic buyer -> issuer transfer: the buyer lends capital to the issuer.
+	// (Previously the buyer's cash was destroyed and the issuer credited nothing,
+	// because the issuer had already been paid in full at CreateBond time.)
+	if err := s.companies.TransferMoney(ctx, companyID, b.IssuerCompanyID, cost); err != nil {
+		if err == storage.ErrInsufficientFunds {
+			return nil, apperr.BadRequest("insufficient funds")
+		}
+		return nil, apperr.Internalf("transfer funds: %v", err)
 	}
 
 	now := s.clock.Now().UTC()
@@ -303,6 +294,7 @@ func (s *Service) BuyBond(ctx context.Context, companyID int, bondID string, amo
 		PurchasedAt: now.Format(time.RFC3339),
 	}
 	if err := s.finance.CreateBondHolding(ctx, holding); err != nil {
+		_ = s.companies.TransferMoney(ctx, b.IssuerCompanyID, companyID, cost) // rollback
 		return nil, apperr.Internalf("create holding: %v", err)
 	}
 
@@ -311,11 +303,20 @@ func (s *Service) BuyBond(ctx context.Context, companyID int, bondID string, amo
 		return nil, apperr.Internalf("update bond: %v", err)
 	}
 
+	nowStr := now.Format(time.RFC3339)
 	s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
 		CompanyID: companyID,
 		Kind:      "bond_buy", Amount: cost, Direction: "out",
-		CreatedAt: now.Format(time.RFC3339),
+		CreatedAt: nowStr,
 		Metadata:  map[string]any{"bond_id": bondID, "quantity": amount},
+	})
+	// Mirror the capital raised on the issuer's ledger so their cashflow reflects
+	// the incoming funds.
+	s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+		CompanyID: b.IssuerCompanyID,
+		Kind:      "bond_issue", Amount: cost, Direction: "in",
+		CreatedAt: nowStr,
+		Metadata:  map[string]any{"bond_id": bondID, "quantity": amount, "buyer": companyID},
 	})
 
 	return map[string]any{"ok": true}, nil
@@ -344,31 +345,37 @@ func (s *Service) CallBond(ctx context.Context, companyID int, bondID string, am
 		return nil, apperr.Internalf("get holdings: %v", err)
 	}
 
+	// Compute the total principal the issuer must repay, and verify they can
+	// afford it BEFORE paying anyone. Otherwise a partial call would repay some
+	// holders, leave the issuer's balance negative, and desync the ledger.
 	totalPayback := 0.0
 	for _, h := range holdings {
-		payback := b.FaceValue * float64(h.Quantity)
-		totalPayback += payback
-
-		holder, err := s.companies.GetCompany(ctx, h.CompanyID)
+		totalPayback += b.FaceValue * float64(h.Quantity)
+	}
+	if totalPayback > 0 {
+		issuer, err := s.companies.GetCompany(ctx, companyID)
 		if err != nil {
-			continue
+			return nil, apperr.NotFoundf("company %d not found", companyID)
 		}
-		holder.Money += payback
-		if err := s.companies.UpdateCompany(ctx, holder); err != nil {
-			continue
+		if issuer.Money < totalPayback {
+			return nil, apperr.BadRequest("insufficient funds to call bond")
 		}
+	}
 
+	for _, h := range holdings {
+		payback := b.FaceValue * float64(h.Quantity)
+		// Atomic issuer -> holder repayment of principal.
+		if err := s.companies.TransferMoney(ctx, companyID, h.CompanyID, payback); err != nil {
+			continue
+		}
 		s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
 			CompanyID: h.CompanyID,
 			Kind:      "bond_call", Amount: payback, Direction: "in",
 			CreatedAt: now.Format(time.RFC3339),
 		})
-	}
-
-	if totalPayback > 0 {
 		s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
 			CompanyID: companyID,
-			Kind:      "bond_call", Amount: totalPayback, Direction: "out",
+			Kind:      "bond_call", Amount: payback, Direction: "out",
 			CreatedAt: now.Format(time.RFC3339),
 		})
 	}
@@ -404,41 +411,34 @@ func (s *Service) SettleBondInterest(ctx context.Context) (map[string]any, error
 			continue
 		}
 
+		// The issuer must pay each holder exactly what that holder receives, so
+		// interest is transferred atomically holder by holder and the issuer's
+		// total expense is the *sum of the per-holder floored amounts*. Charging
+		// the issuer a separately-floored total (Floor(fv*issued*rate)) did not
+		// reconcile with the sum of holder credits and destroyed money on every
+		// tick.
 		for _, h := range holdings {
 			interest := math.Floor(b.FaceValue * float64(h.Quantity) * b.InterestRate)
-
-			holder, err := s.companies.GetCompany(ctx, h.CompanyID)
-			if err != nil {
+			if interest <= 0 {
 				continue
 			}
-			holder.Money += interest
-			if err := s.companies.UpdateCompany(ctx, holder); err != nil {
+			if err := s.companies.TransferMoney(ctx, b.IssuerCompanyID, h.CompanyID, interest); err != nil {
+				// Issuer can't cover this holder's coupon (or a company is
+				// missing); skip this holder rather than minting money.
 				continue
 			}
-
 			s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
 				CompanyID: h.CompanyID,
 				Kind:      "bond_interest_income", Amount: interest, Direction: "in",
 				CreatedAt: now.Format(time.RFC3339),
 			})
+			s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
+				CompanyID: b.IssuerCompanyID,
+				Kind:      "bond_interest_expense", Amount: interest, Direction: "out",
+				CreatedAt: now.Format(time.RFC3339),
+			})
 			settledCount++
 		}
-
-		// Issuer pays interest.
-		issuer, err := s.companies.GetCompany(ctx, b.IssuerCompanyID)
-		if err != nil {
-			continue
-		}
-		totalInterest := math.Floor(b.FaceValue * float64(b.IssuedQuantity) * b.InterestRate)
-		issuer.Money -= totalInterest
-		if err := s.companies.UpdateCompany(ctx, issuer); err != nil {
-			continue
-		}
-		s.finance.AppendLedgerEntry(ctx, &domainfinance.LedgerEntry{
-			CompanyID: b.IssuerCompanyID,
-			Kind:      "bond_interest_expense", Amount: totalInterest, Direction: "out",
-			CreatedAt: now.Format(time.RFC3339),
-		})
 
 		// Persist the settlement timestamp for idempotency.
 		b.LastSettledAt = now.Format(time.RFC3339)

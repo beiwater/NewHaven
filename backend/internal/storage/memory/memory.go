@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -460,6 +461,52 @@ func (s *Store) UpdateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.companies[c.ID] = c
+	return nil
+}
+
+// AdjustMoney atomically applies a signed delta to a company's balance. It is
+// the race-free replacement for the GetCompany -> mutate Money -> UpdateCompany
+// pattern, which loses updates when several goroutines (matching, retail,
+// bonds, salaries) mutate the same live *Company concurrently.
+func (s *Store) AdjustMoney(_ context.Context, companyID int, delta float64, requireFunds bool) (float64, error) {
+	if math.IsNaN(delta) || math.IsInf(delta, 0) {
+		return 0, fmt.Errorf("invalid money delta")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.companies[companyID]
+	if !ok {
+		return 0, fmt.Errorf("company %d not found", companyID)
+	}
+	if requireFunds && c.Money+delta < 0 {
+		return c.Money, storage.ErrInsufficientFunds
+	}
+	c.Money += delta
+	return c.Money, nil
+}
+
+// TransferMoney atomically moves amount from one company to another under a
+// single lock so the debit and credit cannot be interleaved or partially
+// applied. amount must be non-negative and finite.
+func (s *Store) TransferMoney(_ context.Context, fromID, toID int, amount float64) error {
+	if math.IsNaN(amount) || math.IsInf(amount, 0) || amount < 0 {
+		return fmt.Errorf("invalid transfer amount")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	from, ok := s.companies[fromID]
+	if !ok {
+		return fmt.Errorf("company %d not found", fromID)
+	}
+	to, ok := s.companies[toID]
+	if !ok {
+		return fmt.Errorf("company %d not found", toID)
+	}
+	if from.Money < amount {
+		return storage.ErrInsufficientFunds
+	}
+	from.Money -= amount
+	to.Money += amount
 	return nil
 }
 

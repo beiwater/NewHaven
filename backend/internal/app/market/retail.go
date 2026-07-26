@@ -318,24 +318,31 @@ func (s *Service) applyNPCSale(ctx context.Context, company *domain.Company, res
 		slog.Warn("[retail] NPC inventory deduction failed", "company", company.ID, "resource", resourceID, "error", err)
 		return
 	}
-	company.Money += earned
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
+	// Credit atomically. Retail settlement runs on the scheduler and via profile
+	// polling, concurrently with market matching and bond settlement that also
+	// touch this balance, so a read-modify-write here would lose updates.
+	if _, err := s.companies.AdjustMoney(ctx, company.ID, earned, false); err != nil {
 		slog.Warn("[retail] NPC money credit failed", "company", company.ID, "resource", resourceID, "error", err)
 		_ = s.companies.UpdateInventory(ctx, company.ID, resourceID, sold)
-		company.Money -= earned
 		return
 	}
 	logSale(ctx, s.finance, company.ID, "retail_sale", earned, resourceID, sold, price, now)
 }
 
-// applyPlayerShelfSale deducts from shelf, credits money, logs.
+// applyPlayerShelfSale deducts from shelf, credits money, logs. The shelf
+// mutation is applied to the caller's company struct (persisted by the
+// surrounding CatchUpPlayerRetail via UpdateCompany); the money credit goes
+// through the atomic store path so it is never clobbered.
 func (s *Service) applyPlayerShelfSale(ctx context.Context, company *domain.Company, buildingID string, resourceID, sold int, earned, price float64, now time.Time) {
 	if !deductFromShelf(company, buildingID, resourceID, sold) {
 		slog.Warn("[retail] player shelf disappeared before settlement", "company", company.ID, "building", buildingID, "resource", resourceID)
 		return
 	}
 
-	company.Money += earned
+	if _, err := s.companies.AdjustMoney(ctx, company.ID, earned, false); err != nil {
+		slog.Warn("[retail] player money credit failed", "company", company.ID, "resource", resourceID, "error", err)
+		return
+	}
 	logSale(ctx, s.finance, company.ID, "retail_sale", earned, resourceID, sold, price, now)
 }
 

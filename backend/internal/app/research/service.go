@@ -144,23 +144,15 @@ func (s *Service) LevelUp(ctx context.Context, companyID int, resourceID int) (*
 	baseCost := formula.ResearchBaseCost(entry.Tier, s.cfg.ResearchBaseCost)
 	cost := formula.ResearchLevelCost(baseCost, currentLevel+1)
 
-	// Load company and check money.
-	company, err := s.companies.GetCompany(ctx, companyID)
-	if err != nil {
+	// Deduct money atomically (funds check + debit under the store lock).
+	if _, err := s.companies.AdjustMoney(ctx, companyID, -cost, true); err != nil {
+		if errors.Is(err, storage.ErrInsufficientFunds) {
+			return nil, ErrInsufficientFunds
+		}
 		return nil, err
 	}
 
-	if company.Money < cost {
-		return nil, ErrInsufficientFunds
-	}
-
-	// Deduct money.
-	company.Money -= cost
-	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		return nil, err
-	}
-
-	// Save new research level.
+	// Save new research level; refund the charge if persistence fails.
 	newLevel := currentLevel + 1
 	newRR := &research.ResourceResearch{
 		CompanyID:  companyID,
@@ -168,6 +160,7 @@ func (s *Service) LevelUp(ctx context.Context, companyID int, resourceID int) (*
 		Level:      newLevel,
 	}
 	if err := s.research.SaveResourceResearch(ctx, newRR); err != nil {
+		_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 		return nil, err
 	}
 

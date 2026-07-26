@@ -228,33 +228,28 @@ func (s *Service) executeFillLocked(
 	fee float64,
 	now time.Time,
 ) (*tradeResult, error) {
-	// Deduct from taker.
-	takerOriginalMoney := taker.Money
-	taker.Money -= cost
-	if err := s.companies.UpdateCompany(ctx, taker); err != nil {
-		taker.Money = takerOriginalMoney
-		return nil, apperr.Internalf("update taker company: %v", err)
+	// Deduct from taker atomically (funds check + debit under the store lock).
+	if _, err := s.companies.AdjustMoney(ctx, companyID, -cost, true); err != nil {
+		if err == storage.ErrInsufficientFunds {
+			return nil, apperr.InsufficientFunds("insufficient funds")
+		}
+		return nil, apperr.Internalf("debit taker company: %v", err)
 	}
 
 	// Add inventory to taker.
 	if err := s.companies.UpdateInventory(ctx, companyID, resourceID, fill); err != nil {
 		// Rollback taker money.
-		taker.Money = takerOriginalMoney
-		_ = s.companies.UpdateCompany(ctx, taker)
+		_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 		return nil, apperr.Internalf("add inventory to taker: %v", err)
 	}
 
 	// Credit seller if different company.
-	var sellerOriginalMoney float64
+	sellerProceeds := float64(fill) * sell.Price
 	sellerCredited := false
-	seller, err := s.companies.GetCompany(ctx, sell.CompanyID)
-	if err == nil && sell.CompanyID != companyID {
-		sellerOriginalMoney = seller.Money
-		seller.Money += float64(fill) * sell.Price
-		if err := s.companies.UpdateCompany(ctx, seller); err != nil {
+	if sell.CompanyID != companyID {
+		if _, err := s.companies.AdjustMoney(ctx, sell.CompanyID, sellerProceeds, false); err != nil {
 			// Rollback: undo taker money + inventory.
-			taker.Money = takerOriginalMoney
-			_ = s.companies.UpdateCompany(ctx, taker)
+			_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 			_ = s.companies.UpdateInventory(ctx, companyID, resourceID, -fill)
 			return nil, apperr.Internalf("credit seller: %v", err)
 		}
@@ -272,12 +267,10 @@ func (s *Service) executeFillLocked(
 	}
 	if err := s.market.UpdateOrder(ctx, sell); err != nil {
 		// Rollback: undo taker, seller, inventory.
-		taker.Money = takerOriginalMoney
-		_ = s.companies.UpdateCompany(ctx, taker)
+		_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 		_ = s.companies.UpdateInventory(ctx, companyID, resourceID, -fill)
 		if sellerCredited {
-			seller.Money = sellerOriginalMoney
-			_ = s.companies.UpdateCompany(ctx, seller)
+			_, _ = s.companies.AdjustMoney(ctx, sell.CompanyID, -sellerProceeds, false)
 		}
 		sell.FilledQuantity = originalFilledQuantity
 		sell.Status = originalStatus
@@ -298,12 +291,10 @@ func (s *Service) executeFillLocked(
 	}
 	if err := s.market.SaveTrade(ctx, trade); err != nil {
 		// Rollback everything.
-		taker.Money = takerOriginalMoney
-		_ = s.companies.UpdateCompany(ctx, taker)
+		_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 		_ = s.companies.UpdateInventory(ctx, companyID, resourceID, -fill)
 		if sellerCredited {
-			seller.Money = sellerOriginalMoney
-			_ = s.companies.UpdateCompany(ctx, seller)
+			_, _ = s.companies.AdjustMoney(ctx, sell.CompanyID, -sellerProceeds, false)
 		}
 		sell.FilledQuantity = originalFilledQuantity
 		sell.Status = originalStatus

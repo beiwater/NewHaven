@@ -175,21 +175,16 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 
 	// Refund buyer excess limit: fill * (buyOrder.Price - execPrice) if buy.Price > execPrice.
 	if buyOrder.Price > execPrice {
-		buyerCompany, cErr := s.companies.GetCompany(ctx, buyerID)
-		if cErr != nil {
-			err = cErr
-			return
-		}
 		// Refund the reserved excess. The buyer had already reserved buyOrder.Price * quantity.
 		// For this fill, only execPrice * fill was spent, so refund (buyOrder.Price - execPrice) * fill.
+		// AdjustMoney applies the credit atomically under the store lock, so it
+		// cannot be lost to a concurrent settlement mutating the same balance.
 		excessRefund := (buyOrder.Price - execPrice) * float64(fill)
-		buyerCompany.Money += excessRefund
-		if err = s.companies.UpdateCompany(ctx, buyerCompany); err != nil {
+		if _, err = s.companies.AdjustMoney(ctx, buyerID, excessRefund, false); err != nil {
 			return
 		}
 		undo = append(undo, func() {
-			buyerCompany.Money -= excessRefund
-			_ = s.companies.UpdateCompany(ctx, buyerCompany)
+			_, _ = s.companies.AdjustMoney(ctx, buyerID, -excessRefund, false)
 		})
 		_ = s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
 			CompanyID: buyerID,
@@ -206,19 +201,13 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 
 	// -- Seller side --
 
-	sellerCompany, sErr := s.companies.GetCompany(ctx, sellerID)
-	if sErr != nil {
-		err = sErr
-		return
-	}
 	revenue := float64(fill) * execPrice
-	sellerCompany.Money += revenue - fee
-	if err = s.companies.UpdateCompany(ctx, sellerCompany); err != nil {
+	net := revenue - fee
+	if _, err = s.companies.AdjustMoney(ctx, sellerID, net, false); err != nil {
 		return
 	}
 	undo = append(undo, func() {
-		sellerCompany.Money -= revenue - fee
-		_ = s.companies.UpdateCompany(ctx, sellerCompany)
+		_, _ = s.companies.AdjustMoney(ctx, sellerID, -net, false)
 	})
 
 	if fee > 0 {

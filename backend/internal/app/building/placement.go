@@ -161,17 +161,22 @@ func (s *Service) DemolishBuilding(ctx context.Context, companyID int, req *open
 		}
 		refund := baseCost * 0.5
 		// Save originals before mutation for rollback
-		origMoney := company.Money
 		origBuildings := make([]domain.Building, len(company.Buildings))
 		copy(origBuildings, company.Buildings)
 
-		company.Money += refund
 		company.Buildings = append(company.Buildings[:i], company.Buildings[i+1:]...)
 
 		if err := s.companies.UpdateCompany(ctx, company); err != nil {
-			company.Money = origMoney
 			company.Buildings = origBuildings
 			return nil, apperr.Internalf("save company: %v", err)
+		}
+		// Credit the refund atomically after the building is removed. If it fails
+		// (company vanished), restore the building so the player isn't charged for
+		// nothing.
+		if _, err := s.companies.AdjustMoney(ctx, companyID, refund, false); err != nil {
+			company.Buildings = origBuildings
+			_ = s.companies.UpdateCompany(ctx, company)
+			return nil, apperr.Internalf("credit refund: %v", err)
 		}
 
 		status := "demolished"

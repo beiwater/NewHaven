@@ -196,19 +196,20 @@ func (s *Service) UpgradeBuilding(ctx context.Context, companyID int, buildingID
 			}
 		} else {
 			// Compatibility for legacy adapters and failure-injection test doubles.
-			if company.Money < cost {
-				return nil, apperr.InsufficientFunds(fmt.Sprintf("need %.0f to upgrade to level %d, have %.0f", cost, nextLevel, company.Money))
+			if _, err := s.companies.AdjustMoney(ctx, companyID, -cost, true); err != nil {
+				if errors.Is(err, storage.ErrInsufficientFunds) {
+					return nil, apperr.InsufficientFunds(fmt.Sprintf("need %.0f to upgrade to level %d, have %.0f", cost, nextLevel, company.Money))
+				}
+				return nil, apperr.Internalf("charge upgrade: %v", err)
 			}
-			origMoney := company.Money
-			company.Money -= cost
 			company.Buildings[i].UpgradeTargetLevel = nextLevel
 			company.Buildings[i].UpgradeStartedAt = startedAt.Format(time.RFC3339)
 			company.Buildings[i].UpgradeCompletesAt = completesAt.Format(time.RFC3339)
 			if err := s.companies.UpdateCompany(ctx, company); err != nil {
-				company.Money = origMoney
 				company.Buildings[i].UpgradeTargetLevel = 0
 				company.Buildings[i].UpgradeStartedAt = ""
 				company.Buildings[i].UpgradeCompletesAt = ""
+				_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 				return nil, apperr.Internalf("save company: %v", err)
 			}
 		}

@@ -70,43 +70,47 @@ func (s *Service) UpgradeWarehouse(ctx context.Context, companyID int) (*openapi
 		return nil, apperr.InsufficientFunds(fmt.Sprintf("not enough money: need %.0f, have %.0f", cost, company.Money))
 	}
 
-	origMoney := company.Money
-	origLevel := company.WarehouseLevel
-	company.Money -= cost
-	company.WarehouseLevel++
+	// Fetch the warehouse before charging so a fetch failure costs nothing.
+	w, whErr := s.warehouses.GetWarehouse(ctx, companyID)
+	if whErr != nil {
+		return nil, apperr.Internalf("get warehouse: %v", whErr)
+	}
+
+	// Charge atomically (funds check + debit happen together under the store
+	// lock, so money can't be lost to a concurrent settlement).
+	if _, err := s.companies.AdjustMoney(ctx, companyID, -cost, true); err != nil {
+		if err == storage.ErrInsufficientFunds {
+			return nil, apperr.InsufficientFunds(fmt.Sprintf("not enough money: need %.0f, have %.0f", cost, company.Money))
+		}
+		return nil, apperr.Internalf("charge warehouse upgrade: %v", err)
+	}
 
 	// Calculate new capacity
 	baseCap := 1000
 	if s.cfg != nil && s.cfg.WarehouseBaseCap > 0 {
 		baseCap = s.cfg.WarehouseBaseCap
 	}
+	origLevel := company.WarehouseLevel
+	origCapacity := w.Capacity
+	company.WarehouseLevel++
 	capacity := (company.WarehouseLevel + 2) * baseCap
 
-	// Update the warehouse storage
-	w, whErr := s.warehouses.GetWarehouse(ctx, companyID)
-	if whErr != nil {
-		company.Money = origMoney
-		company.WarehouseLevel = origLevel
-		return nil, apperr.Internalf("get warehouse: %v", whErr)
-	}
-
-	origCapacity := w.Capacity
-	w.Capacity = capacity
-
-	// Update both in a single atomic-like step with rollback
+	// Persist the level bump first (money is authoritative in the store and
+	// untouched by UpdateCompany), refunding the charge on any failure. Capacity
+	// is only mutated right before its own persist so an earlier failure leaves
+	// the warehouse untouched.
 	if err := s.companies.UpdateCompany(ctx, company); err != nil {
-		company.Money = origMoney
 		company.WarehouseLevel = origLevel
-		w.Capacity = origCapacity
+		_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 		return nil, apperr.Internalf("save company: %v", err)
 	}
 
+	w.Capacity = capacity
 	if err := s.warehouses.UpdateWarehouse(ctx, w); err != nil {
-		// Rollback company changes
-		company.Money = origMoney
 		company.WarehouseLevel = origLevel
 		w.Capacity = origCapacity
 		_ = s.companies.UpdateCompany(ctx, company)
+		_, _ = s.companies.AdjustMoney(ctx, companyID, cost, false)
 		return nil, apperr.Internalf("update warehouse: %v", err)
 	}
 

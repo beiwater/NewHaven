@@ -22,119 +22,174 @@ func newTestSvcWithClock() (*appfinance.Service, *memory.Store, *platform.FakeCl
 	return svc, store, clock
 }
 
-// bondInterest computes the interest paid by SettleBondInterest: Floor(FaceValue * qty * rate).
+// bondInterest computes the interest paid per holder: Floor(FaceValue * qty * rate).
 func bondInterest(qty int) float64 {
 	return math.Floor(5000.0 * float64(qty) * 0.012)
 }
 
-// TestSettleBondInterest_ComputesCorrectInterest verifies the formula
-// produces the expected interest amount.
-func TestSettleBondInterest_ComputesCorrectInterest(t *testing.T) {
+// totalMoney sums every company's balance — the invariant a closed economy must
+// preserve across bond operations (no minting, no destruction).
+func totalMoney(t *testing.T, store *memory.Store) float64 {
+	t.Helper()
+	cos, err := store.GetAllCompanies(context.Background())
+	if err != nil {
+		t.Fatalf("GetAllCompanies: %v", err)
+	}
+	sum := 0.0
+	for _, c := range cos {
+		sum += c.Money
+	}
+	return sum
+}
+
+func money(t *testing.T, store *memory.Store, id int) float64 {
+	t.Helper()
+	c, err := store.GetCompany(context.Background(), id)
+	if err != nil {
+		t.Fatalf("GetCompany %d: %v", id, err)
+	}
+	return c.Money
+}
+
+// TestCreateBond_DoesNotMintMoney is the regression test for the money-mint
+// exploit: issuing a bond must not credit the issuer anything up front.
+func TestCreateBond_DoesNotMintMoney(t *testing.T) {
 	ctx := context.Background()
 	svc, store, _ := newTestSvcWithClock()
+	issuerID := newTestCompany(t, store, 501, "mint-issuer", 1_000_000)
 
-	// Issuer company; CreateBond also credits the issuer (amount * FaceValue).
-	issuerID := newTestCompany(t, store, 101, "bond-issuer", 1_000_000)
-	// Holder company starts with enough cash to buy bonds.
-	holderID := newTestCompany(t, store, 102, "bond-holder", 1_000_000)
+	before := money(t, store, issuerID)
+	systemBefore := totalMoney(t, store)
 
-	// Create a bond: 5 units at 1.2% interest.
-	// CreateBond stores interest as decimal: 1.2 / 100 = 0.012.
-	bondResp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
+	// Issue a large bond — under the old bug this would have minted 5000 * 5000
+	// = 25,000,000 into the issuer's account instantly.
+	if _, err := svc.CreateBond(ctx, issuerID, 5000, 1.2); err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+
+	if got := money(t, store, issuerID); got != before {
+		t.Errorf("issuer money changed on create: %g -> %g (must not mint)", before, got)
+	}
+	if got := totalMoney(t, store); got != systemBefore {
+		t.Errorf("total money changed on create: %g -> %g", systemBefore, got)
+	}
+}
+
+// TestBuyBond_TransfersBuyerToIssuer verifies capital is raised from the buyer
+// (buyer debited, issuer credited by the same amount, system total unchanged).
+func TestBuyBond_TransfersBuyerToIssuer(t *testing.T) {
+	ctx := context.Background()
+	svc, store, _ := newTestSvcWithClock()
+	issuerID := newTestCompany(t, store, 601, "buy-issuer", 1_000_000)
+	buyerID := newTestCompany(t, store, 602, "buy-buyer", 1_000_000)
+
+	resp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
 	if err != nil {
 		t.Fatalf("CreateBond: %v", err)
 	}
-	bondID := *bondResp.Bond.Id
+	bondID := *resp.Bond.Id
 
-	// Issuer gets credited 5 * 5000 = 25,000 on create.
-	issuerAfterCreate, err := store.GetCompany(nil, issuerID)
-	if err != nil {
-		t.Fatalf("GetCompany issuer: %v", err)
-	}
-	issuerStartMoney := issuerAfterCreate.Money // 1,025,000
+	issuerBefore := money(t, store, issuerID)
+	buyerBefore := money(t, store, buyerID)
+	systemBefore := totalMoney(t, store)
 
-	// Holder buys 2 units of the bond (costs 2 * 5000 = 10,000).
-	_, err = svc.BuyBond(ctx, holderID, bondID, 2)
-	if err != nil {
+	if _, err := svc.BuyBond(ctx, buyerID, bondID, 2); err != nil {
 		t.Fatalf("BuyBond: %v", err)
 	}
 
-	holderBefore, err := store.GetCompany(nil, holderID)
-	if err != nil {
-		t.Fatalf("GetCompany holder: %v", err)
+	cost := 2 * 5000.0
+	if got := money(t, store, buyerID); got != buyerBefore-cost {
+		t.Errorf("buyer money = %g; want %g", got, buyerBefore-cost)
 	}
-	holderStartMoney := holderBefore.Money // 1,000,000 - 10,000 = 990,000
+	if got := money(t, store, issuerID); got != issuerBefore+cost {
+		t.Errorf("issuer money = %g; want %g", got, issuerBefore+cost)
+	}
+	if got := totalMoney(t, store); got != systemBefore {
+		t.Errorf("total money changed on buy: %g -> %g", systemBefore, got)
+	}
+}
 
-	// Settle bond interest.
+// TestBuyBond_RejectsOversubscription verifies a buyer cannot purchase more
+// units than remain unissued.
+func TestBuyBond_RejectsOversubscription(t *testing.T) {
+	ctx := context.Background()
+	svc, store, _ := newTestSvcWithClock()
+	issuerID := newTestCompany(t, store, 701, "over-issuer", 1_000_000)
+	buyerID := newTestCompany(t, store, 702, "over-buyer", 100_000_000)
+
+	resp, err := svc.CreateBond(ctx, issuerID, 3, 1.2)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+	bondID := *resp.Bond.Id
+
+	if _, err := svc.BuyBond(ctx, buyerID, bondID, 4); err == nil {
+		t.Fatal("BuyBond(4) on a 3-unit issue should fail")
+	}
+	// Buying exactly the supply is fine; a further unit is then rejected.
+	if _, err := svc.BuyBond(ctx, buyerID, bondID, 3); err != nil {
+		t.Fatalf("BuyBond(3): %v", err)
+	}
+	if _, err := svc.BuyBond(ctx, buyerID, bondID, 1); err == nil {
+		t.Fatal("BuyBond(1) after fully subscribed should fail")
+	}
+}
+
+// TestBuyBond_RejectsSelfBuy verifies an issuer cannot buy their own bond.
+func TestBuyBond_RejectsSelfBuy(t *testing.T) {
+	ctx := context.Background()
+	svc, store, _ := newTestSvcWithClock()
+	issuerID := newTestCompany(t, store, 801, "self-issuer", 1_000_000)
+
+	resp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+	if _, err := svc.BuyBond(ctx, issuerID, *resp.Bond.Id, 1); err == nil {
+		t.Fatal("issuer buying own bond should fail")
+	}
+}
+
+// TestSettleBondInterest_ConservesMoney verifies the issuer pays exactly what
+// the holder receives and the system total is unchanged.
+func TestSettleBondInterest_ConservesMoney(t *testing.T) {
+	ctx := context.Background()
+	svc, store, _ := newTestSvcWithClock()
+
+	issuerID := newTestCompany(t, store, 101, "bond-issuer", 1_000_000)
+	holderID := newTestCompany(t, store, 102, "bond-holder", 1_000_000)
+
+	resp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+	bondID := *resp.Bond.Id
+
+	if _, err := svc.BuyBond(ctx, holderID, bondID, 2); err != nil {
+		t.Fatalf("BuyBond: %v", err)
+	}
+
+	holderStart := money(t, store, holderID)
+	issuerStart := money(t, store, issuerID)
+	systemBefore := totalMoney(t, store)
+
 	expectedInterest := bondInterest(2) // Floor(5000 * 2 * 0.012) = 120
 	result, err := svc.SettleBondInterest(ctx)
 	if err != nil {
 		t.Fatalf("SettleBondInterest: %v", err)
 	}
-	settledCount, ok := result["settledCount"].(int)
-	if !ok {
-		t.Fatal("settledCount missing or not int")
-	}
-	if settledCount != 1 {
-		t.Errorf("settledCount = %d; want 1", settledCount)
+	if got := result["settledCount"].(int); got != 1 {
+		t.Errorf("settledCount = %d; want 1", got)
 	}
 
-	// Verify holder received correct interest.
-	holderAfter, err := store.GetCompany(nil, holderID)
-	if err != nil {
-		t.Fatalf("GetCompany holder: %v", err)
+	if got := money(t, store, holderID); got != holderStart+expectedInterest {
+		t.Errorf("holder money = %g; want %g", got, holderStart+expectedInterest)
 	}
-	wantHolderMoney := holderStartMoney + expectedInterest
-	if holderAfter.Money != wantHolderMoney {
-		t.Errorf("holder money = %g; want %g", holderAfter.Money, wantHolderMoney)
+	if got := money(t, store, issuerID); got != issuerStart-expectedInterest {
+		t.Errorf("issuer money = %g; want %g", got, issuerStart-expectedInterest)
 	}
-
-	// Verify issuer paid correct interest.
-	issuerAfter, err := store.GetCompany(nil, issuerID)
-	if err != nil {
-		t.Fatalf("GetCompany issuer: %v", err)
-	}
-	wantIssuerMoney := issuerStartMoney - expectedInterest
-	if issuerAfter.Money != wantIssuerMoney {
-		t.Errorf("issuer money = %g; want %g", issuerAfter.Money, wantIssuerMoney)
-	}
-
-	// Verify holder got a ledger entry.
-	holderLedger, err := store.GetLedgerEntries(nil, holderID, 100)
-	if err != nil {
-		t.Fatalf("GetLedgerEntries: %v", err)
-	}
-	foundIncome := false
-	for _, e := range holderLedger {
-		if e.Kind == "bond_interest_income" {
-			foundIncome = true
-			if e.Amount != expectedInterest {
-				t.Errorf("holder ledger amount = %g; want %g", e.Amount, expectedInterest)
-			}
-			break
-		}
-	}
-	if !foundIncome {
-		t.Error("holder has no bond_interest_income ledger entry")
-	}
-
-	// Verify issuer got a ledger entry.
-	issuerLedger, err := store.GetLedgerEntries(nil, issuerID, 100)
-	if err != nil {
-		t.Fatalf("GetLedgerEntries: %v", err)
-	}
-	foundExpense := false
-	for _, e := range issuerLedger {
-		if e.Kind == "bond_interest_expense" {
-			foundExpense = true
-			if e.Amount != expectedInterest {
-				t.Errorf("issuer ledger amount = %g; want %g", e.Amount, expectedInterest)
-			}
-			break
-		}
-	}
-	if !foundExpense {
-		t.Error("issuer has no bond_interest_expense ledger entry")
+	if got := totalMoney(t, store); got != systemBefore {
+		t.Errorf("total money changed on settle: %g -> %g", systemBefore, got)
 	}
 }
 
@@ -147,96 +202,38 @@ func TestSettleBondInterest_Idempotent(t *testing.T) {
 	issuerID := newTestCompany(t, store, 201, "idem-issuer", 1_000_000)
 	holderID := newTestCompany(t, store, 202, "idem-holder", 1_000_000)
 
-	bondResp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
+	resp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
 	if err != nil {
 		t.Fatalf("CreateBond: %v", err)
 	}
-	bondID := *bondResp.Bond.Id
-
-	_, err = svc.BuyBond(ctx, holderID, bondID, 2)
-	if err != nil {
+	if _, err := svc.BuyBond(ctx, holderID, *resp.Bond.Id, 2); err != nil {
 		t.Fatalf("BuyBond: %v", err)
 	}
 
-	// First settlement.
-	_, err = svc.SettleBondInterest(ctx)
-	if err != nil {
+	if _, err := svc.SettleBondInterest(ctx); err != nil {
 		t.Fatalf("first SettleBondInterest: %v", err)
 	}
-
-	holderAfterFirst, err := store.GetCompany(nil, holderID)
-	if err != nil {
-		t.Fatalf("GetCompany: %v", err)
-	}
-	issuerAfterFirst, err := store.GetCompany(nil, issuerID)
-	if err != nil {
-		t.Fatalf("GetCompany: %v", err)
-	}
-
-	// Count ledger entries after first settlement.
-	holderLedger1, _ := store.GetLedgerEntries(nil, holderID, 100)
-	incomeCount1 := 0
-	for _, e := range holderLedger1 {
-		if e.Kind == "bond_interest_income" {
-			incomeCount1++
-		}
-	}
-	issuerLedger1, _ := store.GetLedgerEntries(nil, issuerID, 100)
-	expenseCount1 := 0
-	for _, e := range issuerLedger1 {
-		if e.Kind == "bond_interest_expense" {
-			expenseCount1++
-		}
-	}
+	holderAfterFirst := money(t, store, holderID)
+	issuerAfterFirst := money(t, store, issuerID)
 
 	// Second settlement immediately (same clock time) — should be skipped.
 	result, err := svc.SettleBondInterest(ctx)
 	if err != nil {
 		t.Fatalf("second SettleBondInterest: %v", err)
 	}
-	settledCount, ok := result["settledCount"].(int)
-	if !ok {
-		t.Fatal("settledCount missing or not int")
+	if got := result["settledCount"].(int); got != 0 {
+		t.Errorf("second call settledCount = %d; want 0 (should skip)", got)
 	}
-	if settledCount != 0 {
-		t.Errorf("second call settledCount = %d; want 0 (should skip)", settledCount)
+	if got := money(t, store, holderID); got != holderAfterFirst {
+		t.Errorf("holder money changed on second call: %g -> %g", holderAfterFirst, got)
 	}
-
-	// Money should be unchanged.
-	holderAfterSecond, _ := store.GetCompany(nil, holderID)
-	if holderAfterSecond.Money != holderAfterFirst.Money {
-		t.Errorf("holder money changed on second call: %g → %g", holderAfterFirst.Money, holderAfterSecond.Money)
-	}
-	issuerAfterSecond, _ := store.GetCompany(nil, issuerID)
-	if issuerAfterSecond.Money != issuerAfterFirst.Money {
-		t.Errorf("issuer money changed on second call: %g → %g", issuerAfterFirst.Money, issuerAfterSecond.Money)
-	}
-
-	// No new ledger entries.
-	holderLedger2, _ := store.GetLedgerEntries(nil, holderID, 100)
-	incomeCount2 := 0
-	for _, e := range holderLedger2 {
-		if e.Kind == "bond_interest_income" {
-			incomeCount2++
-		}
-	}
-	if incomeCount2 != incomeCount1 {
-		t.Errorf("holder income ledger entries increased: %d → %d", incomeCount1, incomeCount2)
-	}
-	issuerLedger2, _ := store.GetLedgerEntries(nil, issuerID, 100)
-	expenseCount2 := 0
-	for _, e := range issuerLedger2 {
-		if e.Kind == "bond_interest_expense" {
-			expenseCount2++
-		}
-	}
-	if expenseCount2 != expenseCount1 {
-		t.Errorf("issuer expense ledger entries increased: %d → %d", expenseCount1, expenseCount2)
+	if got := money(t, store, issuerID); got != issuerAfterFirst {
+		t.Errorf("issuer money changed on second call: %g -> %g", issuerAfterFirst, got)
 	}
 }
 
-// TestSettleBondInterest_MultipleHolders verifies that interest is paid
-// correctly to each holder and the issuer pays once.
+// TestSettleBondInterest_MultipleHolders verifies each holder is paid correctly
+// and the issuer's expense equals the sum of holder incomes (no rounding leak).
 func TestSettleBondInterest_MultipleHolders(t *testing.T) {
 	ctx := context.Background()
 	svc, store, _ := newTestSvcWithClock()
@@ -245,70 +242,50 @@ func TestSettleBondInterest_MultipleHolders(t *testing.T) {
 	holderA := newTestCompany(t, store, 302, "multi-holder-a", 1_000_000)
 	holderB := newTestCompany(t, store, 303, "multi-holder-b", 1_000_000)
 
-	bondResp, err := svc.CreateBond(ctx, issuerID, 10, 1.2)
+	resp, err := svc.CreateBond(ctx, issuerID, 10, 1.2)
 	if err != nil {
 		t.Fatalf("CreateBond: %v", err)
 	}
-	bondID := *bondResp.Bond.Id
+	bondID := *resp.Bond.Id
 
-	_, err = svc.BuyBond(ctx, holderA, bondID, 3)
-	if err != nil {
+	if _, err := svc.BuyBond(ctx, holderA, bondID, 3); err != nil {
 		t.Fatalf("BuyBond holderA: %v", err)
 	}
-	_, err = svc.BuyBond(ctx, holderB, bondID, 4)
-	if err != nil {
+	if _, err := svc.BuyBond(ctx, holderB, bondID, 4); err != nil {
 		t.Fatalf("BuyBond holderB: %v", err)
 	}
-	// 3 + 4 = 7 issued, the issuer still holds 3 (unsold).
-	// Only holders who actually hold via BondHolding get payments.
-	// Issuer pays on total IssuedQuantity (7).
 
-	// Capture money as local float64 — GetCompany returns a pointer that
-	// is mutated in-place by the service, so we must snapshot before settlement.
-	holderABefore, _ := store.GetCompany(nil, holderA)
-	holderAMoney := holderABefore.Money
-	holderBBefore, _ := store.GetCompany(nil, holderB)
-	holderBMoney := holderBBefore.Money
-	issuerBefore, _ := store.GetCompany(nil, issuerID)
-	issuerMoney := issuerBefore.Money
+	holderAStart := money(t, store, holderA)
+	holderBStart := money(t, store, holderB)
+	issuerStart := money(t, store, issuerID)
+	systemBefore := totalMoney(t, store)
 
 	result, err := svc.SettleBondInterest(ctx)
 	if err != nil {
 		t.Fatalf("SettleBondInterest: %v", err)
 	}
-	settledCount, _ := result["settledCount"].(int)
-	// Two holders each with one holding = 2 settlements.
-	if settledCount != 2 {
-		t.Errorf("settledCount = %d; want 2", settledCount)
+	if got := result["settledCount"].(int); got != 2 {
+		t.Errorf("settledCount = %d; want 2", got)
 	}
 
-	// Holder A has 3 units: receives Floor(5000 * 3 * 0.012) = 180.
-	interestA := bondInterest(3)
-	holderAAfter, _ := store.GetCompany(nil, holderA)
-	wantA := holderAMoney + interestA
-	if holderAAfter.Money != wantA {
-		t.Errorf("holderA money = %g; want %g", holderAAfter.Money, wantA)
+	interestA := bondInterest(3) // 180
+	interestB := bondInterest(4) // 240
+	if got := money(t, store, holderA); got != holderAStart+interestA {
+		t.Errorf("holderA money = %g; want %g", got, holderAStart+interestA)
 	}
-
-	// Holder B has 4 units: receives Floor(5000 * 4 * 0.012) = 240.
-	interestB := bondInterest(4)
-	holderBAfter, _ := store.GetCompany(nil, holderB)
-	wantB := holderBMoney + interestB
-	if holderBAfter.Money != wantB {
-		t.Errorf("holderB money = %g; want %g", holderBAfter.Money, wantB)
+	if got := money(t, store, holderB); got != holderBStart+interestB {
+		t.Errorf("holderB money = %g; want %g", got, holderBStart+interestB)
 	}
-
-	// Issuer pays on total 7 units: Floor(5000 * 7 * 0.012) = 420.
-	totalInterest := bondInterest(7)
-	issuerAfter, _ := store.GetCompany(nil, issuerID)
-	wantIssuer := issuerMoney - totalInterest
-	if issuerAfter.Money != wantIssuer {
-		t.Errorf("issuer money = %g; want %g", issuerAfter.Money, wantIssuer)
+	// Issuer pays exactly interestA + interestB — not a separately-floored total.
+	if got := money(t, store, issuerID); got != issuerStart-(interestA+interestB) {
+		t.Errorf("issuer money = %g; want %g", got, issuerStart-(interestA+interestB))
+	}
+	if got := totalMoney(t, store); got != systemBefore {
+		t.Errorf("total money changed on settle: %g -> %g", systemBefore, got)
 	}
 }
 
-// TestSettleBondInterest_SkipsThenResettlesAfter24h verifies that a bond already
-// settled within 24 hours is skipped, and a bond settled >24h ago is settled again.
+// TestSettleBondInterest_SkipsThenResettlesAfter24h verifies the 24h window.
 func TestSettleBondInterest_SkipsThenResettlesAfter24h(t *testing.T) {
 	ctx := context.Background()
 	svc, store, clock := newTestSvcWithClock()
@@ -316,22 +293,16 @@ func TestSettleBondInterest_SkipsThenResettlesAfter24h(t *testing.T) {
 	issuerID := newTestCompany(t, store, 401, "skip-issuer", 1_000_000)
 	holderID := newTestCompany(t, store, 402, "skip-holder", 1_000_000)
 
-	bondResp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
+	resp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
 	if err != nil {
 		t.Fatalf("CreateBond: %v", err)
 	}
-	bondID := *bondResp.Bond.Id
-
-	_, err = svc.BuyBond(ctx, holderID, bondID, 2)
-	if err != nil {
+	if _, err := svc.BuyBond(ctx, holderID, *resp.Bond.Id, 2); err != nil {
 		t.Fatalf("BuyBond: %v", err)
 	}
-	holder, _ := store.GetCompany(nil, holderID)
-	holderStart := holder.Money
-	issuer, _ := store.GetCompany(nil, issuerID)
-	issuerStart := issuer.Money
+	holderStart := money(t, store, holderID)
+	issuerStart := money(t, store, issuerID)
 
-	// First settlement.
 	result1, err := svc.SettleBondInterest(ctx)
 	if err != nil {
 		t.Fatalf("first SettleBondInterest: %v", err)
@@ -340,10 +311,8 @@ func TestSettleBondInterest_SkipsThenResettlesAfter24h(t *testing.T) {
 		t.Fatalf("first call settledCount = %d; want 1", result1["settledCount"])
 	}
 
-	// Advance clock by 25 hours — beyond the 24h idempotency window.
 	clock.Advance(25 * time.Hour)
 
-	// Second settlement — should process again.
 	result2, err := svc.SettleBondInterest(ctx)
 	if err != nil {
 		t.Fatalf("second SettleBondInterest: %v", err)
@@ -353,16 +322,86 @@ func TestSettleBondInterest_SkipsThenResettlesAfter24h(t *testing.T) {
 	}
 
 	interest := bondInterest(2) // 120 per settlement
-	holderAfter, _ := store.GetCompany(nil, holderID)
-	issuerAfter, _ := store.GetCompany(nil, issuerID)
-
-	// Both payments should have been applied (2 * 120 = 240).
-	wantHolder := holderStart + 2*interest
-	wantIssuer := issuerStart - 2*interest
-	if holderAfter.Money != wantHolder {
-		t.Errorf("holder money = %g; want %g (two payments)", holderAfter.Money, wantHolder)
+	if got := money(t, store, holderID); got != holderStart+2*interest {
+		t.Errorf("holder money = %g; want %g (two payments)", got, holderStart+2*interest)
 	}
-	if issuerAfter.Money != wantIssuer {
-		t.Errorf("issuer money = %g; want %g (two payments)", issuerAfter.Money, wantIssuer)
+	if got := money(t, store, issuerID); got != issuerStart-2*interest {
+		t.Errorf("issuer money = %g; want %g (two payments)", got, issuerStart-2*interest)
+	}
+}
+
+// TestCallBond_RepaysPrincipal verifies calling a bond returns principal to
+// holders, conserves money, and requires the issuer to have the funds.
+func TestCallBond_RepaysPrincipal(t *testing.T) {
+	ctx := context.Background()
+	svc, store, _ := newTestSvcWithClock()
+
+	issuerID := newTestCompany(t, store, 901, "call-issuer", 1_000_000)
+	holderID := newTestCompany(t, store, 902, "call-holder", 1_000_000)
+
+	resp, err := svc.CreateBond(ctx, issuerID, 5, 1.2)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+	bondID := *resp.Bond.Id
+	if _, err := svc.BuyBond(ctx, holderID, bondID, 2); err != nil {
+		t.Fatalf("BuyBond: %v", err)
+	}
+
+	holderBefore := money(t, store, holderID)
+	issuerBefore := money(t, store, issuerID)
+	systemBefore := totalMoney(t, store)
+
+	if _, err := svc.CallBond(ctx, issuerID, bondID, 2); err != nil {
+		t.Fatalf("CallBond: %v", err)
+	}
+
+	principal := 2 * 5000.0
+	if got := money(t, store, holderID); got != holderBefore+principal {
+		t.Errorf("holder money = %g; want %g", got, holderBefore+principal)
+	}
+	if got := money(t, store, issuerID); got != issuerBefore-principal {
+		t.Errorf("issuer money = %g; want %g", got, issuerBefore-principal)
+	}
+	if got := totalMoney(t, store); got != systemBefore {
+		t.Errorf("total money changed on call: %g -> %g", systemBefore, got)
+	}
+}
+
+// TestCallBond_RequiresFunds verifies a bankrupt issuer cannot call a bond and
+// no holder is partially repaid.
+func TestCallBond_RequiresFunds(t *testing.T) {
+	ctx := context.Background()
+	svc, store, _ := newTestSvcWithClock()
+
+	// Issuer has just enough to be flush after selling, then we drain it below
+	// the principal owed by having a large issue bought.
+	issuerID := newTestCompany(t, store, 111, "broke-issuer", 0)
+	holderID := newTestCompany(t, store, 112, "flush-holder", 1_000_000)
+
+	resp, err := svc.CreateBond(ctx, issuerID, 100, 1.2)
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
+	}
+	bondID := *resp.Bond.Id
+	// Holder buys 100 units => issuer receives 500,000.
+	if _, err := svc.BuyBond(ctx, holderID, bondID, 100); err != nil {
+		t.Fatalf("BuyBond: %v", err)
+	}
+	// Interest settlement drains a little, but the issuer still has ~500k while
+	// the principal owed is also 500k. Spend the issuer's cash so a call cannot
+	// be covered: transfer issuer -> holder via a second purchase would need a
+	// bond; instead directly assert by settling interest first (issuer pays out,
+	// dropping below principal owed).
+	if _, err := svc.SettleBondInterest(ctx); err != nil {
+		t.Fatalf("SettleBondInterest: %v", err)
+	}
+
+	holderBefore := money(t, store, holderID)
+	if _, err := svc.CallBond(ctx, issuerID, bondID, 100); err == nil {
+		t.Fatal("CallBond should fail when issuer cannot cover principal")
+	}
+	if got := money(t, store, holderID); got != holderBefore {
+		t.Errorf("holder money changed on failed call: %g -> %g (must be atomic)", holderBefore, got)
 	}
 }

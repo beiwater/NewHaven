@@ -485,11 +485,7 @@ func (s *Service) cancelBotOrderLocked(ctx context.Context, order *domainmarket.
 	// Refund reserved funds/inventory.
 	if order.IsBuy {
 		refund := order.Price * float64(remaining)
-		company, err := s.companies.GetCompany(ctx, order.CompanyID)
-		if err == nil {
-			company.Money += refund
-			_ = s.companies.UpdateCompany(ctx, company)
-		}
+		_, _ = s.companies.AdjustMoney(ctx, order.CompanyID, refund, false)
 	} else {
 		_ = s.companies.UpdateInventory(ctx, order.CompanyID, order.ResourceID, remaining)
 	}

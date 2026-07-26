@@ -41,6 +41,17 @@ type CompanyStorage interface {
 	GetAllCompanies(ctx context.Context) ([]*company.Company, error)
 	PurchaseBuilding(ctx context.Context, companyID int, building company.Building, cost float64, maxBuildings int) (*company.Building, bool, error)
 	UpdateCompany(ctx context.Context, c *company.Company) error
+	// AdjustMoney atomically applies a signed delta to a company's balance under
+	// the store lock and returns the resulting balance. When requireFunds is
+	// true and the delta would drive the balance below zero, it makes no change
+	// and returns ErrInsufficientFunds. This is the race-free way to credit or
+	// debit money; callers must never read-modify-write company.Money directly.
+	AdjustMoney(ctx context.Context, companyID int, delta float64, requireFunds bool) (float64, error)
+	// TransferMoney atomically moves amount from one company to another under a
+	// single lock. If the source lacks funds it makes no change and returns
+	// ErrInsufficientFunds. A missing source or destination returns an error and
+	// leaves both balances untouched.
+	TransferMoney(ctx context.Context, fromID, toID int, amount float64) error
 	SaveBuilding(ctx context.Context, b *company.Building) error
 	RemoveBuilding(ctx context.Context, buildingID string) error
 	GetBuildings(ctx context.Context, companyID int) ([]company.Building, error)
