@@ -67,6 +67,12 @@ func (s *Service) TakeOrder(ctx context.Context, companyID int, req *openapi.Tak
 		if o.IsBuy {
 			continue
 		}
+		// A company must not take its own sell order. Doing so debits the taker
+		// cost+fee and only credits the seller (the same company) the fill*price,
+		// so the fee is destroyed from the player's own pocket for no trade.
+		if o.CompanyID == companyID {
+			continue
+		}
 		if o.Quality != req.Quality {
 			continue
 		}

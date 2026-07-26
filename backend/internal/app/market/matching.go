@@ -154,7 +154,14 @@ func (s *Service) executeMatchFill(ctx context.Context, newBuyOrder *domainmarke
 		sellerID = newSellOrder.CompanyID
 	}
 
+	// Price-time priority: the trade executes at the resting (maker) order's
+	// price. When a new buy crosses a resting sell, the sell is the maker; when a
+	// new sell crosses a resting buy, the buy is the maker. Always using the sell
+	// price gave a resting buyer no price improvement and mis-priced the fill.
 	execPrice := sellOrder.Price
+	if newSellOrder != nil {
+		execPrice = buyOrder.Price
+	}
 	fill := buyOrder.Remaining()
 	if sellOrder.Remaining() < fill {
 		fill = sellOrder.Remaining()

@@ -80,12 +80,17 @@ func (s *Service) claimProductionLocked(ctx context.Context, companyID int, jobI
 		"resourceId": job.ResourceID,
 		"jobId":      job.ID,
 		"partial":    isPartial,
+		"quantity":   claimAmount,
 	}
 	if s.finance != nil {
+		// Production yields goods, not cash. The money Amount is therefore 0 (the
+		// unit count lives in metadata.quantity); recording claimAmount as a money
+		// inflow previously inflated cashflow and the income statement with revenue
+		// that never occurred.
 		if err := s.finance.AppendLedgerEntry(ctx, &finance.LedgerEntry{
 			CompanyID: companyID,
 			Kind:      "production_output",
-			Amount:    float64(claimAmount),
+			Amount:    0,
 			Direction: "in",
 			Metadata:  metadata,
 		}); err != nil {

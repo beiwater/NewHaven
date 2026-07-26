@@ -329,6 +329,14 @@ func (s *Service) placeBotOrderLevels(ctx context.Context, rng *rand.Rand, now t
 		if size <= 0 {
 			continue
 		}
+		// Reserve the bot's own cash for this bid, exactly like a real buy order.
+		// Without this the bot could fill against player sells with money it never
+		// had, minting currency into the economy on every trade. When the bot's
+		// finite market-making budget is exhausted it simply stops bidding.
+		reserve := price * float64(size)
+		if _, err := s.companies.AdjustMoney(ctx, s.botCompanyID, -reserve, true); err != nil {
+			continue
+		}
 		buyOrder := &domainmarket.MarketOrder{
 			ID:         s.idgen.Next("bot-buy"),
 			CompanyID:  s.botCompanyID,
@@ -342,6 +350,7 @@ func (s *Service) placeBotOrderLevels(ctx context.Context, rng *rand.Rand, now t
 		}
 		if err := s.market.CreateOrder(ctx, buyOrder); err != nil {
 			slog.Warn("[bot] create buy order failed", "resource", resourceID, "price", price, "error", err)
+			_, _ = s.companies.AdjustMoney(ctx, s.botCompanyID, reserve, false) // release reservation
 			continue
 		}
 		s.matchNewBuyOrder(ctx, buyOrder)
@@ -357,6 +366,12 @@ func (s *Service) placeBotOrderLevels(ctx context.Context, rng *rand.Rand, now t
 		if size <= 0 {
 			continue
 		}
+		// Escrow the bot's own inventory for this ask, like a real sell order, so
+		// a player buying from the bot receives goods the bot actually held rather
+		// than minting units. If the bot is out of stock it skips this level.
+		if err := s.companies.UpdateInventory(ctx, s.botCompanyID, resourceID, -size); err != nil {
+			continue
+		}
 		sellOrder := &domainmarket.MarketOrder{
 			ID:         s.idgen.Next("bot-sell"),
 			CompanyID:  s.botCompanyID,
@@ -370,6 +385,7 @@ func (s *Service) placeBotOrderLevels(ctx context.Context, rng *rand.Rand, now t
 		}
 		if err := s.market.CreateOrder(ctx, sellOrder); err != nil {
 			slog.Warn("[bot] create sell order failed", "resource", resourceID, "price", price, "error", err)
+			_ = s.companies.UpdateInventory(ctx, s.botCompanyID, resourceID, size) // release escrow
 			continue
 		}
 		s.matchNewSellOrder(ctx, sellOrder)

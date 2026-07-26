@@ -1473,21 +1473,24 @@ func TestCreateOrder_SellAutoMatchesExistingBuy(t *testing.T) {
 		t.Errorf("expected sell order status 'filled', got %s", *resp.Order.Status)
 	}
 
-	// Buyer gets 10 units, refunded (18-15)*10=30.
+	// Maker price priority: the new sell crosses the RESTING buy @ $18, so the
+	// buy (maker) sets the execution price at $18. The buyer pays their posted
+	// bid and the seller (taker) gets price improvement from $15 up to $18.
 	buyer, _ := store.GetCompany(nil, buyerCid)
 	if buyer.Inventory[5] != 10 {
 		t.Errorf("expected buyer inventory 10, got %d", buyer.Inventory[5])
 	}
-	// Buyer reserved 270, refunded 30, net spent 240.
-	// But wait: buyer initially had 10000. Reserved 270 (9730). Refunded 30 (9760). So buyer.Money should be ~9760.
-	if buyer.Money != 10000-270+30 {
-		t.Errorf("expected buyer money 9760, got %.2f", buyer.Money)
+	// Buyer reserved 18*15=270 up front; the 10-unit fill costs 18*10=180 with no
+	// excess refund (fill price == bid), and 18*5=90 stays reserved for the
+	// remaining 5 units. Net balance = 10000 - 270 = 9730.
+	if buyer.Money != 10000-270 {
+		t.Errorf("expected buyer money 9730, got %.2f", buyer.Money)
 	}
 
-	// Seller gets paid: 10*15 - fee = 150 - ceil(150*0.04)=150-6=144.
+	// Seller gets paid at the maker price: 10*18 - fee = 180 - ceil(180*0.04)=180-8=172.
 	seller, _ := store.GetCompany(nil, sellerCid)
-	if seller.Money != 1000+144 {
-		t.Errorf("expected seller money 1144, got %.2f", seller.Money)
+	if seller.Money != 1000+172 {
+		t.Errorf("expected seller money 1172, got %.2f", seller.Money)
 	}
 
 	// Buy order partially filled (15->5 remaining).

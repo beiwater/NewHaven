@@ -857,8 +857,13 @@ func TestClaimProduction_JobCompleted_CreditsInventory(t *testing.T) {
 	if entries[0].Kind != "production_output" {
 		t.Errorf("expected production_output ledger kind, got %s", entries[0].Kind)
 	}
-	if entries[0].Amount != 10 {
-		t.Errorf("expected ledger amount 10, got %v", entries[0].Amount)
+	// Production yields goods, not cash: the money amount must be 0 so it does not
+	// pollute cashflow, and the produced unit count is carried in metadata.
+	if entries[0].Amount != 0 {
+		t.Errorf("expected ledger money amount 0, got %v", entries[0].Amount)
+	}
+	if q, _ := entries[0].Metadata["quantity"].(int); q != 10 {
+		t.Errorf("expected metadata quantity 10, got %v", entries[0].Metadata["quantity"])
 	}
 }
 
