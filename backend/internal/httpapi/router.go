@@ -38,20 +38,23 @@ func NewRouter(cfg *config.Config, h *RouterHandlers) *chi.Mux {
 	r.Use(CORS)
 	// Rate limiter (skips /healthz and /readyz internally)
 	if cfg.RateLimitEnabled {
-		r.Use(NewRateLimiter(0, 0).Middleware)
-		// Tighter rate limiter for authentication endpoints (10 req/min per IP)
-		loginRateLimiter := NewRateLimiter(10, 0).Middleware
-		r.Route("/api", func(r chi.Router) {
-			r.With(loginRateLimiter).Post("/register", h.Auth.handleRegister)
-			r.With(loginRateLimiter).Post("/login", h.Auth.handleLogin)
-		})
-	} else {
-		// Auth routes (unauthenticated)
-		r.Route("/api", func(r chi.Router) {
-			r.Post("/register", h.Auth.handleRegister)
-			r.Post("/login", h.Auth.handleLogin)
-		})
+		r.Use(NewRateLimiter(cfg.RateLimitPerMinute, 0).Middleware)
 	}
+
+	// Auth routes (unauthenticated). Credential endpoints always carry the
+	// tighter per-IP limit when limiting is on: the general budget has to be
+	// wide enough for the client's polling, which would leave password guessing
+	// hundreds of attempts per minute.
+	r.Route("/api", func(r chi.Router) {
+		if cfg.RateLimitEnabled {
+			authLimiter := NewRateLimiter(authRateLimitPerMinute, 0).Middleware
+			r.With(authLimiter).Post("/register", h.Auth.handleRegister)
+			r.With(authLimiter).Post("/login", h.Auth.handleLogin)
+			return
+		}
+		r.Post("/register", h.Auth.handleRegister)
+		r.Post("/login", h.Auth.handleLogin)
+	})
 
 	// Health
 	r.Get("/healthz", handleHealthz)

@@ -24,6 +24,10 @@ import (
 	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
+// companyIDOffset is added to the raw company counter to produce a public
+// company ID, so IDs are visibly distinct from player IDs.
+const companyIDOffset = 1000000
+
 // Store is an in-memory implementation of storage.Storage.
 // Thread-safe via sync.RWMutex per domain.
 // Data is NOT persisted across restarts.
@@ -187,7 +191,6 @@ func (s *Store) collectSnapshot() *storage.GameSnapshot {
 		snap.Warehouses[k] = v
 	}
 	snap.Trades = append([]market.Trade(nil), s.trades...)
-	snap.Ledger = append([]finance.LedgerEntry(nil), s.ledger...)
 	snap.Holdings = append([]finance.BondHolding(nil), s.holdings...)
 	if s.companyResearch != nil {
 		rrCopy := make(map[string]research.ResourceResearch, len(s.companyResearch))
@@ -196,9 +199,47 @@ func (s *Store) collectSnapshot() *storage.GameSnapshot {
 		}
 		snap.CompanyResearch = rrCopy
 	}
-	snap.Messages = append([]social.Message(nil), s.messages...)
-	snap.Notifs = append([]social.Notification(nil), s.notifs...)
 	snap.NextID = s.nextCompanyID
+	snap.NextPlayerID = s.nextPlayerID
+
+	// The ledger, social message, and notification silos are guarded by their own
+	// mutexes rather than s.mu, precisely so ledger writes do not block the rest
+	// of the store. Holding s.mu therefore does NOT make reading them safe: an
+	// AppendLedgerEntry can reallocate the slice while this copy walks it. Each
+	// silo must be read under its own lock. Ordering is
+	// s.mu -> ledgerMu -> msgMu -> notifMu -> chatData; no silo method ever takes
+	// s.mu, so this direction cannot deadlock.
+	s.ledgerMu.Lock()
+	snap.Ledger = append([]finance.LedgerEntry(nil), s.ledger...)
+	snap.NextLedgerID = s.nextLedgerID
+	s.ledgerMu.Unlock()
+
+	s.msgMu.Lock()
+	snap.Messages = append([]social.Message(nil), s.messages...)
+	snap.NextMessageID = s.nextMessageID
+	s.msgMu.Unlock()
+
+	s.notifMu.Lock()
+	snap.Notifs = append([]social.Notification(nil), s.notifs...)
+	snap.NextNotifID = s.nextNotifID
+	s.notifMu.Unlock()
+
+	s.chatData.RLock()
+	snap.ChatRooms = make(map[string]*chat.ChatRoom, len(s.chatData.rooms))
+	for k, v := range s.chatData.rooms {
+		snap.ChatRooms[k] = v
+	}
+	snap.ChatMessages = make(map[string][]chat.Message, len(s.chatData.messages))
+	for k, v := range s.chatData.messages {
+		snap.ChatMessages[k] = append([]chat.Message(nil), v...)
+	}
+	snap.ChatReadAt = make(map[string]int64, len(s.chatData.readAt))
+	for k, v := range s.chatData.readAt {
+		snap.ChatReadAt[k] = v
+	}
+	snap.NextChatMessageID = s.chatData.nextID
+	s.chatData.RUnlock()
+
 	return snap
 }
 
@@ -255,11 +296,6 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 			s.jobsByRequest[productionRequestKey(job.CompanyID, job.ClientRequestID)] = job
 		}
 	}
-	if snap.Ledger != nil {
-		s.ledger = snap.Ledger
-	} else {
-		s.ledger = nil
-	}
 	s.bonds = snap.Bonds
 	if s.bonds == nil {
 		s.bonds = make(map[string]*finance.Bond)
@@ -278,36 +314,164 @@ func (s *Store) applySnapshot(snap *storage.GameSnapshot) {
 	} else {
 		s.companyResearch = make(map[string]*research.ResourceResearch)
 	}
-	if snap.Messages != nil {
-		s.messages = snap.Messages
-	} else {
-		s.messages = nil
-	}
-	if snap.Notifs != nil {
-		s.notifs = snap.Notifs
-	} else {
-		s.notifs = nil
-	}
 	s.warehouses = snap.Warehouses
 	if s.warehouses == nil {
 		s.warehouses = make(map[int]*warehouse.Warehouse)
 	}
+	// Each silo is restored under its own mutex, alongside its ID counter, for the
+	// same reason collectSnapshot reads them that way: s.mu does not guard them.
+	s.restoreLedgerLocked(snap)
+	s.restoreMessagesLocked(snap)
+	s.restoreNotifsLocked(snap)
+	s.restoreChatLocked(snap)
+	s.restoreCountersLocked(snap)
+}
+
+// restoreLedgerLocked restores the finance ledger and its ID counter.
+// The caller must hold s.mu write lock.
+func (s *Store) restoreLedgerLocked(snap *storage.GameSnapshot) {
+	s.ledgerMu.Lock()
+	defer s.ledgerMu.Unlock()
+	s.ledger = snap.Ledger
+	s.nextLedgerID = snap.NextLedgerID
+	if s.nextLedgerID <= 0 {
+		var maxID int64
+		for i := range s.ledger {
+			if s.ledger[i].ID > maxID {
+				maxID = s.ledger[i].ID
+			}
+		}
+		s.nextLedgerID = maxID + 1
+	}
+}
+
+// restoreMessagesLocked restores global/company chat messages and their counter.
+// The caller must hold s.mu write lock.
+func (s *Store) restoreMessagesLocked(snap *storage.GameSnapshot) {
+	s.msgMu.Lock()
+	defer s.msgMu.Unlock()
+	s.messages = snap.Messages
+	s.nextMessageID = snap.NextMessageID
+	if s.nextMessageID <= 0 {
+		var maxID int64
+		for i := range s.messages {
+			if s.messages[i].ID > maxID {
+				maxID = s.messages[i].ID
+			}
+		}
+		s.nextMessageID = maxID + 1
+	}
+}
+
+// restoreNotifsLocked restores notifications and their ID counter.
+// The caller must hold s.mu write lock.
+func (s *Store) restoreNotifsLocked(snap *storage.GameSnapshot) {
+	s.notifMu.Lock()
+	defer s.notifMu.Unlock()
+	s.notifs = snap.Notifs
+	s.nextNotifID = snap.NextNotifID
+	if s.nextNotifID <= 0 {
+		maxID := 0
+		for i := range s.notifs {
+			if s.notifs[i].ID > maxID {
+				maxID = s.notifs[i].ID
+			}
+		}
+		s.nextNotifID = maxID + 1
+	}
+}
+
+// restoreChatLocked repopulates private chat state from a snapshot.
+// The caller must hold s.mu write lock.
+func (s *Store) restoreChatLocked(snap *storage.GameSnapshot) {
+	s.chatData.Lock()
+	defer s.chatData.Unlock()
+
+	s.chatData.rooms = snap.ChatRooms
+	if s.chatData.rooms == nil {
+		s.chatData.rooms = make(map[string]*chat.ChatRoom)
+	}
+	s.chatData.messages = snap.ChatMessages
+	if s.chatData.messages == nil {
+		s.chatData.messages = make(map[string][]chat.Message)
+	}
+	s.chatData.readAt = snap.ChatReadAt
+	if s.chatData.readAt == nil {
+		s.chatData.readAt = make(map[string]int64)
+	}
+	s.chatData.nextID = snap.NextChatMessageID
+	if s.chatData.nextID <= 0 {
+		// Derive from the restored history so a pre-existing snapshot cannot
+		// reissue message IDs that are already in use.
+		var maxID int64
+		for _, msgs := range s.chatData.messages {
+			for i := range msgs {
+				if msgs[i].ID > maxID {
+					maxID = msgs[i].ID
+				}
+			}
+		}
+		s.chatData.nextID = maxID + 1
+	}
+}
+
+// restoreCountersLocked restores the player and company ID counters, deriving
+// either from the highest ID actually present when the snapshot does not carry
+// it. Snapshots written before the counters were persisted have them at zero;
+// starting such a store back at 1 handed the next registration an ID that an
+// existing player already owned, overwriting that player's record and, through
+// byPlayer, handing the newcomer that player's company.
+// The caller must hold s.mu write lock.
+func (s *Store) restoreCountersLocked(snap *storage.GameSnapshot) {
 	s.nextCompanyID = snap.NextID
 	if s.nextCompanyID <= 0 {
-		s.nextCompanyID = 1
+		maxID := 0
+		for id := range s.companies {
+			// Company IDs carry a display offset; nextCompanyID is the raw
+			// pre-offset counter, so undo the offset before comparing.
+			raw := id - companyIDOffset
+			if raw > maxID {
+				maxID = raw
+			}
+		}
+		s.nextCompanyID = maxID + 1
 	}
-	// Legacy fallback: other counters start from a reasonable base
-	s.nextPlayerID = 1
-	s.nextLedgerID = 1
-	s.nextMessageID = 1
-	s.nextNotifID = 1
+
+	s.nextPlayerID = snap.NextPlayerID
+	if s.nextPlayerID <= 0 {
+		maxID := 0
+		for id := range s.players {
+			if id > maxID {
+				maxID = id
+			}
+		}
+		s.nextPlayerID = maxID + 1
+	}
 }
 
 // GetSnapshotData returns a snapshot of the current game state for external callers (e.g. PG store).
+//
+// The returned snapshot shares pointers with live store state (companies, orders,
+// warehouses, ...), so it is only safe to read while no mutation is in flight.
+// Callers that want to serialise it must use MarshalSnapshotJSON instead.
 func (s *Store) GetSnapshotData() *storage.GameSnapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.collectSnapshot()
+}
+
+// MarshalSnapshotJSON serialises the current game state to JSON while holding the
+// store lock, so no mutation can be observed half-applied.
+//
+// This exists because a snapshot only copies the *pointers* to companies, orders
+// and warehouses. Marshalling one after the lock is released walks live structs,
+// and json.Marshal iterating a company's Inventory map while another goroutine
+// writes it is a "concurrent map iteration and map write" fatal error — which
+// recover() cannot catch, so it takes the whole server down.
+func (s *Store) MarshalSnapshotJSON() ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return json.Marshal(s.collectSnapshot())
 }
 
 // LoadFromSnapshot populates the store from a snapshot (e.g. loaded from PG).
@@ -373,7 +537,7 @@ func (s *Store) GetPlayerByID(_ context.Context, id int) (*auth.Player, error) {
 func (s *Store) CreateCompany(_ context.Context, c *company.Company) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	c.ID = s.nextCompanyID + 1000000
+	c.ID = s.nextCompanyID + companyIDOffset
 	s.nextCompanyID++
 	c.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	s.companies[c.ID] = c

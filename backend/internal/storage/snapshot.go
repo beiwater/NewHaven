@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/beiwater/NewHaven/backend/internal/domain/auth"
+	"github.com/beiwater/NewHaven/backend/internal/domain/chat"
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
 	"github.com/beiwater/NewHaven/backend/internal/domain/finance"
 	"github.com/beiwater/NewHaven/backend/internal/domain/market"
@@ -28,5 +29,22 @@ type GameSnapshot struct {
 	Messages            []social.Message                      `json:"messages"`
 	Notifs              []social.Notification                 `json:"notifications"`
 	Warehouses          map[int]*warehouse.Warehouse          `json:"warehouses"`
-	NextID              int                                   `json:"nextId"`
+	NextID              int                                   `json:"nextId"` // next company ID
+
+	// Private chat state. Previously absent from the snapshot entirely, so every
+	// direct-message room and its history was silently discarded on restart.
+	ChatRooms         map[string]*chat.ChatRoom `json:"chatRooms,omitempty"`
+	ChatMessages      map[string][]chat.Message `json:"chatMessages,omitempty"`
+	ChatReadAt        map[string]int64          `json:"chatReadAt,omitempty"`
+	NextChatMessageID int64                     `json:"nextChatMessageId,omitempty"`
+
+	// Remaining ID counters. Without these, a restored store restarted every
+	// counter at 1 and immediately reissued IDs that existing rows already held
+	// — a new registration would take over player 1's identity, and ledger,
+	// message, and notification IDs would collide. Omitted in snapshots written
+	// before this field existed, so restore derives them from the data instead.
+	NextPlayerID  int   `json:"nextPlayerId,omitempty"`
+	NextLedgerID  int64 `json:"nextLedgerId,omitempty"`
+	NextMessageID int64 `json:"nextMessageId,omitempty"`
+	NextNotifID   int   `json:"nextNotifId,omitempty"`
 }

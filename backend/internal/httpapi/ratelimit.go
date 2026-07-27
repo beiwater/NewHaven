@@ -10,8 +10,12 @@ import (
 )
 
 const (
-	defaultRateLimit  = 60
+	defaultRateLimit  = 900
 	defaultRateWindow = time.Minute
+	// authRateLimitPerMinute is the per-IP budget for /api/login and
+	// /api/register. Kept deliberately small so the wide general budget does not
+	// double as a password-guessing allowance.
+	authRateLimitPerMinute = 10
 )
 
 // RateLimiter implements a per-IP sliding window rate limiter.
@@ -20,6 +24,11 @@ type RateLimiter struct {
 	requests map[string][]int64 // IP -> sorted request timestamps (UnixNano)
 	limit    int
 	window   time.Duration
+	// lastSweep is when idle IP buckets were last evicted (UnixNano). Trimming
+	// only happens for IPs that are still sending, so without a sweep the map
+	// grows without bound for the lifetime of the process — one entry per IP
+	// ever seen, which an attacker rotating source addresses can drive.
+	lastSweep int64
 }
 
 // NewRateLimiter creates a RateLimiter. If limit <= 0, defaultRateLimit is used.
@@ -56,6 +65,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 		cutoff := now - windowNanos
 
 		rl.mu.Lock()
+		rl.sweepLocked(now, cutoff)
 		times := rl.requests[ip]
 
 		// Trim timestamps outside the current window.
@@ -78,6 +88,21 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// sweepLocked evicts buckets whose most recent request already fell out of the
+// window, at most once per window. The caller must hold rl.mu.
+func (rl *RateLimiter) sweepLocked(now, cutoff int64) {
+	if now-rl.lastSweep < rl.window.Nanoseconds() {
+		return
+	}
+	rl.lastSweep = now
+	for ip, times := range rl.requests {
+		// Timestamps are chronological, so the last one is the newest.
+		if len(times) == 0 || times[len(times)-1] < cutoff {
+			delete(rl.requests, ip)
+		}
+	}
 }
 
 // clientIP extracts the IP address from an http.Request, stripping the port.

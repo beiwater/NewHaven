@@ -1,10 +1,13 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const DevJWTSigningKey = "dev-secret-change-in-production"
@@ -19,8 +22,18 @@ type Config struct {
 	// Database
 	DatabaseURL string
 
+	// JWTKeyEphemeral is true when no signing key was supplied and one was
+	// generated for this process. Sessions do not survive a restart.
+	JWTKeyEphemeral bool
+
 	// Rate limiting
 	RateLimitEnabled bool
+	// RateLimitPerMinute is the per-IP budget for general API traffic. The
+	// client polls ~20 queries on 10-60s intervals, so a single idle player
+	// already issues ~90 requests/minute; the budget must clear that by a wide
+	// margin or normal play gets 429ed. Auth endpoints keep a separate tight
+	// limit (authRateLimitPerMinute).
+	RateLimitPerMinute int
 
 	// Dev mode (creates dev user/company)
 	DevMode     bool
@@ -53,15 +66,51 @@ type GameConfig struct {
 }
 
 func Load() *Config {
-	return &Config{
-		Addr:             envStr("SIM_API_ADDR", ":8088"),
-		JWTSigningKey:    envStr("SIM_API_JWT_SECRET", DevJWTSigningKey),
-		DatabaseURL:      os.Getenv("SIM_API_DATABASE_URL"),
-		RateLimitEnabled: envStr("SIM_API_RATE_LIMIT", "false") == "true",
-		DevMode:          envStr("SIM_API_DEV_MODE", "true") == "true",
-		DevPassword:      envStr("SIM_API_DEV_PASSWORD", "123"),
-		Game:             loadGameConfig(FindProjectRoot()),
+	// Dev mode must be opted into explicitly. It bootstraps a "dev" account with
+	// a well-known password and a level-100, billion-credit company; defaulting
+	// it to true meant any deployment that simply forgot to set the environment
+	// shipped that account to the internet.
+	devMode := envStr("SIM_API_DEV_MODE", "false") == "true"
+
+	c := &Config{
+		Addr:               envStr("SIM_API_ADDR", ":8088"),
+		JWTSigningKey:      os.Getenv("SIM_API_JWT_SECRET"),
+		DatabaseURL:        os.Getenv("SIM_API_DATABASE_URL"),
+		RateLimitEnabled:   envStr("SIM_API_RATE_LIMIT", "true") == "true",
+		RateLimitPerMinute: envInt("SIM_API_RATE_LIMIT_PER_MINUTE", 900),
+		DevMode:            devMode,
+		DevPassword:        envStr("SIM_API_DEV_PASSWORD", "123"),
+		Game:               loadGameConfig(FindProjectRoot()),
 	}
+
+	if c.JWTSigningKey == "" {
+		if devMode {
+			// Stable key so local sessions survive a backend restart. Safe only
+			// because dev mode is now explicit.
+			c.JWTSigningKey = DevJWTSigningKey
+		} else {
+			// Fail safe, not open: never fall back to a key that is published in
+			// this repository. Anyone holding DevJWTSigningKey can mint a valid
+			// token for any account, so an unconfigured production server used to
+			// be trivially impersonatable. A random per-process key logs everyone
+			// out on restart, which is loud and recoverable; a public key is not.
+			c.JWTSigningKey = randomSigningKey()
+			c.JWTKeyEphemeral = true
+		}
+	}
+	return c
+}
+
+// randomSigningKey returns a 32-byte cryptographically random key, hex encoded.
+func randomSigningKey() string {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		// crypto/rand failing is unrecoverable: continuing would mean signing
+		// tokens with a predictable key, which is the exact failure we are here
+		// to prevent.
+		panic("config: cannot generate JWT signing key: " + err.Error())
+	}
+	return hex.EncodeToString(buf)
 }
 
 // Validate validates the configuration, collecting all errors via errors.Join.
@@ -72,6 +121,9 @@ func (c *Config) Validate() error {
 	}
 	if !c.DevMode && c.JWTSigningKey == DevJWTSigningKey {
 		errs = append(errs, errors.New("SIM_API_JWT_SECRET must be changed when dev mode is disabled"))
+	}
+	if c.RateLimitEnabled && c.RateLimitPerMinute <= 0 {
+		errs = append(errs, errors.New("SIM_API_RATE_LIMIT_PER_MINUTE must be > 0 when rate limiting is enabled"))
 	}
 	// Game config validation
 	if c.Game != nil {
@@ -168,4 +220,18 @@ func envStr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// envInt reads an integer environment variable, falling back to def when unset
+// or unparseable.
+func envInt(key string, def int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return def
+	}
+	return n
 }
