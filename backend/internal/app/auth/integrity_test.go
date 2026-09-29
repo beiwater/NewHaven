@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -85,5 +86,44 @@ func TestRegisterRollsBackPlayerWhenCompanyCreationFails(t *testing.T) {
 	}
 	if _, err := store.GetPlayerByUsername(ctx, "rollback"); err == nil {
 		t.Fatal("player remained after failed company creation")
+	}
+}
+
+func TestRegisterAfterSnapshotRestorePreservesExistingAccountCompany(t *testing.T) {
+	// Given
+	t.Setenv("SIM_API_SNAPSHOT_PATH", filepath.Join(t.TempDir(), "snapshot.json"))
+	ctx := context.Background()
+	store := memory.New()
+	svc := newAuthService(store, store)
+	original, err := svc.Register(ctx, &domain.RegisterRequest{Username: "original", Password: "secret123"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SaveSnapshot(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	restored := memory.New()
+	if err := restored.LoadSnapshot(ctx); err != nil {
+		t.Fatal(err)
+	}
+	restoredService := newAuthService(restored, restored)
+	newcomer, err := restoredService.Register(ctx, &domain.RegisterRequest{Username: "newcomer", Password: "secret123"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if newcomer.CompanyID == original.CompanyID {
+		t.Fatal("test requires distinct companies")
+	}
+
+	// When
+	login, err := restoredService.Login(ctx, &domain.LoginRequest{Username: "original", Password: "secret123"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Then
+	if login.CompanyID != original.CompanyID {
+		t.Fatalf("original account returned to company %d after snapshot restore, want %d", login.CompanyID, original.CompanyID)
 	}
 }

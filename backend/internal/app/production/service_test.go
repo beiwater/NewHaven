@@ -624,16 +624,19 @@ func TestStartProduction_WarehouseReflectsDeduction(t *testing.T) {
 	}
 	_ = store.UpdateCompany(ctx, company)
 
-	// Check warehouse before production: should have no items
+	// Seed inventory is migrated into the quality-aware warehouse as Q0 stock.
 	warehouseBefore, err := store.GetWarehouse(ctx, company.ID)
 	if err != nil {
 		t.Fatalf("GetWarehouse before: %v", err)
 	}
-	if len(warehouseBefore.Items) != 0 {
-		t.Fatalf("expected empty warehouse before production, got %d items", len(warehouseBefore.Items))
+	if len(warehouseBefore.Items) != 1 {
+		t.Fatalf("expected 1 Q0 warehouse stack before production, got %d items", len(warehouseBefore.Items))
 	}
-	if warehouseBefore.UsedCapacity != 0 {
-		t.Fatalf("expected used_capacity 0 before production, got %d", warehouseBefore.UsedCapacity)
+	if warehouseBefore.Items[0].ResourceID != 1 || warehouseBefore.Items[0].Quality != 0 || warehouseBefore.Items[0].Amount != 50 {
+		t.Fatalf("unexpected seed warehouse stack: %+v", warehouseBefore.Items[0])
+	}
+	if warehouseBefore.UsedCapacity != 50 {
+		t.Fatalf("expected used_capacity 50 before production, got %d", warehouseBefore.UsedCapacity)
 	}
 
 	// Produce 5 Flour. Each needs 2 Grain, so 10 Grain is deducted.
@@ -747,6 +750,44 @@ func TestStartProduction_DurationMatchesFormula(t *testing.T) {
 	}
 	if *resp.Job.DurationSeconds != float32(expectedDuration) {
 		t.Errorf("expected duration %.0f, got %.0f", expectedDuration, *resp.Job.DurationSeconds)
+	}
+}
+
+func TestStartProduction_AssignedCTOUsesScienceSkill(t *testing.T) {
+	ctx := context.Background()
+	resources := map[int]*catalog.ResourceEntry{
+		1: {ID: 1, Name: "Grain", ProducedPerHourRaw: 100, ProducedFrom: map[int]int{}},
+	}
+	buildings := map[int]*catalog.BuildingEntry{
+		1: {ID: 1, Name: "Farm", Produces: []int{1}},
+	}
+	svc, store := newTestService(t, resources, buildings)
+	if err := store.CreateCompany(ctx, &domain.Company{
+		PlayerID:  91,
+		Name:      "CTO Corp",
+		Money:     100000,
+		Inventory: map[int]int{},
+		Buildings: []domain.Building{{ID: "farm-cto", BuildingID: 1, Level: 1, Name: "Farm"}},
+		Executives: []domain.Executive{{
+			ID:       "cto-1",
+			Position: domain.ExecutivePositionCTO,
+			Skills:   domain.ExecutiveSkills{Science: 50},
+		}},
+	}); err != nil {
+		t.Fatalf("CreateCompany: %v", err)
+	}
+	company, _ := store.GetCompanyByPlayerID(ctx, 91)
+	resp, err := svc.StartProduction(ctx, company.ID, &openapi.StartProductionRequest{BuildingId: "farm-cto", ResourceId: 1, Quantity: 100})
+	if err != nil {
+		t.Fatalf("StartProduction: %v", err)
+	}
+	if resp.Job == nil || resp.Job.DurationSeconds == nil {
+		t.Fatal("expected production job")
+	}
+	// 50 Science gives the documented 2x CTO speed multiplier, so 100
+	// units at a 100/hour base takes 30 minutes rather than one hour.
+	if got, want := *resp.Job.DurationSeconds, float32(1800); got != want {
+		t.Fatalf("CTO duration = %v, want %v", got, want)
 	}
 }
 
@@ -886,6 +927,7 @@ func TestClaimProduction_IsAtomicAcrossServiceInstances(t *testing.T) {
 		Money:     100000,
 		Level:     1,
 		Inventory: map[int]int{},
+		Buildings: []domain.Building{{ID: "parallel-building", BuildingID: 1, Kind: 1, Level: 1}},
 	}); err != nil {
 		t.Fatalf("CreateCompany: %v", err)
 	}
@@ -937,9 +979,24 @@ func TestClaimProduction_IsAtomicAcrossServiceInstances(t *testing.T) {
 	if job.Status != proddmn.StatusClaimed || job.ClaimedAmount != 10 || job.XPAwarded != 10 {
 		t.Fatalf("unexpected settled job: %+v", job)
 	}
+	if got, want := updatedCompany.Money, 100000.0-formula.BuildingHourlyWage(1, 1)/60; got != want {
+		t.Fatalf("production payroll was not settled exactly once: money=%g want=%g", got, want)
+	}
 	entries, _ := store.GetLedgerEntries(ctx, company.ID, 10)
-	if len(entries) != 1 {
-		t.Fatalf("production ledger entries = %d, want 1", len(entries))
+	if len(entries) != 2 {
+		t.Fatalf("production ledger entries = %d, want output plus one payroll", len(entries))
+	}
+	wages := 0
+	for _, entry := range entries {
+		if entry.Kind == "production_wages" {
+			wages++
+			if entry.Amount != formula.BuildingHourlyWage(1, 1)/60 {
+				t.Fatalf("production payroll=%g, want=%g", entry.Amount, formula.BuildingHourlyWage(1, 1)/60)
+			}
+		}
+	}
+	if wages != 1 {
+		t.Fatalf("production payroll ledger entries=%d, want 1", wages)
 	}
 }
 

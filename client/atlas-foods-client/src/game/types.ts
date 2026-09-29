@@ -18,6 +18,8 @@ export interface Building {
   status?: 'idle' | 'running' | 'ready'
   isRetail?: boolean
   shelves?: ShelfItem[]
+  workerCount?: number
+  hourlyWage?: number
   nextUpgradeCost?: number
   nextUpgradeDurationSeconds?: number
   upgradeTargetLevel?: number
@@ -27,6 +29,7 @@ export interface Building {
 
 export interface ShelfItem {
   resourceId: number
+  quality: number
   quantity: number
   maxQty: number
   price: number
@@ -39,6 +42,7 @@ export interface ProductionJob {
   id: string
   buildingId: string
   resourceId: number
+  quality: number
   amount: number
   claimedAmount?: number
   claimableAmount?: number
@@ -128,6 +132,8 @@ export interface ResourceDefinition {
   producedFrom?: Record<string, number>
   producedPerHourRaw?: number
   unitsSoldAnHour?: number
+  retailDemandPerHour?: number
+  demandMultiplier?: number
   hasEconomyModel?: boolean
   recommendedPrice?: number
   recommendedBuyPrice?: number

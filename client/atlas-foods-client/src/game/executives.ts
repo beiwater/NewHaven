@@ -1,12 +1,23 @@
 /** Executive data model aligned with Executive Curve spec */
 
 export type ExecutiveRarity = 'Legendary' | 'Epic' | 'Rare' | 'Common'
+export type ExecutivePosition = 'coo' | 'cfo' | 'cmo' | 'cto' | ''
+
+export interface ExecutiveSkills {
+  management: number
+  accounting: number
+  communication: number
+  science: number
+}
 
 /** A single executive — market candidate or owned */
 export interface Executive {
   id: string
   name: string
   title: string
+  specialty: Exclude<ExecutivePosition, ''>
+  position: ExecutivePosition
+  skills: ExecutiveSkills
   level: number
   rarity: ExecutiveRarity
   stage: string
@@ -42,11 +53,20 @@ export interface TrainResult {
   error?: string
 }
 
+export interface AssignExecutivePositionResult {
+  ok: boolean
+  executive?: Executive
+  error?: string
+}
+
 /** Shape returned by GET /api/v3/executives/{id}/ */
 export interface ExecutiveDetail {
   id: string
   name: string
   title: string
+  specialty: Exclude<ExecutivePosition, ''>
+  position: ExecutivePosition
+  skills: ExecutiveSkills
   level: number
   rarity: ExecutiveRarity
   stage: string

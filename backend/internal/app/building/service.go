@@ -142,6 +142,12 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 	buildingID := b.BuildingID
 	name := b.Name
 	level := b.Level
+	buildingKind := b.BuildingID
+	if buildingKind <= 0 {
+		buildingKind = b.Kind
+	}
+	workerCount := formula.BuildingWorkerCount(buildingKind, level)
+	hourlyWage := formula.BuildingHourlyWage(buildingKind, level)
 	mapID := b.MapID
 	slotID := b.SlotID
 	x := b.X
@@ -169,6 +175,7 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 		shelfDTOs = make([]openapi.ShelfItem, 0, len(b.Shelves))
 		for _, sh := range b.Shelves {
 			resourceID := sh.ResourceID
+			quality := sh.Quality
 			qty := sh.Quantity
 			maxQty := sh.MaxQty
 			price := sh.Price
@@ -176,6 +183,7 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 			revenue := sh.Revenue
 			shelfDTOs = append(shelfDTOs, openapi.ShelfItem{
 				ResourceId: &resourceID,
+				Quality:    &quality,
 				Quantity:   &qty,
 				MaxQty:     &maxQty,
 				Price:      &price,
@@ -196,6 +204,8 @@ func (s *Service) buildingToDTO(b *domain.Building) openapi.BuildingDTO {
 	return openapi.BuildingDTO{
 		Id:                         &id,
 		BuildingId:                 &buildingID,
+		WorkerCount:                &workerCount,
+		HourlyWage:                 &hourlyWage,
 		Name:                       &name,
 		NextUpgradeCost:            &nextUpgradeCost,
 		NextUpgradeDurationSeconds: &nextUpgradeDurationSeconds,

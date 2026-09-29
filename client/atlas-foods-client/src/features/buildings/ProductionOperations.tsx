@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWarehouse } from '@/api/inventory.api'
 import { useClaimProduction, useProductionJobs, useProductionOptions, useStartProduction } from '@/api/production.api'
+import { useResearch } from '@/api/research.api'
 import { audio } from '@/audio/AudioManager'
+import { QualitySelector } from '@/features/quality/QualitySelector'
+import { qualityRequirements } from '@/game/quality'
 import { resourceIcon, resourceName } from '@/game/resources'
 import type { Building, ProductionJob, ResourceDefinition } from '@/game/types'
 import { useUIStore } from '@/store/ui.store'
@@ -23,13 +26,6 @@ function durationLabel(amount: number, rate: number): string {
   if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
   if (hours > 0) return `${hours}h`
   return `${Math.max(1, minutes)}m`
-}
-
-function ingredientsFor(option: ResourceDefinition): Array<{ resourceId: number; quantity: number }> {
-  if (option.recipe?.length) return option.recipe
-  return Object.entries(option.producedFrom ?? {})
-    .map(([resourceId, quantity]) => ({ resourceId: Number(resourceId), quantity }))
-    .filter((ingredient) => Number.isInteger(ingredient.resourceId) && ingredient.resourceId > 0 && ingredient.quantity > 0)
 }
 
 function countdownDisplay(completesAt: string | undefined, now: number): string {
@@ -65,29 +61,44 @@ function ProductionOptionRow({
   building,
   option,
   currentStock,
+  stockAtQuality,
   amount,
   setAmount,
+  quality,
+  setQuality,
+  maxQuality,
   blocked,
   isStarting,
   guided,
   onStart,
+  onOpenResearch,
 }: {
   building: Building
   option: ResourceDefinition
   currentStock: number
+  stockAtQuality: (resourceId: number, quality: number) => number
   amount: string
   setAmount: (value: string) => void
+  quality: number
+  setQuality: (quality: number) => void
+  maxQuality: number
   blocked: boolean
   isStarting: boolean
   guided: boolean
-  onStart: (amount: number) => void
+  onStart: (amount: number, quality: number) => void
+  onOpenResearch: () => void
 }) {
   const { t } = useTranslation()
   const rate = outputPerHour(option.producedPerHourRaw, building.level)
   const maxAmount = maxAmountFor48Hours(rate)
   const numericAmount = Math.max(1, Math.min(maxAmount, parseInt(amount, 10) || 1))
   const hours24 = Math.max(1, Math.min(maxAmount, Math.floor(rate * 24)))
-  const ingredients = ingredientsFor(option)
+  const requirements = qualityRequirements(option, quality).map((requirement) => ({
+    ...requirement,
+    required: requirement.quantity * numericAmount,
+    available: stockAtQuality(requirement.resourceId, requirement.quality),
+  }))
+  const missingInputs = requirements.some((requirement) => requirement.available < requirement.required)
 
   return (
     <article className="rounded-2xl border border-amber-200/80 bg-white/70 p-4 shadow-sm transition-colors hover:border-amber-400/80">
@@ -115,13 +126,16 @@ function ProductionOptionRow({
 
         <div className="border-y border-amber-200/70 py-3 lg:border-x lg:border-y-0 lg:px-5 lg:py-2">
           <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">{t('building.requirements')}</div>
-          {ingredients.length > 0 ? (
+          {requirements.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {ingredients.map((ingredient) => (
-                <div key={ingredient.resourceId} className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-900">
-                  <span>{ingredient.quantity}×</span>
-                  <img src={resourceIcon(ingredient.resourceId)} alt="" className="h-6 w-6 object-contain" />
-                  <span className="hidden xl:inline">{resourceName(ingredient.resourceId)}</span>
+              {requirements.map((requirement) => (
+                <div key={`${requirement.resourceId}-${requirement.quality}`} className={`rounded-lg px-2 py-1.5 text-xs font-bold ${requirement.available >= requirement.required ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-700'}`}>
+                  <div className="flex items-center gap-1.5">
+                    <img src={resourceIcon(requirement.resourceId)} alt="" className="h-6 w-6 object-contain" />
+                    <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[9px] font-black text-violet-700">Q{requirement.quality}</span>
+                    <span>{requirement.required.toLocaleString()}</span>
+                  </div>
+                  <div className="mt-1 text-[9px] opacity-70">{requirement.available.toLocaleString()} {t('building.inWarehouse')}</div>
                 </div>
               ))}
             </div>
@@ -131,7 +145,13 @@ function ProductionOptionRow({
         </div>
 
         <div>
-          <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">
+          <QualitySelector value={quality} onChange={setQuality} disabled={blocked || isStarting} maxQuality={maxQuality} />
+          {maxQuality < 12 && (
+            <button type="button" onClick={onOpenResearch} className="mt-1.5 w-full text-right text-[9px] font-black text-violet-700 hover:text-violet-900">
+              {t('quality.researchToUnlock', { quality: maxQuality + 1 })}
+            </button>
+          )}
+          <div className="mb-2 mt-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">
             <span>{t('building.quantity')}</span>
             <span>{t('building.max48h')}: {maxAmount.toLocaleString()}</span>
           </div>
@@ -150,11 +170,11 @@ function ProductionOptionRow({
           </div>
           <button
             type="button"
-            onClick={() => onStart(numericAmount)}
-            disabled={blocked || isStarting || rate <= 0}
+            onClick={() => onStart(numericAmount, quality)}
+            disabled={blocked || isStarting || rate <= 0 || missingInputs}
             className={`${guided ? 'tutorial-start-production' : ''} mt-2 w-full rounded-lg bg-cyan-700 px-3 py-2.5 text-xs font-black text-white transition-colors hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
           >
-            {isStarting ? t('building.starting') : blocked ? t('building.finishCurrentRun') : t('building.startThisRun')}
+            {isStarting ? t('building.starting') : blocked ? t('building.finishCurrentRun') : missingInputs ? t('building.missingQualityInputs') : t('building.startThisRun')}
           </button>
         </div>
       </div>
@@ -167,10 +187,12 @@ export function ProductionOperations({ building }: { building: Building }) {
   const { data: options = [] } = useProductionOptions(building.id)
   const { data: jobs = [] } = useProductionJobs()
   const { data: warehouse } = useWarehouse()
+  const { data: research = [] } = useResearch()
   const startProduction = useStartProduction()
   const claimProduction = useClaimProduction()
   const setActiveView = useUIStore((state) => state.setActiveView)
   const [amounts, setAmounts] = useState<Record<number, string>>({})
+  const [qualities, setQualities] = useState<Record<number, number>>({})
   const [now, setNow] = useState(() => Date.now())
 
   const buildingJobs = jobs.filter((job) => job.buildingId === building.id && job.status !== 'claimed')
@@ -178,6 +200,7 @@ export function ProductionOperations({ building }: { building: Building }) {
   const runningJobId = runningJob?.id
   const collectableJob = buildingJobs.find((job) => collectableAmount(job, now) > 0)
   const blocked = buildingJobs.length > 0
+  const maxQualityByResource = useMemo(() => new Map(research.map((item) => [item.resourceId, item.maxQuality])), [research])
   const sortedOptions = useMemo(() => {
     const starters = new Set(building.starterProduces ?? [])
     return [...options].sort((left, right) => Number(!starters.has(left.resourceId)) - Number(!starters.has(right.resourceId)))
@@ -189,10 +212,9 @@ export function ProductionOperations({ building }: { building: Building }) {
     return () => window.clearInterval(interval)
   }, [runningJobId])
 
-  const currentStock = (resourceId: number) => warehouse?.inventory
-    .filter((item) => item.resourceId === resourceId && (item.quality ?? 0) === 0)
+  const currentStock = (resourceId: number, quality: number) => warehouse?.inventory
+    .filter((item) => item.resourceId === resourceId && (item.quality ?? 0) === quality)
     .reduce((sum, item) => sum + item.quantity, 0) ?? 0
-
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-[#f8edd7] via-[#fffaf0] to-[#f2dcb5] p-4 sm:p-6">
       <div className="mx-auto max-w-4xl">
@@ -212,7 +234,7 @@ export function ProductionOperations({ building }: { building: Building }) {
               <img src={resourceIcon(runningJob.resourceId)} alt="" className="h-10 w-10 object-contain" />
               <div className="min-w-0 flex-1">
                 <div className="flex justify-between gap-3 text-xs font-bold text-cyan-950">
-                  <span>{resourceName(runningJob.resourceId)} × {runningJob.amount.toLocaleString()}</span>
+                  <span>{resourceName(runningJob.resourceId)} <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[9px] text-violet-700">Q{runningJob.quality}</span> × {runningJob.amount.toLocaleString()}</span>
                   <span className="tabular-nums">{countdownDisplay(runningJob.completesAt, now)}</span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-cyan-200/70">
@@ -252,21 +274,27 @@ export function ProductionOperations({ building }: { building: Building }) {
           {sortedOptions.map((option, index) => {
             const rate = outputPerHour(option.producedPerHourRaw, building.level)
             const defaultAmount = String(Math.min(10, maxAmountFor48Hours(rate)))
+            const quality = qualities[option.resourceId] ?? 0
             return (
               <ProductionOptionRow
                 key={option.resourceId}
                 building={building}
                 option={option}
-                currentStock={currentStock(option.resourceId)}
+                currentStock={currentStock(option.resourceId, quality)}
+                stockAtQuality={currentStock}
                 amount={amounts[option.resourceId] ?? defaultAmount}
                 setAmount={(value) => setAmounts((current) => ({ ...current, [option.resourceId]: value }))}
+                quality={quality}
+                setQuality={(nextQuality) => setQualities((current) => ({ ...current, [option.resourceId]: nextQuality }))}
+                maxQuality={maxQualityByResource.get(option.resourceId) ?? 0}
                 blocked={blocked}
                 isStarting={startProduction.isPending}
                 guided={index === 0 && !blocked}
-                onStart={(amount) => {
+                onStart={(amount, outputQuality) => {
                   audio.playSfx('build_confirm')
-                  startProduction.mutate({ buildingId: building.id, kind: option.resourceId, amount })
+                  startProduction.mutate({ buildingId: building.id, kind: option.resourceId, amount, quality: outputQuality })
                 }}
+                onOpenResearch={() => setActiveView('research')}
               />
             )
           })}

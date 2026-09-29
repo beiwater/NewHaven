@@ -50,11 +50,13 @@ export function useStartProduction() {
       buildingId: string
       kind: number
       amount: number
+      quality: number
       estimatedSecondsToFinish?: number
       requestId?: string
     }) => api.post(`/api/v1/buildings/${params.buildingId}/busy/`, {
       kind: params.kind,
       amount: params.amount,
+      quality: params.quality,
       estimatedSecondsToFinish: params.estimatedSecondsToFinish,
       requestId: params.requestId ?? newProductionRequestId(),
     }),

@@ -6,12 +6,14 @@
     "category": "raw",
     "tier": 1,
     "producedFrom": {},
-    "producedPerHourRaw": 500,
-    "producedAnHour": 500,
-    "unitsSoldAnHour": 150,
+    "producedPerHourRaw": 43,
+    "producedAnHour": 43,
+    "unitsSoldAnHour": 40,
+    "retailDemandPerHour": 40,
+    "primaryBuildingKind": 1,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 23
+    "basePrice": 24
   },
   {
     "id": 2,
@@ -20,12 +22,14 @@
     "category": "raw",
     "tier": 1,
     "producedFrom": {},
-    "producedPerHourRaw": 420,
-    "producedAnHour": 420,
-    "unitsSoldAnHour": 130,
+    "producedPerHourRaw": 48,
+    "producedAnHour": 48,
+    "unitsSoldAnHour": 35,
+    "retailDemandPerHour": 35,
+    "primaryBuildingKind": 2,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 28
+    "basePrice": 29
   },
   {
     "id": 3,
@@ -34,12 +38,14 @@
     "category": "processed",
     "tier": 2,
     "producedFrom": { "1": 2 },
-    "producedPerHourRaw": 320,
-    "producedAnHour": 320,
-    "unitsSoldAnHour": 95,
+    "producedPerHourRaw": 36,
+    "producedAnHour": 36,
+    "unitsSoldAnHour": 24,
+    "retailDemandPerHour": 24,
+    "primaryBuildingKind": 3,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 42
+    "basePrice": 99.5
   },
   {
     "id": 4,
@@ -48,12 +54,14 @@
     "category": "processed",
     "tier": 2,
     "producedFrom": { "3": 2 },
-    "producedPerHourRaw": 260,
-    "producedAnHour": 260,
-    "unitsSoldAnHour": 80,
+    "producedPerHourRaw": 12,
+    "producedAnHour": 12,
+    "unitsSoldAnHour": 16,
+    "retailDemandPerHour": 16,
+    "primaryBuildingKind": 4,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 56
+    "basePrice": 384
   },
   {
     "id": 5,
@@ -62,12 +70,14 @@
     "category": "dairy",
     "tier": 2,
     "producedFrom": { "2": 3 },
-    "producedPerHourRaw": 180,
-    "producedAnHour": 180,
-    "unitsSoldAnHour": 70,
+    "producedPerHourRaw": 24,
+    "producedAnHour": 24,
+    "unitsSoldAnHour": 18,
+    "retailDemandPerHour": 18,
+    "primaryBuildingKind": 4,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 64
+    "basePrice": 178
   },
   {
     "id": 6,
@@ -76,12 +86,14 @@
     "category": "raw",
     "tier": 1,
     "producedFrom": {},
-    "producedPerHourRaw": 360,
-    "producedAnHour": 360,
-    "unitsSoldAnHour": 110,
+    "producedPerHourRaw": 32,
+    "producedAnHour": 32,
+    "unitsSoldAnHour": 32,
+    "retailDemandPerHour": 32,
+    "primaryBuildingKind": 1,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 31
+    "basePrice": 32.25
   },
   {
     "id": 7,
@@ -90,12 +102,14 @@
     "category": "dairy",
     "tier": 3,
     "producedFrom": { "2": 2, "5": 1 },
-    "producedPerHourRaw": 150,
-    "producedAnHour": 150,
-    "unitsSoldAnHour": 58,
+    "producedPerHourRaw": 9,
+    "producedAnHour": 9,
+    "unitsSoldAnHour": 12,
+    "retailDemandPerHour": 12,
+    "primaryBuildingKind": 4,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 92
+    "basePrice": 480
   },
   {
     "id": 8,
@@ -104,12 +118,14 @@
     "category": "protein",
     "tier": 3,
     "producedFrom": { "1": 2 },
-    "producedPerHourRaw": 120,
-    "producedAnHour": 120,
+    "producedPerHourRaw": 19,
+    "producedAnHour": 19,
     "unitsSoldAnHour": 45,
+    "retailDemandPerHour": 45,
+    "primaryBuildingKind": 2,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 116
+    "basePrice": 123
   },
   {
     "id": 9,
@@ -118,12 +134,14 @@
     "category": "meal",
     "tier": 4,
     "producedFrom": { "4": 2, "7": 1 },
-    "producedPerHourRaw": 95,
-    "producedAnHour": 95,
-    "unitsSoldAnHour": 36,
+    "producedPerHourRaw": 2,
+    "producedAnHour": 2,
+    "unitsSoldAnHour": 6,
+    "retailDemandPerHour": 6,
+    "primaryBuildingKind": 7,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 148
+    "basePrice": 2350
   },
   {
     "id": 10,
@@ -132,12 +150,14 @@
     "category": "dessert",
     "tier": 4,
     "producedFrom": { "3": 2, "5": 1, "6": 2 },
-    "producedPerHourRaw": 85,
-    "producedAnHour": 85,
-    "unitsSoldAnHour": 30,
+    "producedPerHourRaw": 6,
+    "producedAnHour": 6,
+    "unitsSoldAnHour": 8,
+    "retailDemandPerHour": 8,
+    "primaryBuildingKind": 5,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 172
+    "basePrice": 870
   },
   {
     "id": 11,
@@ -146,12 +166,14 @@
     "category": "beverage",
     "tier": 3,
     "producedFrom": { "6": 1 },
-    "producedPerHourRaw": 210,
-    "producedAnHour": 210,
-    "unitsSoldAnHour": 75,
+    "producedPerHourRaw": 50,
+    "producedAnHour": 50,
+    "unitsSoldAnHour": 30,
+    "retailDemandPerHour": 30,
+    "primaryBuildingKind": 10,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 78
+    "basePrice": 90
   },
   {
     "id": 12,
@@ -160,11 +182,13 @@
     "category": "raw",
     "tier": 1,
     "producedFrom": {},
-    "producedPerHourRaw": 460,
-    "producedAnHour": 460,
-    "unitsSoldAnHour": 140,
+    "producedPerHourRaw": 38,
+    "producedAnHour": 38,
+    "unitsSoldAnHour": 65,
+    "retailDemandPerHour": 65,
+    "primaryBuildingKind": 1,
     "isExchangeTradable": true,
     "hasEconomyModel": true,
-    "basePrice": 26
+    "basePrice": 27.25
   }
 ]

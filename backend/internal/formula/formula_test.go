@@ -664,6 +664,33 @@ func TestUnitsSoldPerHour_LowPrice(t *testing.T) {
 	}
 }
 
+func TestRetailPriceSpeedMultiplier(t *testing.T) {
+	if got := formula.RetailPriceSpeedMultiplier(24, 24); got != 1 {
+		t.Fatalf("recommended price multiplier = %g, want 1", got)
+	}
+	if got := formula.RetailPriceSpeedMultiplier(48, 24); got != 0.25 {
+		t.Fatalf("double-price multiplier = %g, want 0.25", got)
+	}
+	if got := formula.RetailPriceSpeedMultiplier(24, 1_000_000); got <= 1 {
+		t.Fatalf("discount multiplier = %g, want a modest speed boost", got)
+	}
+	if got := formula.RetailPriceSpeedMultiplier(1_000_000, 24); got >= 0.000001 {
+		t.Fatalf("extreme-price multiplier = %g, want effectively no demand", got)
+	}
+}
+
+func TestBuildingStaffingScalesWithTypeAndLevel(t *testing.T) {
+	if got := formula.BuildingWorkerCount(6, 1); got != 3 {
+		t.Fatalf("market stall level 1 workers = %d, want 3", got)
+	}
+	if got := formula.BuildingWorkerCount(6, 3); got != 9 {
+		t.Fatalf("market stall level 3 workers = %d, want 9", got)
+	}
+	if got := formula.BuildingHourlyWage(6, 3); got != 3105 {
+		t.Fatalf("market stall level 3 hourly wage = %g, want 3105", got)
+	}
+}
+
 // --- Research Formulas ---
 
 func TestResearchFormulas(t *testing.T) {
@@ -726,6 +753,21 @@ func TestResearchFormulas(t *testing.T) {
 			if got != tc.want {
 				t.Errorf("ResearchSpeedBonus(level=%d) = %g, want %g", tc.level, got, tc.want)
 			}
+		}
+	})
+
+	t.Run("QualityResearchCost", func(t *testing.T) {
+		if got := formula.QualityResearchCost(1, 1, 1000, 1.2); got != 1000 {
+			t.Fatalf("tier 1 Q1 cost = %g, want 1000", got)
+		}
+		if got := formula.QualityResearchCost(2, 2, 1000, 1.2); got != 2400 {
+			t.Fatalf("tier 2 Q2 cost = %g, want 2400", got)
+		}
+		if got := formula.QualityResearchCost(4, 12, 1000, 1.2); got != 59450 {
+			t.Fatalf("tier 4 Q12 cost = %g, want 59450", got)
+		}
+		if got := formula.QualityResearchCost(1, 13, 1000, 1.2); got != 0 {
+			t.Fatalf("out-of-range quality cost = %g, want 0", got)
 		}
 	})
 }

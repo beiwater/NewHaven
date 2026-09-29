@@ -21,6 +21,24 @@ func ResearchLevelCost(baseCost float64, level int) float64 {
 	return baseCost * math.Pow(1.2, float64(level-1))
 }
 
+// QualityResearchCost returns the cash required to unlock one target quality.
+// Product tier makes downstream goods more expensive to study, while the
+// configured growth rate keeps each step meaningful without making Q12
+// unreachable. Costs are rounded up to a player-readable $10 boundary.
+func QualityResearchCost(tier, targetQuality int, baseCost, growth float64) float64 {
+	if targetQuality < 1 || targetQuality > MaxProductQuality {
+		return 0
+	}
+	if baseCost <= 0 {
+		baseCost = 1000
+	}
+	if growth <= 1 {
+		growth = 1.2
+	}
+	raw := ResearchBaseCost(tier, baseCost) * math.Pow(growth, float64(targetQuality-1))
+	return math.Ceil(raw/10) * 10
+}
+
 // ResearchSpeedBonus returns the production speed multiplier from N research levels.
 // Each level gives 0.2% (0.002) production speed bonus.
 func ResearchSpeedBonus(level int) float64 {

@@ -67,11 +67,14 @@ func (s *Service) ListResources(ctx context.Context) (*openapi.ResourcesResponse
 			producedFrom[fmt.Sprintf("%d", k)] = v
 		}
 		recommendation := s.recommendedPrices(ctx, rid)
+		_, demandMultiplier := s.retailBaseUnitsPerHour(ctx, rid, 1, 0)
 		dto := openapi.ResourceDefinition{
+			DemandMultiplier:     &demandMultiplier,
 			ResourceId:           &rid,
 			Name:                 &r.Name,
 			ProducedFrom:         &producedFrom,
 			ProducedPerHourRaw:   &r.ProducedPerHourRaw,
+			RetailDemandPerHour:  &r.RetailDemandPerHour,
 			UnitsSoldAnHour:      &r.UnitsSoldAnHour,
 			HasEconomyModel:      &r.HasEconomyModel,
 			RecommendedPrice:     &recommendation.Fair,
@@ -112,8 +115,10 @@ func (s *Service) GetMarketTicker(ctx context.Context, resourceID int) (*openapi
 		}, nil
 	}
 
-	// Fallback: synthesize deterministic series from catalog BasePrice.
-	basePrice := s.basePriceForResource(resourceID)
+	// Fallback: synthesize a series around the current economic anchor. This
+	// keeps first-open market charts aligned with the same moving reference the
+	// liquidity bot and retail recommendations use.
+	basePrice := s.marketReferencePrice(ctx, resourceID, nil)
 	if basePrice <= 0 {
 		basePrice = 20.0 + float64(resourceID%11)*3.0
 	}
@@ -184,8 +189,8 @@ func (s *Service) buildTickerResponse(ctx context.Context, resourceID int, now t
 		}
 	}
 
-	// Fallback: synthesize deterministic series from catalog BasePrice.
-	basePrice := s.basePriceForResource(resourceID)
+	// Fallback: synthesize a series around the current economic anchor.
+	basePrice := s.marketReferencePrice(ctx, resourceID, nil)
 	if basePrice <= 0 {
 		basePrice = 20.0 + float64(resourceID%11)*3.0
 	}

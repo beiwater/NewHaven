@@ -11,6 +11,7 @@ import (
 
 	"github.com/beiwater/NewHaven/backend/internal/domain/company"
 	domainmarket "github.com/beiwater/NewHaven/backend/internal/domain/market"
+	"github.com/beiwater/NewHaven/backend/internal/storage"
 )
 
 // botConfig holds tuning parameters for bot market activity.
@@ -45,15 +46,22 @@ func (s *Service) EnsureBotCompanies(ctx context.Context) error {
 	// Check if already created by a previous run.
 	existing, err := s.companies.GetCompanyByPlayerID(ctx, botPlayerID)
 	if err == nil && existing != nil {
-		s.botCompanyID = existing.ID
-		// Top up inventory for any new resources.
+		// Top up through the inventory transaction so the legacy Q0 summary and
+		// the quality-aware warehouse never diverge after a restart.
 		for rid := range s.resources {
-			if existing.Inventory == nil {
-				existing.Inventory = make(map[int]int)
+			const targetStock = 999999
+			current := s.botQualityZeroInventory(ctx, existing, rid)
+			delta := 0
+			if current < targetStock {
+				delta = targetStock - current
 			}
-			existing.Inventory[rid] = 999999
+			// A zero delta is intentional: it repairs a stale legacy Inventory map
+			// from the authoritative warehouse stack without changing stock.
+			if err := s.companies.UpdateInventory(ctx, existing.ID, rid, delta); err != nil {
+				return fmt.Errorf("top up bot inventory for resource %d: %w", rid, err)
+			}
 		}
-		_ = s.companies.UpdateCompany(ctx, existing)
+		s.botCompanyID = existing.ID
 		return nil
 	}
 
@@ -74,6 +82,23 @@ func (s *Service) EnsureBotCompanies(ctx context.Context) error {
 	s.botCompanyID = bot.ID
 	slog.Info("bot company created", "company_id", s.botCompanyID)
 	return nil
+}
+
+func (s *Service) botQualityZeroInventory(ctx context.Context, existing *company.Company, resourceID int) int {
+	if warehouses, ok := s.companies.(storage.WarehouseStorage); ok {
+		if stock, err := warehouses.GetWarehouse(ctx, existing.ID); err == nil && stock != nil {
+			for _, item := range stock.Items {
+				if item.ResourceID == resourceID && item.Quality == 0 {
+					return item.Amount
+				}
+			}
+			return 0
+		}
+	}
+	if existing.Inventory == nil {
+		return 0
+	}
+	return existing.Inventory[resourceID]
 }
 
 // RunBotCycle generates NPC buy/sell orders to maintain market liquidity.
@@ -162,7 +187,7 @@ func (s *Service) processResourceCycle(ctx context.Context, rng *rand.Rand, now 
 		return
 	}
 
-	fairPrice, spread := s.calculateFairPrice(ctx, rng, resourceID, allOrders)
+	fairPrice, spread := s.calculateFairPrice(ctx, resourceID, allOrders)
 	netPos := s.calculateBotNetPosition(allOrders, s.botCompanyID)
 	wantedBuy, wantedSell := s.cancelStaleBotOrders(ctx, allOrders, fairPrice, spread)
 	if wantedBuy == 0 && wantedSell == 0 {
@@ -175,46 +200,19 @@ func (s *Service) processResourceCycle(ctx context.Context, rng *rand.Rand, now 
 // calculateFairPrice computes the fair price and dynamic spread from ticker/order book data.
 func (s *Service) calculateFairPrice(
 	ctx context.Context,
-	rng *rand.Rand,
 	resourceID int,
 	allOrders []domainmarket.MarketOrder,
 ) (fairPrice float64, spread float64) {
 	ticker, _ := s.market.GetTicker(ctx, resourceID)
+	anchor := s.marketReferencePrice(ctx, resourceID, allOrders)
 
-	// Calculate fairPrice
+	// Every bot cycle gently mean-reverts to the chain's moving economic
+	// centre. A recent traded price still matters, but cannot freeze an old
+	// quote after upstream costs or customer demand have moved.
 	if ticker != nil && ticker.LastPrice > 0 {
-		fairPrice = ticker.LastPrice
+		fairPrice = ticker.LastPrice*0.7 + anchor*0.3
 	} else {
-		var highestBuy, lowestSell float64
-		lowestSell = math.MaxFloat64
-		for _, o := range allOrders {
-			if o.Status != domainmarket.StatusOpen && o.Status != domainmarket.StatusPartial {
-				continue
-			}
-			if o.Remaining() <= 0 {
-				continue
-			}
-			if o.IsBuy && o.Price > highestBuy {
-				highestBuy = o.Price
-			}
-			if !o.IsBuy && o.Price < lowestSell {
-				lowestSell = o.Price
-			}
-		}
-		if highestBuy > 0 && lowestSell < math.MaxFloat64 {
-			fairPrice = (highestBuy + lowestSell) / 2
-		} else if highestBuy > 0 {
-			fairPrice = highestBuy * 1.05
-		} else if lowestSell < math.MaxFloat64 {
-			fairPrice = lowestSell * 0.95
-		} else {
-			fairPrice = s.basePriceForResource(resourceID)
-			if fairPrice <= 0 {
-				fairPrice = 20.0 + float64(resourceID%11)*3.0
-			}
-			jitter := 1.0 + (rng.Float64()-0.5)*0.1
-			fairPrice *= jitter
-		}
+		fairPrice = anchor
 	}
 
 	// Dynamic spread
@@ -462,7 +460,7 @@ func (s *Service) estimateMidPrice(ctx context.Context, resourceID int, rng *ran
 	if err == nil && ticker != nil {
 		return float64(ticker.LastPrice)
 	}
-	basePrice := s.basePriceForResource(resourceID)
+	basePrice := s.marketReferencePrice(ctx, resourceID, orders)
 	if basePrice <= 0 {
 		basePrice = 20.0 + float64(resourceID%11)*3.0
 	}

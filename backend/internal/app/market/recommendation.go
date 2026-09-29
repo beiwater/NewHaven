@@ -46,7 +46,7 @@ func (s *Service) recommendedPrices(ctx context.Context, resourceID int) priceRe
 		}
 	}
 	if fair <= 0 {
-		fair = s.basePriceForResource(resourceID)
+		fair = s.marketReferencePrice(ctx, resourceID, orders)
 	}
 	if fair <= 0 {
 		fair = 20 + float64(resourceID%11)*3

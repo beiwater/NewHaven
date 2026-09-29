@@ -140,6 +140,7 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 		id := j.ID
 		buildingID := j.BuildingID
 		resourceID := j.ResourceID
+		quality := j.Quality
 		quantity := j.Quantity
 		targetQuantity := j.TargetQuantity
 		startedAt := j.StartedAt
@@ -152,6 +153,7 @@ func (s *Service) ListProductionJobs(ctx context.Context, companyID int) (*opena
 			Id:              &id,
 			BuildingId:      &buildingID,
 			ResourceId:      &resourceID,
+			Quality:         &quality,
 			Quantity:        &quantity,
 			TargetQuantity:  &targetQuantity,
 			StartedAt:       &startedAt,
@@ -189,6 +191,7 @@ func (s *Service) ListClaimableJobs(ctx context.Context, companyID int) (*openap
 		jobID := j.ID
 		buildingID := j.BuildingID
 		resourceID := j.ResourceID
+		quality := j.Quality
 		totalAmt := j.TargetQuantity
 		claimedAmt := j.ClaimedAmount
 		claimableAmt := j.ClaimableAmount
@@ -197,6 +200,7 @@ func (s *Service) ListClaimableJobs(ctx context.Context, companyID int) (*openap
 			JobId:           &jobID,
 			BuildingId:      &buildingID,
 			ResourceId:      &resourceID,
+			Quality:         &quality,
 			TotalAmount:     &totalAmt,
 			ClaimedAmount:   &claimedAmt,
 			ClaimableAmount: &claimableAmt,

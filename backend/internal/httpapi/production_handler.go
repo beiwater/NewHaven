@@ -77,6 +77,7 @@ func (h *ProductionHandler) handleStartProductionV1(w http.ResponseWriter, r *ht
 	var req struct {
 		Kind      int     `json:"kind"`
 		Amount    int     `json:"amount"`
+		Quality   *int    `json:"quality,omitempty"`
 		RequestID *string `json:"requestId,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -93,6 +94,7 @@ func (h *ProductionHandler) handleStartProductionV1(w http.ResponseWriter, r *ht
 		BuildingId: buildingID,
 		ResourceId: req.Kind,
 		Quantity:   req.Amount,
+		Quality:    req.Quality,
 		RequestId:  req.RequestID,
 	})
 	if err != nil {
